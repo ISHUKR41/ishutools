@@ -658,166 +658,162 @@ def translate_pdf_overlay(
     preserve_images: bool = True,
 ) -> Dict:
     """
-    OVERLAY approach: translate PDF in-place preserving layout, images, and file size.
+    OVERLAY approach v2: translate PDF in-place using page.get_text('blocks').
+    Preserves layout, images, graphics, and keeps file size similar to original.
     
-    Instead of rebuilding PDF (which loses images/formatting), this approach:
-    1. Finds each text line with its bounding box and font size
-    2. Translates the text
-    3. Covers original text with a white rectangle (redaction)
-    4. Writes translated text at the same position
-    
-    Result: Same visual structure as original, just text is translated.
-    File size stays similar to original (images/graphics preserved).
+    Algorithm:
+    1. Extract text blocks with positions using get_text('blocks') [most reliable]
+    2. For each block: translate text, cover original with white rect, insert translation
+    3. Save result preserving all non-text elements (images, graphics, etc.)
     """
     doc = fitz.open(input_path)
-    translator = GoogleTranslator(source=source_lang if source_lang != 'auto' else 'auto', target=target_lang)
+    
+    # Build translator - handle 'auto' source
+    try:
+        translator = GoogleTranslator(source='auto', target=target_lang)
+    except Exception:
+        translator = GoogleTranslator(source='en', target=target_lang)
     
     total_words = 0
     total_chars = 0
     page_count = len(doc)
-    
-    # Collect all text blocks across pages for batch translation
-    # Format: {page_num: [(rect, text, fontsize, color), ...]}
-    page_blocks = {}
+    failed_pages = 0
     
     for page_num in range(page_count):
         page = doc[page_num]
-        page_blocks[page_num] = []
         
         try:
-            rawdict = page.get_text('rawdict', flags=fitz.TEXT_PRESERVE_WHITESPACE | fitz.TEXT_PRESERVE_LIGATURES)
-        except Exception:
+            # get_text('blocks') returns: (x0, y0, x1, y1, text, block_no, block_type)
+            # block_type 0 = text, 1 = image — this is the most reliable method
+            blocks = page.get_text('blocks', sort=True)
+        except Exception as e:
+            logger.warning(f'Page {page_num+1} block extraction failed: {e}')
+            failed_pages += 1
             continue
         
-        for block in rawdict.get('blocks', []):
-            if block.get('type') != 0:
+        for block in blocks:
+            # Unpack block: x0, y0, x1, y1, text, block_no, block_type
+            if len(block) < 7:
+                continue
+            x0, y0, x1, y1 = block[0], block[1], block[2], block[3]
+            text = block[4]
+            block_type = block[6]
+            
+            # Skip image blocks (type 1)
+            if block_type != 0:
                 continue
             
-            for line in block.get('lines', []):
-                spans = line.get('spans', [])
-                if not spans:
-                    continue
-                
-                # Collect line text from all spans
-                line_text = ' '.join(s.get('text', '').strip() for s in spans if s.get('text', '').strip())
-                if not line_text or len(line_text.strip()) < 3:
-                    continue
-                
-                # Skip lines that are just numbers or punctuation
-                if re.match(r'^[\s\d\W]+$', line_text):
-                    continue
-                
-                # Get bounding box
-                bbox = line.get('bbox', None)
-                if not bbox:
-                    x0 = min(s['bbox'][0] for s in spans)
-                    y0 = min(s['bbox'][1] for s in spans)
-                    x1 = max(s['bbox'][2] for s in spans)
-                    y1 = max(s['bbox'][3] for s in spans)
-                else:
-                    x0, y0, x1, y1 = bbox
-                
-                # Get font size
-                fontsize = spans[0].get('size', 11) if spans else 11
-                
-                # Get text color
-                color_int = spans[0].get('color', 0) if spans else 0
-                r = ((color_int >> 16) & 0xFF) / 255.0
-                g = ((color_int >> 8) & 0xFF) / 255.0
-                b = (color_int & 0xFF) / 255.0
-                
-                page_blocks[page_num].append({
-                    'rect': fitz.Rect(x0, y0, x1, y1),
-                    'text': line_text,
-                    'fontsize': max(fontsize, 6),
-                    'color': (r, g, b),
-                })
-                
-                total_words += len(line_text.split())
-                total_chars += len(line_text)
-    
-    # Translate all texts (batch per page to avoid rate limits)
-    for page_num in range(page_count):
-        blocks = page_blocks[page_num]
-        if not blocks:
-            continue
-        
-        page = doc[page_num]
-        
-        # Translate each block
-        for block_info in blocks:
-            orig_text = block_info['text']
+            # Clean and validate text
+            text = text.strip()
+            if not text or len(text) < 3:
+                continue
             
-            # Chunked translation for long texts
+            # Skip blocks that are just numbers, punctuation, or whitespace
+            if re.match(r'^[\s\d\W]+$', text):
+                continue
+            
+            # Create rect for this block
+            rect = fitz.Rect(x0, y0, x1, y1)
+            
+            # Validate rect dimensions
+            if rect.width < 5 or rect.height < 5:
+                continue
+            
+            # Translate the text (with chunking for long texts)
             try:
-                if len(orig_text) > 4500:
-                    chunks = [orig_text[i:i+4000] for i in range(0, len(orig_text), 4000)]
-                    translated = ' '.join(
-                        _retry_translate(translator, chunk) or chunk
-                        for chunk in chunks
-                    )
+                if len(text) > 4500:
+                    chunks = [text[i:i+4000] for i in range(0, len(text), 4000)]
+                    translated_parts = []
+                    for chunk in chunks:
+                        t = _retry_translate_v2(translator, chunk)
+                        translated_parts.append(t or chunk)
+                    translated = ' '.join(translated_parts)
                 else:
-                    translated = _retry_translate(translator, orig_text) or orig_text
+                    translated = _retry_translate_v2(translator, text) or text
+                
+                total_words += len(text.split())
+                total_chars += len(text)
             except Exception as e:
-                logger.warning(f'Translation failed for block: {e}')
-                translated = orig_text
+                logger.warning(f'Translation error page {page_num+1}: {e}')
+                translated = text  # Keep original if translation fails
             
-            rect = block_info['rect']
-            fontsize = block_info['fontsize']
-            color = block_info['color']
-            
-            # Step 1: Add a white redaction rectangle over original text
+            # Step 1: Cover original text with white rectangle
             try:
-                # Draw a white filled rectangle to cover original text
-                page.draw_rect(rect, color=None, fill=(1, 1, 1), overlay=True)
-            except Exception:
-                pass
+                # Slightly expand rect to ensure full coverage
+                cover_rect = fitz.Rect(x0 - 1, y0 - 1, x1 + 1, y1 + 1)
+                page.draw_rect(cover_rect, color=None, fill=(1.0, 1.0, 1.0), overlay=True)
+            except Exception as e:
+                logger.debug(f'White rect failed: {e}')
+                continue
             
-            # Step 2: Insert translated text in the same position
+            # Step 2: Insert translated text in same position
+            # Estimate font size from block height (rough heuristic)
+            estimated_fontsize = max(8, min(rect.height * 0.75, 24))
+            
             try:
-                # Use insert_textbox for better text fitting
-                page.insert_textbox(
+                # Try textbox first (handles multi-line better)
+                rc = page.insert_textbox(
                     rect,
                     translated,
-                    fontsize=min(fontsize, rect.height * 0.85) if rect.height > 0 else fontsize,
+                    fontsize=estimated_fontsize,
                     fontname='helv',
-                    color=color if any(c > 0 for c in color) else (0, 0, 0),
-                    align=0,  # left align
+                    color=(0, 0, 0),
+                    align=0,
                     overlay=True,
                 )
+                # If text overflowed, try smaller font
+                if rc < 0:
+                    page.insert_textbox(
+                        rect,
+                        translated,
+                        fontsize=max(6, estimated_fontsize * 0.7),
+                        fontname='helv',
+                        color=(0, 0, 0),
+                        align=0,
+                        overlay=True,
+                    )
             except Exception:
                 try:
-                    # Fallback: simpler text insertion
+                    # Fallback: simple text at block origin
                     page.insert_text(
-                        (rect.x0, rect.y1 - 1),
-                        translated[:200],
-                        fontsize=max(fontsize * 0.85, 6),
+                        (x0, y0 + estimated_fontsize),
+                        translated[:300],
+                        fontsize=max(8, estimated_fontsize),
                         color=(0, 0, 0),
                         overlay=True,
                     )
                 except Exception as e2:
                     logger.warning(f'Text insertion failed: {e2}')
     
-    # Save with good compression but preserving everything
-    doc.save(
-        output_path,
-        garbage=3,
-        deflate=True,
-        clean=False,
-        linear=False,
-    )
+    # Save: preserve everything (garbage collect unreferenced objects)
+    try:
+        doc.save(
+            output_path,
+            garbage=3,      # Remove unreferenced objects
+            deflate=True,   # Compress streams
+            clean=False,    # Don't strip anything extra
+            linear=False,   # Don't linearize (keeps original structure)
+        )
+    except Exception as e:
+        logger.error(f'Save failed: {e}')
+        raise
     
-    original_size = os.path.getsize(input_path)
-    output_size = os.path.getsize(output_path)
+    try:
+        original_size = os.path.getsize(input_path)
+        output_size = os.path.getsize(output_path)
+    except Exception:
+        original_size = 0
+        output_size = 0
     
     doc.close()
     
     return {
         'success': True,
-        'method': 'overlay',
+        'method': 'overlay_v2',
         'word_count': total_words,
         'chars_translated': total_chars,
         'page_count': page_count,
+        'failed_pages': failed_pages,
         'target_lang': target_lang,
         'original_size': original_size,
         'output_size': output_size,
@@ -827,18 +823,25 @@ def translate_pdf_overlay(
     }
 
 
-def _retry_translate(translator: GoogleTranslator, text: str, retries: int = 3) -> Optional[str]:
-    """Translate with retry logic and exponential backoff."""
+def _retry_translate_v2(translator: GoogleTranslator, text: str, retries: int = 3) -> Optional[str]:
+    """Translate with retry and exponential backoff. Returns None on complete failure."""
+    last_err = None
     for attempt in range(retries):
         try:
             result = translator.translate(text)
-            return result
+            if result and result.strip():
+                return result
         except Exception as e:
+            last_err = e
             if attempt < retries - 1:
-                time.sleep(0.5 * (2 ** attempt))
-            else:
-                logger.warning(f'Translation failed after {retries} retries: {e}')
+                time.sleep(0.3 * (2 ** attempt))
+    if last_err:
+        logger.debug(f'translate_v2 failed after {retries} retries: {last_err}')
     return None
+
+
+# _retry_translate kept as alias
+_retry_translate = _retry_translate_v2
 
 
 # ── Public API ────────────────────────────────────────────────────────────────

@@ -1980,3 +1980,44 @@ img { max-width: 100%; display: block; }
   gap: 0.25rem 1rem;
 }
 .seo-inner ul li::before { content: '✓ '; color: #6366f1; }
+
+/* ═══ Tool SEO Section ══════════════════════════════════════════════════════ */
+.tool-seo-section {
+  background: var(--surface, #0f0f1a);
+  border-top: 1px solid rgba(99,102,241,0.12);
+  padding: 1.5rem 0 1rem;
+  margin-top: 2rem;
+}
+.tool-seo-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+.tool-seo-inner h2, .tool-seo-inner h3 {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  margin: 0.8rem 0 0.4rem;
+  font-weight: 600;
+}
+.tool-seo-inner h4 {
+  color: #7c8494;
+  font-size: 0.83rem;
+  margin: 0.5rem 0 0.2rem;
+  font-weight: 600;
+}
+.tool-seo-inner a { color: #6366f1; text-decoration: none; }
+.tool-seo-inner a:hover { text-decoration: underline; }
+.seo-features {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.2rem 1rem;
+}
+.seo-features li::before { content: '✓ '; color: #6366f1; font-weight: bold; }
+.seo-faq { margin: 0.6rem 0; }
+.faq-item { margin: 0.4rem 0; }
+.seo-tagline { margin-top: 0.8rem; font-size: 0.78rem; opacity: 0.7; }
