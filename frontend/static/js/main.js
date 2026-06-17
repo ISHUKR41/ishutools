@@ -984,6 +984,57 @@ function initRevealUp() {
   });
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   FAQ TABS
+   ══════════════════════════════════════════════════════════════════════ */
+function initFaqTabs() {
+  const tabs = document.querySelectorAll('.faq-tab');
+  const grids = document.querySelectorAll('.faq-pro-grid');
+  if (!tabs.length) return;
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.dataset.tab;
+      grids.forEach(g => {
+        if (g.dataset.tabcontent === target) {
+          g.classList.remove('hidden');
+        } else {
+          g.classList.add('hidden');
+        }
+      });
+    });
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ABOUT PRO SECTION — Entrance animations on scroll
+   ══════════════════════════════════════════════════════════════════════ */
+function initAboutAnimations() {
+  if (!('IntersectionObserver' in window)) return;
+  const cards = document.querySelectorAll('.aps-card, .apf-card, .about-dev-card, .faqp-item');
+  if (!cards.length) return;
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        const delay = parseFloat(e.target.dataset.delay || '0');
+        setTimeout(() => {
+          e.target.style.transform = 'translateY(0)';
+          e.target.style.opacity = '1';
+        }, delay * 1000 + i * 50);
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+
+  cards.forEach((card, i) => {
+    card.style.transform = 'translateY(24px)';
+    card.style.opacity = '0';
+    card.style.transition = 'transform .5s ease, opacity .45s ease';
+    io.observe(card);
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initParticles();
@@ -998,6 +1049,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initKeyboard();
   initBackToTop();
   initRevealUp();
+  initFaqTabs();
   setTimeout(initAnimations, 200);
   setTimeout(initTyped, 900);
+  setTimeout(initAboutAnimations, 400);
 });
