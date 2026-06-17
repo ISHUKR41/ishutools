@@ -4,3 +4,7 @@
 - [GSAP opacity danger](gsap-opacity.md) — Never use opacity:0 in gsap.from() for above-fold elements; use y-only animations so content is always visible
 - [Tool card navigation](tool-card-nav.md) — Cards are <a> links; add path field to TOOLS for mismatched folder names; all tool folders need empty style.css+script.js to avoid 404s
 - [Tool path redirects](tool-redirects.md) — app.py TOOL_REDIRECTS dict handles renamed tool URLs with 301 redirects; summarize-pdf canonical, ai-summarizer 301 → summarize-pdf
+- [CSS edit exact match](css-edit-exact.md) — main.css section headers use em-dashes with varying dash counts; always grep exact line before edit() to avoid mismatch
+- [Marquee strip pattern](marquee-strip.md) — Duplicate marquee-row with aria-hidden="true" for seamless loop; use min-width:100% + animation-delay:-halfDuration for the duplicate
+- [Counter IntersectionObserver](counter-io.md) — initCounters uses IO with threshold:.5; counters appear mid-animation in screenshots (correct — they animate on scroll-into-view)
+- [redact-pdf accent color](redact-color.md) — redact-pdf originally used #1F2937 (near-black); changed to #64748B/#475569 for visible gradient on dark background

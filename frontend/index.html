@@ -30,6 +30,20 @@
   <meta name="twitter:description" content="35+ free PDF tools. No signup, no watermark. Merge, Split, Convert, OCR & more." />
   <meta name="twitter:image" content="https://ishutools.fun/static/icons/og-image.png" />
 
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "IshuTools",
+    "url": "https://ishutools.fun",
+    "description": "35+ Free Online PDF Tools — Merge, Split, Compress, Convert, OCR, Sign & more. No signup, no watermark.",
+    "author": { "@type": "Person", "name": "Ishu Kumar", "url": "https://github.com/ISHUKR41" },
+    "potentialAction": { "@type": "SearchAction", "target": "https://ishutools.fun/?q={search_term_string}", "query-input": "required name=search_term_string" },
+    "publisher": { "@type": "Organization", "name": "IshuTools", "url": "https://ishutools.fun" }
+  }
+  </script>
+
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="/static/icons/favicon.svg" />
   <link rel="apple-touch-icon" href="/static/icons/favicon.svg" />
@@ -339,14 +353,34 @@
     </div>
   </section>
 
-  <!-- ═══ FEATURES STRIP ═══ -->
-  <div class="features-strip">
-    <div class="feat-item"><i class="fas fa-bolt"></i><span>Lightning Fast</span></div>
-    <div class="feat-item"><i class="fas fa-shield-halved"></i><span>100% Secure</span></div>
-    <div class="feat-item"><i class="fas fa-mobile-alt"></i><span>All Devices</span></div>
-    <div class="feat-item"><i class="fas fa-infinity"></i><span>Unlimited Use</span></div>
-    <div class="feat-item"><i class="fas fa-certificate"></i><span>Professional Quality</span></div>
-    <div class="feat-item"><i class="fas fa-user-slash"></i><span>No Signup</span></div>
+  <!-- ═══ FEATURES STRIP (Infinite Marquee) ═══ -->
+  <div class="features-strip" aria-label="Feature highlights">
+    <div class="marquee-track">
+      <div class="marquee-row" aria-hidden="false">
+        <div class="feat-item"><i class="fas fa-bolt"></i><span>Lightning Fast Processing</span></div>
+        <div class="feat-item"><i class="fas fa-shield-halved"></i><span>100% Secure &amp; Private</span></div>
+        <div class="feat-item"><i class="fas fa-mobile-alt"></i><span>Works on All Devices</span></div>
+        <div class="feat-item"><i class="fas fa-infinity"></i><span>Unlimited Use — Always Free</span></div>
+        <div class="feat-item"><i class="fas fa-certificate"></i><span>Professional Quality Output</span></div>
+        <div class="feat-item"><i class="fas fa-user-slash"></i><span>No Signup Required</span></div>
+        <div class="feat-item"><i class="fas fa-cloud-upload-alt"></i><span>Files Auto-Deleted After Use</span></div>
+        <div class="feat-item"><i class="fas fa-tools"></i><span>35+ PDF Tools</span></div>
+        <div class="feat-item"><i class="fas fa-brain"></i><span>AI-Powered Features</span></div>
+        <div class="feat-item"><i class="fas fa-download"></i><span>No App Install Needed</span></div>
+      </div>
+      <div class="marquee-row" aria-hidden="true">
+        <div class="feat-item"><i class="fas fa-bolt"></i><span>Lightning Fast Processing</span></div>
+        <div class="feat-item"><i class="fas fa-shield-halved"></i><span>100% Secure &amp; Private</span></div>
+        <div class="feat-item"><i class="fas fa-mobile-alt"></i><span>Works on All Devices</span></div>
+        <div class="feat-item"><i class="fas fa-infinity"></i><span>Unlimited Use — Always Free</span></div>
+        <div class="feat-item"><i class="fas fa-certificate"></i><span>Professional Quality Output</span></div>
+        <div class="feat-item"><i class="fas fa-user-slash"></i><span>No Signup Required</span></div>
+        <div class="feat-item"><i class="fas fa-cloud-upload-alt"></i><span>Files Auto-Deleted After Use</span></div>
+        <div class="feat-item"><i class="fas fa-tools"></i><span>35+ PDF Tools</span></div>
+        <div class="feat-item"><i class="fas fa-brain"></i><span>AI-Powered Features</span></div>
+        <div class="feat-item"><i class="fas fa-download"></i><span>No App Install Needed</span></div>
+      </div>
+    </div>
   </div>
 
   <!-- ═══ TOOLS MAIN ═══ -->
@@ -472,6 +506,24 @@
 
   </main>
 
+  <!-- ═══ CTA SECTION ═══ -->
+  <section class="cta-section">
+    <div class="cta-inner">
+      <div class="cta-badge"><i class="fas fa-check-circle"></i>&nbsp; 100% Free Forever</div>
+      <h2>Ready to Work with PDFs?</h2>
+      <p>Join thousands of users who trust IshuTools for fast, free, and private PDF processing. No signup, no watermarks, no limits.</p>
+      <a href="#toolsMain" class="cta-btn" onclick="event.preventDefault();document.getElementById('toolsMain').scrollIntoView({behavior:'smooth'})">
+        <i class="fas fa-rocket"></i> Browse All 35+ Tools
+      </a>
+      <div class="cta-sub">
+        <span><i class="fas fa-check"></i> No signup needed</span>
+        <span><i class="fas fa-check"></i> Files deleted instantly</span>
+        <span><i class="fas fa-check"></i> Works on mobile</span>
+        <span><i class="fas fa-check"></i> No file size tricks</span>
+      </div>
+    </div>
+  </section>
+
   <!-- ═══ WHY SECTION ═══ -->
   <section class="why-section">
     <div class="why-inner">
@@ -581,6 +633,11 @@
 
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Back to Top -->
+  <button class="back-to-top" id="backToTop" aria-label="Back to top">
+    <i class="fas fa-arrow-up"></i>
+  </button>
 
   <!-- Main JavaScript -->
   <script src="/static/js/main.js"></script>

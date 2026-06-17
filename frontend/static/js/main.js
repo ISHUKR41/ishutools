@@ -149,7 +149,7 @@ const TOOLS = [
       {type:'text',name:'pages',label:'Pages (last, all, or number)',placeholder:'last'},
     ]},
 
-  { id:'redact-pdf',      name:'Redact PDF',          category:'security',     icon:'fas fa-user-secret',          accent:'#1F2937', accent2:'#374151', badge:null,
+  { id:'redact-pdf',      name:'Redact PDF',          category:'security',     icon:'fas fa-user-secret',          accent:'#64748B', accent2:'#475569', badge:null,
     desc:'Permanently redact sensitive text from PDF', endpoint:'/api/redact-pdf', multiFile:false, accept:'.pdf',
     fields:[{type:'textarea',name:'keywords',label:'Keywords to Redact (one per line)',placeholder:'phone number\nemail@email.com\nSSN'}]},
 
@@ -297,18 +297,58 @@ window.closeMobileMenu = function () {
 };
 
 /* ══════════════════════════════════════════════════════════════════════
-   COUNTER ANIMATION
+   COUNTER ANIMATION (IntersectionObserver — only fires when visible)
    ══════════════════════════════════════════════════════════════════════ */
 function initCounters() {
-  document.querySelectorAll('[data-count]').forEach(el => {
+  const els = document.querySelectorAll('[data-count]');
+  if (!els.length) return;
+  const easeOutQuart = t => 1 - Math.pow(1 - t, 4);
+  const run = el => {
+    if (el._counted) return;
+    el._counted = true;
     const target = parseInt(el.dataset.count, 10);
-    let cur = 0;
-    const step = Math.max(1, Math.ceil(target / 35));
-    const t = setInterval(() => {
-      cur = Math.min(cur + step, target);
-      el.textContent = cur;
-      if (cur >= target) clearInterval(t);
-    }, 45);
+    const dur = 1400;
+    const start = performance.now();
+    const tick = now => {
+      const p = Math.min((now - start) / dur, 1);
+      el.textContent = Math.round(easeOutQuart(p) * target);
+      if (p < 1) requestAnimationFrame(tick);
+      else el.textContent = target;
+    };
+    requestAnimationFrame(tick);
+  };
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { run(e.target); io.unobserve(e.target); } });
+    }, { threshold: .5 });
+    els.forEach(el => io.observe(el));
+  } else { els.forEach(run); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SCROLL REVEAL for tool cards
+   ══════════════════════════════════════════════════════════════════════ */
+function initScrollReveal() {
+  if (!('IntersectionObserver' in window)) return;
+  const cards = document.querySelectorAll('.tool-card:not([data-revealed])');
+  if (!cards.length) return;
+  const vH = window.innerHeight;
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.remove('reveal-hidden');
+        e.target.classList.add('reveal-visible');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: .05, rootMargin: '0px 0px -20px 0px' });
+  cards.forEach((el, i) => {
+    el.dataset.revealed = '1';
+    const rect = el.getBoundingClientRect();
+    if (rect.top < vH) return; /* already in view — show immediately */
+    el.style.transitionDelay = (i % 12 * 35) + 'ms';
+    el.classList.add('reveal-hidden');
+    io.observe(el);
   });
 }
 
@@ -348,12 +388,13 @@ function renderTools(filter, query) {
     section && (section.style.display = '');
     grid.innerHTML = tools.map(t => buildCardHTML(t)).join('');
     visible += tools.length;
-
-    /* Cards are now <a> links — no click listeners needed */
   });
 
   const noRes = document.getElementById('noResults');
   noRes && (noRes.style.display = visible === 0 ? 'block' : 'none');
+
+  /* Trigger scroll-reveal on newly rendered cards */
+  setTimeout(initScrollReveal, 60);
 }
 
 function buildCardHTML(t) {
@@ -361,10 +402,11 @@ function buildCardHTML(t) {
     ? `<div class="tool-badge ${t.badge}">${t.badge === 'hot' ? '🔥 HOT' : '✨ NEW'}</div>` : '';
   const url = '/tools/' + (t.path || t.id) + '/';
   return `
-<a class="tool-card" data-id="${t.id}" href="${url}" aria-label="${t.name}">
+<a class="tool-card" data-id="${t.id}" href="${url}" aria-label="${t.name}"
+   style="--card-accent:${t.accent};--card-accent2:${t.accent2||t.accent}">
   ${badge}
-  <div class="tool-icon-wrap" style="background:${t.accent}1A">
-    <i class="${t.icon}" style="color:${t.accent}"></i>
+  <div class="tool-icon-wrap" style="background:${t.accent}18">
+    <i class="${t.icon}" style="color:${t.accent}; font-size:1.4rem"></i>
   </div>
   <div class="tool-info">
     <div class="tool-name">${t.name}</div>
@@ -880,6 +922,18 @@ function initKeyboard() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   BACK TO TOP
+   ══════════════════════════════════════════════════════════════════════ */
+function initBackToTop() {
+  const btn = document.getElementById('backToTop');
+  if (!btn) return;
+  window.addEventListener('scroll', () => {
+    btn.classList.toggle('visible', window.scrollY > 500);
+  }, { passive: true });
+  btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    INIT — DOMContentLoaded
    ══════════════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
@@ -889,10 +943,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initHeaderScroll();
   initMobileMenu();
   initCounters();
-  renderTools('all', '');   // Render all tools immediately, fully visible
+  renderTools('all', '');
   initSearch();
   initFilterBar();
   initModalEvents();
   initKeyboard();
+  initBackToTop();
   setTimeout(initAnimations, 200);
 });

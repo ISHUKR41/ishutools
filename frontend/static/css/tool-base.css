@@ -1149,3 +1149,74 @@ img, svg { max-width: 100%; }
   .footer-links-grid { grid-template-columns: 1fr; }
   .header-inner-wrap { padding: 0 16px; gap: 12px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ENHANCED DRAG-OVER ANIMATION
+═══════════════════════════════════════════════════════════════════════════ */
+.drop-zone.drag-over {
+  border-color: var(--accent) !important;
+  background: var(--accent-glow-sm) !important;
+  transform: scale(1.01) !important;
+}
+.drop-zone.drag-over::after {
+  content: ''; position: absolute; inset: -3px;
+  border-radius: inherit;
+  border: 2px solid var(--accent);
+  opacity: .6;
+  animation: dropPing .8s ease-out infinite;
+}
+@keyframes dropPing {
+  0%   { transform: scale(1); opacity: .6; }
+  100% { transform: scale(1.05); opacity: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ENHANCED RESULT CARD SUCCESS STATE
+═══════════════════════════════════════════════════════════════════════════ */
+.result-card {
+  animation: resultSlideIn .45s var(--ease) both;
+}
+@keyframes resultSlideIn {
+  from { opacity: 0; transform: translateY(16px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Enhanced result header */
+.result-card-header {
+  background: linear-gradient(135deg, rgba(16,185,129,.08), rgba(16,185,129,.03));
+}
+
+/* Better progress bar shimmer overlay */
+.progress-fill::after {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.25) 50%, transparent 100%);
+  animation: shimmerSlide 1.5s linear infinite;
+  border-radius: inherit;
+}
+@keyframes shimmerSlide {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FILE LIST ENHANCED
+═══════════════════════════════════════════════════════════════════════════ */
+.file-item {
+  animation: fileItemIn .3s var(--ease) both;
+}
+@keyframes fileItemIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BETTER MOBILE FILE ITEM
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .drop-zone { min-height: 140px; }
+  .dz-main-icon { font-size: 2rem; }
+  .dz-title { font-size: .88rem; }
+  .process-btn { font-size: .92rem; padding: 14px 20px; }
+  .result-actions { gap: 10px; }
+  .btn-download { padding: 12px 20px; font-size: .88rem; }
+}
