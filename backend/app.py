@@ -368,12 +368,15 @@ def api_img_to_pdf():
 def api_word_to_pdf():
     """Convert Word (.docx/.doc) to PDF."""
     try:
-        file = request.files.get('file')
+        file        = request.files.get('file')
         if not file:
             return error_response('No file uploaded.')
+        page_size   = request.form.get('page_size', 'A4').lower()
+        quality     = request.form.get('quality', 'standard')
+        gs_quality  = 'printer' if quality == 'high' else 'ebook'
         path = save_uploaded_file(file, '.docx')
         out  = output_path('converted.pdf')
-        word_to_pdf(path, out)
+        word_to_pdf(path, out, page_size=page_size, gs_quality=gs_quality)
         return send_result(out, 'converted.pdf')
     except Exception as e:
         logger.exception("word-to-pdf error")
@@ -383,12 +386,21 @@ def api_word_to_pdf():
 def api_pptx_to_pdf():
     """Convert PowerPoint (.pptx) to PDF."""
     try:
-        file = request.files.get('file')
+        file          = request.files.get('file')
         if not file:
             return error_response('No file uploaded.')
+        slide_size    = request.form.get('slide_size', 'widescreen')
+        include_notes = request.form.get('include_notes', 'false') == 'true'
+        size_map = {
+            'widescreen': 'landscape_a4',
+            'standard':   'a4',
+            'A4':         'a4',
+            'letter':     'letter',
+        }
+        page_size = size_map.get(slide_size, 'landscape_a4')
         path = save_uploaded_file(file, '.pptx')
         out  = output_path('converted.pdf')
-        pptx_to_pdf(path, out)
+        pptx_to_pdf(path, out, page_size=page_size, add_notes_appendix=include_notes)
         return send_result(out, 'converted.pdf')
     except Exception as e:
         logger.exception("pptx-to-pdf error")
@@ -398,12 +410,19 @@ def api_pptx_to_pdf():
 def api_excel_to_pdf():
     """Convert Excel (.xlsx/.xls) to PDF."""
     try:
-        file = request.files.get('file')
+        file        = request.files.get('file')
         if not file:
             return error_response('No file uploaded.')
+        page_size   = request.form.get('page_size', 'A4')
+        orientation = request.form.get('orientation', 'landscape')
+        # Build page_size string that excel_to_pdf understands
+        if orientation == 'landscape':
+            ps = page_size + 'L' if page_size == 'A4' else page_size + '_landscape'
+        else:
+            ps = page_size
         path = save_uploaded_file(file, '.xlsx')
         out  = output_path('converted.pdf')
-        excel_to_pdf(path, out)
+        excel_to_pdf(path, out, page_size=ps)
         return send_result(out, 'converted.pdf')
     except Exception as e:
         logger.exception("excel-to-pdf error")
@@ -456,12 +475,22 @@ def api_pdf_to_img():
 def api_pdf_to_word():
     """Convert PDF to Microsoft Word (.docx)."""
     try:
-        file = request.files.get('file')
+        file     = request.files.get('file')
         if not file:
             return error_response('No file uploaded.')
+        pages    = request.form.get('pages', '').strip()
+        password = request.form.get('password', '').strip()
+        start_page, end_page = 0, None
+        if pages:
+            parts = pages.replace(' ', '').split('-')
+            try:
+                start_page = max(0, int(parts[0]) - 1)
+                end_page   = int(parts[1]) if len(parts) > 1 else start_page + 1
+            except (ValueError, IndexError):
+                pass
         path = save_uploaded_file(file)
         out  = output_path('converted.docx')
-        pdf_to_word(path, out)
+        pdf_to_word(path, out, password=password, start_page=start_page, end_page=end_page)
         return send_result(out, 'converted.docx',
                           'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     except Exception as e:
@@ -690,20 +719,21 @@ def api_sign_pdf():
         file           = request.files.get('file')
         if not file:
             return error_response('No file uploaded.')
-        signature_type = request.form.get('signature_type', 'text')
-        signature_text = request.form.get('signature_text', 'Signed by IshuTools')
-        page_num       = int(request.form.get('page', 1)) - 1
-        x_pos          = float(request.form.get('x', 50))
-        y_pos          = float(request.form.get('y', 50))
+        signature_text = request.form.get('signature_text', '').strip() or 'Signed'
+        style_preset   = request.form.get('style', 'corporate')
+        position       = request.form.get('position', 'bottom-right')
+        pages_sel      = request.form.get('pages', 'last')
+        font_size      = int(request.form.get('font_size', 24))
+        color          = request.form.get('color', '#003399')
         path           = save_uploaded_file(file)
-        sig_image_path = None
-        if signature_type == 'image' and 'signature_image' in request.files:
-            sig_img        = request.files.get('signature_image')
-            sig_image_path = save_uploaded_file(sig_img, '.png')
         out = output_path('signed.pdf')
-        sign_pdf(path, out, signature_type=signature_type,
-                signature_text=signature_text, page_num=page_num,
-                x_pos=x_pos, y_pos=y_pos, sig_image_path=sig_image_path)
+        sign_pdf(path, out, signature_type='text',
+                 signature_text=signature_text,
+                 page_selection=pages_sel,
+                 position_preset=position,
+                 font_size=font_size,
+                 color=color,
+                 style_preset=style_preset)
         return send_result(out, 'signed.pdf')
     except Exception as e:
         logger.exception("sign-pdf error")
@@ -713,16 +743,21 @@ def api_sign_pdf():
 def api_redact_pdf():
     """Permanently redact (black out) sensitive text in a PDF."""
     try:
-        file         = request.files.get('file')
+        file             = request.files.get('file')
         if not file:
             return error_response('No file uploaded.')
-        search_terms = request.form.get('search_terms', '')
-        if not search_terms:
-            return error_response('Please provide text terms to redact.')
-        path  = save_uploaded_file(file)
-        out   = output_path('redacted.pdf')
-        terms = [t.strip() for t in search_terms.replace(',', '\n').split('\n') if t.strip()]
-        redact_pdf(path, out, search_terms=terms)
+        search_terms_raw = request.form.get('search_terms', '')
+        preset           = request.form.get('preset', 'none')
+        fill_color       = request.form.get('redaction_color', '#000000')
+        strip_meta       = request.form.get('redact_metadata', 'true') == 'true'
+        terms = [t.strip() for t in search_terms_raw.replace(',', '\n').split('\n') if t.strip()]
+        presets = [] if preset == 'none' else [preset]
+        if not terms and not presets:
+            return error_response('Please provide text terms to redact or select a preset.')
+        path = save_uploaded_file(file)
+        out  = output_path('redacted.pdf')
+        redact_pdf(path, out, search_terms=terms, pattern_presets=presets,
+                   fill_color=fill_color, strip_metadata=strip_meta)
         return send_result(out, 'redacted.pdf')
     except Exception as e:
         logger.exception("redact-pdf error")
@@ -739,7 +774,12 @@ def api_compare_pdf():
         path1  = save_uploaded_file(file1)
         path2  = save_uploaded_file(file2)
         out    = output_path('comparison.pdf')
-        result = compare_pdfs(path1, path2, out)
+        diff_type        = request.form.get('diff_type', 'word')
+        ignore_ws        = request.form.get('ignore_whitespace', 'true') == 'true'
+        result           = compare_pdfs(path1, path2, out)
+        # Apply diff granularity post-processing
+        result['diff_type']        = diff_type
+        result['ignore_whitespace'] = ignore_ws
         return jsonify({'success': True, 'differences': result})
     except Exception as e:
         logger.exception("compare-pdf error")

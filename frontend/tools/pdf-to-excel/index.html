@@ -2,30 +2,63 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PDF to Excel Free — Extract Tables to XLSX | IshuTools</title>
-  <meta name="description" content="Convert PDF tables to Excel spreadsheet (.xlsx) online free. Extract data from PDFs. By Ishu Kumar — ishutools.fun" />
-  <meta name="keywords" content="pdf to excel, pdf to xlsx, extract table from pdf, pdf data to excel, ishu, ishutools" />
+  <title>PDF to Excel Free — Extract Tables to XLSX Online | IshuTools</title>
+  <meta name="description" content="Convert PDF tables to Excel spreadsheet (.xlsx) online for free. Extract data, rows, and columns from PDFs. By Ishu Kumar — ishutools.fun" />
+  <meta name="keywords" content="pdf to excel, pdf to xlsx, extract table from pdf, pdf data to excel, convert pdf spreadsheet, ishu, ishutools" />
+  <meta name="author" content="Ishu Kumar" />
   <link rel="canonical" href="https://ishutools.fun/tools/pdf-to-excel/" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23059669'/%3E%3Ctext y='22' x='4' font-size='20'%3E📊%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
-  <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="/static/css/tool-base.css" />
+  <link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"PDF to Excel","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"creator":{"@type":"Person","name":"Ishu Kumar"}}</script>
   <script>
   window.TOOL_CONFIG = {
-    id:'pdf-to-excel', name:'PDF to Excel', emoji:'📊',
-    category:'Convert from PDF', categorySlug:'',
-    description:'Extract tables and structured data from PDF documents to Excel spreadsheets (.xlsx). Each PDF page becomes a worksheet.',
-    apiEndpoint:'/api/pdf-to-excel', multiFile:false,
-    acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
-    resultType:'file', outputFilename:'converted.xlsx',
-    outputMime:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    options:[],
-    steps:['Upload your PDF file.','Click "Convert PDF to Excel".','Download the .xlsx spreadsheet.'],
-    features:['Extracts tables and structured data','Each page becomes a worksheet','pdfminer.six + openpyxl powered','Works best with text-based PDFs'],
-    related:[
-      {name:'Excel to PDF',url:'/tools/excel-to-pdf/',emoji:'📈',c1:'#059669',c2:'#10b981',desc:'Excel to PDF'},
-      {name:'PDF to Word',url:'/tools/pdf-to-word/',emoji:'📄',c1:'#2563eb',c2:'#3b82f6',desc:'PDF to Word'},
-      {name:'OCR PDF',url:'/tools/ocr-pdf/',emoji:'🔍',c1:'#8b5cf6',c2:'#6366f1',desc:'Make searchable'},
-      {name:'AI Summarizer',url:'/tools/ai-summarizer/',emoji:'🤖',c1:'#6366f1',c2:'#8b5cf6',desc:'Summarize PDF'}
+    id: 'pdf-to-excel',
+    name: 'PDF to Excel',
+    emoji: '📊',
+    category: 'Convert from PDF',
+    categorySlug: '',
+    description: 'Extract tables and structured data from PDF documents to Excel spreadsheets (.xlsx). Each page becomes a worksheet with rows and columns.',
+    apiEndpoint: '/api/pdf-to-excel',
+    multiFile: false,
+    acceptedTypes: '.pdf,application/pdf',
+    acceptedLabel: 'PDF',
+    resultType: 'file',
+    outputFilename: 'converted.xlsx',
+    outputMime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    options: [
+      {
+        type: 'pages', id: 'pages', label: 'Pages to Convert',
+        placeholder: 'e.g. 1-3, 5 — or leave blank for all pages'
+      },
+      {
+        type: 'radio', id: 'include_header', label: 'First Row as Header',
+        choices: [
+          { v: 'true',  l: 'Yes — treat first row as column headers' },
+          { v: 'false', l: 'No — all rows as data' }
+        ],
+        default: 'true'
+      }
+    ],
+    steps: [
+      'Upload your PDF file.',
+      'Optionally specify page range.',
+      'Click "Convert PDF to Excel" and download the .xlsx file.'
+    ],
+    features: [
+      'Extracts tables and structured data',
+      'Each page becomes a separate worksheet',
+      'pdfminer.six + openpyxl powered',
+      'First row as header option',
+      'Works best with text-based PDFs',
+      '100% free, no watermarks'
+    ],
+    related: [
+      { name: 'Excel to PDF',  url: '/tools/excel-to-pdf/', emoji: '📈', c1: '#059669', c2: '#10b981', desc: 'Excel to PDF' },
+      { name: 'PDF to Word',   url: '/tools/pdf-to-word/',  emoji: '📄', c1: '#2563eb', c2: '#3b82f6', desc: 'PDF to Word' },
+      { name: 'OCR PDF',       url: '/tools/ocr-pdf/',      emoji: '🔍', c1: '#8b5cf6', c2: '#6366f1', desc: 'Make searchable' },
+      { name: 'AI Summarizer', url: '/tools/summarize-pdf/', emoji: '🤖', c1: '#6366f1', c2: '#8b5cf6', desc: 'Summarize PDF' }
     ]
   };
   </script>

@@ -5,7 +5,7 @@ stack = "FLASK_VANILLA_JS"
 
 [nix]
 channel = "stable-25_05"
-packages = ["cargo", "exiftool", "fontconfig", "freetype", "ghostscript", "glib", "glibcLocales", "harfbuzz", "imagemagickBig", "jbig2dec", "jre", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "mupdf", "netpbm", "openjpeg", "openssl", "pango", "pkg-config", "poppler_utils", "postgresql", "qpdf", "rustc", "tcl", "tesseract", "tk", "zlib"]
+packages = ["cargo", "exiftool", "fontconfig", "freetype", "ghostscript", "glib", "glibcLocales", "harfbuzz", "imagemagickBig", "jbig2dec", "jre", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "mupdf", "netpbm", "openjpeg", "openssl", "pango", "pkg-config", "poppler_utils", "postgresql", "qpdf", "rustc", "tcl", "tesseract", "tk", "xsimd", "zlib"]
 
 [workflows]
 runButton = "Project"
