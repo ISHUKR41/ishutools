@@ -1693,3 +1693,72 @@ def compress_pdf_enterprise(
         'final_kb': round(final / 1024, 1),
         'reduction_pct': round((1 - final / max(orig, 1)) * 100, 1),
     }
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def analyze_compression_potential(input_path: str) -> dict:
+    """Analyze a PDF and suggest the best compression strategy."""
+    try:
+        file_size = os.path.getsize(input_path)
+        doc = fitz.open(input_path)
+        total_images = sum(len(doc.get_page_images(pg)) for pg in range(doc.page_count))
+        total_text = sum(len(doc[pg].get_text()) for pg in range(doc.page_count))
+        doc.close()
+        image_heavy = total_images > doc.page_count
+        text_heavy = total_text > doc.page_count * 200
+        suggestions = []
+        if image_heavy:
+            suggestions.append('Image-heavy PDF — try "Screen" or "Low" quality for best compression')
+        if text_heavy and not image_heavy:
+            suggestions.append('Text-heavy PDF — lossless compression will preserve quality')
+        if file_size > 10 * 1024 * 1024:
+            suggestions.append('Large file (>10MB) — consider "Screen" quality for significant reduction')
+        if file_size < 500 * 1024:
+            suggestions.append('Already small file — compression may have limited effect')
+        return {
+            'file_size': file_size,
+            'file_size_label': f'{file_size / 1024:.1f} KB' if file_size < 1024*1024 else f'{file_size/1024/1024:.1f} MB',
+            'total_images': total_images,
+            'total_text_chars': total_text,
+            'is_image_heavy': image_heavy,
+            'is_text_heavy': text_heavy,
+            'suggestions': suggestions,
+            'recommended_quality': 'screen' if image_heavy and file_size > 2e6 else 'medium',
+            'estimated_reduction_pct': 70 if image_heavy else 30 if text_heavy else 40,
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def get_image_details_in_pdf(input_path: str) -> dict:
+    """Get details of all images embedded in a PDF (for compression analysis)."""
+    try:
+        doc = fitz.open(input_path)
+        images = []
+        for pg_num in range(doc.page_count):
+            for img in doc.get_page_images(pg_num):
+                xref = img[0]
+                try:
+                    base_image = doc.extract_image(xref)
+                    images.append({
+                        'page': pg_num + 1,
+                        'width': base_image.get('width', 0),
+                        'height': base_image.get('height', 0),
+                        'colorspace': base_image.get('colorspace', 'Unknown'),
+                        'bpc': base_image.get('bpc', 8),
+                        'ext': base_image.get('ext', 'unknown'),
+                        'size_bytes': len(base_image.get('image', b'')),
+                    })
+                except Exception:
+                    pass
+        doc.close()
+        total_image_bytes = sum(i['size_bytes'] for i in images)
+        return {
+            'image_count': len(images),
+            'total_image_bytes': total_image_bytes,
+            'total_image_label': f'{total_image_bytes/1024:.1f} KB',
+            'images': images[:20],
+        }
+    except Exception as e:
+        return {'error': str(e)}

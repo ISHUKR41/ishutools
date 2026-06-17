@@ -1017,3 +1017,97 @@ def add_comment_sticky_note(
     doc.save(output_path, garbage=4, deflate=True)
     doc.close()
     return {'output_path': output_path, 'comment': comment, 'page': pg+1, 'position': (x, y)}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def add_link_annotation(input_path: str, output_path: str, url: str,
+                         rect: tuple, page_num: int = 0) -> dict:
+    """Add a clickable hyperlink annotation to a specified rectangle on a page."""
+    try:
+        doc = fitz.open(input_path)
+        if page_num < 0 or page_num >= doc.page_count:
+            page_num = 0
+        page = doc[page_num]
+        r = fitz.Rect(rect[0], rect[1], rect[2], rect[3])
+        link = page.insert_link({'kind': fitz.LINK_URI, 'from': r, 'uri': url})
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'url': url, 'page': page_num + 1}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def remove_all_links(input_path: str, output_path: str) -> dict:
+    """Remove all hyperlinks from the PDF."""
+    try:
+        doc = fitz.open(input_path)
+        count = 0
+        for page in doc:
+            links = list(page.get_links())
+            for link in links:
+                page.delete_link(link)
+                count += 1
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'links_removed': count}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def add_callout_annotation(input_path: str, output_path: str, text: str,
+                            x: float, y: float, page_num: int = 0,
+                            color: str = '#FFFF00', font_size: int = 11) -> dict:
+    """Add a callout text box annotation (like a speech bubble) at (x, y)."""
+    try:
+        doc = fitz.open(input_path)
+        if page_num < 0 or page_num >= doc.page_count:
+            page_num = 0
+        page = doc[page_num]
+        r, g, b = [int(color.lstrip('#')[i:i+2], 16)/255 for i in (0, 2, 4)]
+        rect = fitz.Rect(x, y - 30, x + max(len(text) * 6, 80), y)
+        annot = page.add_freetext_annot(
+            rect, text,
+            fontsize=font_size,
+            fontname='helv',
+            text_color=(0, 0, 0),
+            fill_color=(r, g, b),
+            align=0,
+        )
+        annot.update()
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'text': text, 'page': page_num + 1}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def get_page_count(input_path: str) -> int:
+    """Return the page count of a PDF."""
+    try:
+        doc = fitz.open(input_path)
+        count = doc.page_count
+        doc.close()
+        return count
+    except Exception:
+        return 0
+
+
+def set_pdf_metadata(input_path: str, output_path: str, title: str = '',
+                     author: str = '', subject: str = '', keywords: str = '',
+                     creator: str = 'IshuTools.fun') -> dict:
+    """Set or update PDF metadata fields."""
+    try:
+        doc = fitz.open(input_path)
+        meta = doc.metadata or {}
+        if title: meta['title'] = title
+        if author: meta['author'] = author
+        if subject: meta['subject'] = subject
+        if keywords: meta['keywords'] = keywords
+        meta['creator'] = creator
+        doc.set_metadata(meta)
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'metadata': meta}
+    except Exception as e:
+        return {'error': str(e)}

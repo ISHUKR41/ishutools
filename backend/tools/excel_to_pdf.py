@@ -1126,3 +1126,47 @@ def get_excel_info(input_path: str) -> dict:
         return {'sheet_count': len(sheets), 'sheets': sheets, 'file_size_kb': round(os.path.getsize(input_path)/1024, 1)}
     except Exception as e:
         return {'error': str(e)}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def get_xlsx_info(input_path: str) -> dict:
+    """Get info about an Excel file (sheets, rows, columns, data cells)."""
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(input_path, read_only=True)
+        sheets = []
+        total_cells = 0
+        for sheet_name in wb.sheetnames:
+            ws = wb[sheet_name]
+            rows = ws.max_row or 0
+            cols = ws.max_column or 0
+            cells = rows * cols
+            total_cells += cells
+            sheets.append({'name': sheet_name, 'rows': rows, 'columns': cols, 'cells': cells})
+        wb.close()
+        return {
+            'sheet_count': len(sheets),
+            'sheets': sheets,
+            'total_data_cells': total_cells,
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def extract_xlsx_data_as_text(input_path: str, max_rows: int = 100) -> str:
+    """Extract data from Excel file as readable text (first sheet)."""
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(input_path, read_only=True)
+        ws = wb.active
+        rows = []
+        for i, row in enumerate(ws.iter_rows(values_only=True)):
+            if i >= max_rows:
+                break
+            row_text = '\t'.join(str(c) if c is not None else '' for c in row)
+            rows.append(row_text)
+        wb.close()
+        return '\n'.join(rows)
+    except Exception as e:
+        return f'Error: {str(e)}'

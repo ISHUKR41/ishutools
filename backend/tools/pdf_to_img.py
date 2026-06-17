@@ -1189,3 +1189,70 @@ def pdf_first_page_preview(
         'format': fmt,
         'size_kb': round(os.path.getsize(output_path) / 1024, 1),
     }
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def generate_pdf_thumbnails(input_path: str, output_dir: str,
+                              max_width: int = 200, pages: list = None) -> dict:
+    """Generate small thumbnail images for each PDF page (for previews)."""
+    import os
+    os.makedirs(output_dir, exist_ok=True)
+    try:
+        doc = fitz.open(input_path)
+        page_list = pages or list(range(doc.page_count))
+        thumbs = []
+        for pg_num in page_list:
+            if pg_num >= doc.page_count:
+                continue
+            page = doc[pg_num]
+            scale = max_width / page.rect.width
+            mat = fitz.Matrix(scale, scale)
+            pix = page.get_pixmap(matrix=mat, alpha=False)
+            out_path = os.path.join(output_dir, f'thumb_p{pg_num+1:03d}.jpg')
+            pix.save(out_path, 'jpeg')
+            thumbs.append({'page': pg_num+1, 'path': out_path, 'width': pix.width, 'height': pix.height})
+        doc.close()
+        return {'thumbnails': thumbs, 'count': len(thumbs)}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def get_pdf_page_info(input_path: str) -> dict:
+    """Get dimensions and content info for each page."""
+    try:
+        doc = fitz.open(input_path)
+        pages = []
+        for pg_num, page in enumerate(doc):
+            images = page.get_images()
+            text = page.get_text()
+            pages.append({
+                'page': pg_num + 1,
+                'width': round(page.rect.width),
+                'height': round(page.rect.height),
+                'rotation': page.rotation,
+                'has_text': len(text.strip()) > 0,
+                'has_images': len(images) > 0,
+                'image_count': len(images),
+                'text_chars': len(text),
+            })
+        doc.close()
+        return {'pages': pages, 'total': len(pages)}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def extract_first_page_image(input_path: str, output_path: str,
+                               width: int = 800, format: str = 'jpeg') -> dict:
+    """Extract first page as a single image (for cover preview)."""
+    try:
+        doc = fitz.open(input_path)
+        page = doc[0]
+        scale = width / page.rect.width
+        mat = fitz.Matrix(scale, scale)
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        pix.save(output_path, format)
+        doc.close()
+        return {'output_path': output_path, 'width': pix.width, 'height': pix.height, 'format': format}
+    except Exception as e:
+        return {'error': str(e)}

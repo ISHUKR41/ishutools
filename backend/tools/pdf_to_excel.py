@@ -1398,3 +1398,50 @@ def get_table_count(input_path: str, password: str = '') -> dict:
             counts['pdfplumber'] = sum(len(pg.extract_tables()) for pg in pdf.pages)
     except Exception: counts['pdfplumber'] = 'unavailable'
     return counts
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def detect_tables_in_pdf(input_path: str) -> dict:
+    """Detect and count potential tables in a PDF for extraction planning."""
+    try:
+        import fitz as _fitz
+        doc = _fitz.open(input_path)
+        table_hints = []
+        for pg_num, page in enumerate(doc):
+            text_blocks = page.get_text('blocks')
+            for block in text_blocks:
+                lines = block[4].strip().split('\n')
+                if len(lines) > 2:
+                    tab_chars = sum(1 for l in lines if '\t' in l or '|' in l)
+                    if tab_chars > len(lines) * 0.3:
+                        table_hints.append({'page': pg_num+1, 'rows_hint': len(lines)})
+        doc.close()
+        return {
+            'detected_tables': len(table_hints),
+            'table_locations': table_hints,
+            'extraction_quality': 'High' if table_hints else 'Low (no clear table structure found)',
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def get_numeric_density(input_path: str) -> dict:
+    """Check what percentage of PDF content is numeric (useful for Excel conversion)."""
+    import re
+    try:
+        import fitz as _fitz
+        doc = _fitz.open(input_path)
+        all_text = '\n'.join(page.get_text() for page in doc)
+        doc.close()
+        numbers = re.findall(r'\b\d+(?:[.,]\d+)?\b', all_text)
+        words = all_text.split()
+        numeric_ratio = len(numbers) / max(len(words), 1)
+        return {
+            'numeric_values_found': len(numbers),
+            'total_words': len(words),
+            'numeric_ratio': round(numeric_ratio * 100, 1),
+            'excel_conversion_quality': 'Excellent' if numeric_ratio > 0.2 else 'Good' if numeric_ratio > 0.05 else 'Fair',
+        }
+    except Exception as e:
+        return {'error': str(e)}

@@ -1352,3 +1352,85 @@ def split_by_pdfplumber_text_change(
         'total_pages': n,
         'sections': len(output_files),
     }
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def split_by_bookmark(input_path: str, output_dir: str) -> dict:
+    """Split PDF at bookmark (outline) positions into separate files."""
+    import os
+    try:
+        doc = fitz.open(input_path)
+        toc = doc.get_toc()
+        if not toc:
+            doc.close()
+            return {'error': 'No bookmarks found in this PDF.'}
+        os.makedirs(output_dir, exist_ok=True)
+        output_files = []
+        for i, (level, title, page_num) in enumerate(toc):
+            if level != 1:
+                continue
+            start_page = page_num - 1
+            if i + 1 < len(toc):
+                next_level1 = next((t for t in toc[i+1:] if t[0] == 1), None)
+                end_page = (next_level1[2] - 2) if next_level1 else doc.page_count - 1
+            else:
+                end_page = doc.page_count - 1
+            safe_title = ''.join(c if c.isalnum() or c in ' _-' else '_' for c in title)[:40]
+            out_path = os.path.join(output_dir, f'{i+1:02d}_{safe_title}.pdf')
+            new_doc = fitz.open()
+            new_doc.insert_pdf(doc, from_page=start_page, to_page=end_page)
+            new_doc.save(out_path, garbage=4, deflate=True)
+            new_doc.close()
+            output_files.append({'title': title, 'pages': f'{start_page+1}-{end_page+1}', 'file': out_path})
+        doc.close()
+        return {'files_created': len(output_files), 'outputs': output_files}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def split_alternating(input_path: str, output_path_odd: str, output_path_even: str) -> dict:
+    """Split PDF into odd pages (1,3,5...) and even pages (2,4,6...) for duplex printing."""
+    try:
+        doc = fitz.open(input_path)
+        total = doc.page_count
+        odd_doc = fitz.open()
+        even_doc = fitz.open()
+        for pg in range(total):
+            if pg % 2 == 0:
+                odd_doc.insert_pdf(doc, from_page=pg, to_page=pg)
+            else:
+                even_doc.insert_pdf(doc, from_page=pg, to_page=pg)
+        odd_doc.save(output_path_odd, garbage=4, deflate=True)
+        even_doc.save(output_path_even, garbage=4, deflate=True)
+        odd_doc.close(); even_doc.close(); doc.close()
+        return {
+            'odd_file': output_path_odd, 'even_file': output_path_even,
+            'odd_pages': (total + 1) // 2, 'even_pages': total // 2
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def extract_blank_pages(input_path: str, output_path: str, threshold: int = 50) -> dict:
+    """Remove blank or near-blank pages from a PDF (based on text/image content)."""
+    try:
+        doc = fitz.open(input_path)
+        new_doc = fitz.open()
+        removed = []
+        for pg_num, page in enumerate(doc):
+            text = page.get_text().strip()
+            images = page.get_images()
+            if len(text) < threshold and len(images) == 0:
+                removed.append(pg_num + 1)
+            else:
+                new_doc.insert_pdf(doc, from_page=pg_num, to_page=pg_num)
+        new_doc.save(output_path, garbage=4, deflate=True)
+        new_doc.close(); doc.close()
+        return {
+            'output_path': output_path,
+            'pages_removed': removed,
+            'pages_kept': doc.page_count - len(removed)
+        }
+    except Exception as e:
+        return {'error': str(e)}

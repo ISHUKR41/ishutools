@@ -359,8 +359,9 @@ def api_scan_to_pdf():
         enhance  = request.form.get('enhance', 'true').lower() == 'true'
         paths    = save_uploaded_files(files, '.jpg')
         out      = output_path('scanned.pdf')
+        stem = file_stem(files[0]) if files[0].filename else 'scan'
         scan_to_pdf(paths, out, language=language, enhance=enhance)
-        return send_result(out, 'scanned.pdf')
+        return send_result(out, f'{stem}_scanned.pdf')
     except Exception as e:
         logger.exception("scan-to-pdf error")
         return error_response(str(e))
@@ -381,12 +382,18 @@ def api_img_to_pdf():
         margin      = int(request.form.get('margin', 0))
         paths       = save_uploaded_files(files, '.jpg')
         out         = output_path('images.pdf')
+        stem = file_stem(files[0]) if files[0].filename else 'images'
         images_to_pdf(paths, out, page_size=page_size, orientation=orientation,
                       margin_top=margin, margin_bottom=margin, margin_left=margin, margin_right=margin)
-        return send_result(out, 'converted.pdf')
+        return send_result(out, f'{stem}_converted.pdf')
     except Exception as e:
         logger.exception("img-to-pdf error")
         return error_response(str(e))
+
+@app.route('/api/jpg-to-pdf', methods=['POST'])
+def api_jpg_to_pdf():
+    """Alias for /api/img-to-pdf — JPG/PNG/WebP images to PDF."""
+    return api_img_to_pdf()
 
 @app.route('/api/word-to-pdf', methods=['POST'])
 def api_word_to_pdf():

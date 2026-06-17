@@ -1325,3 +1325,82 @@ h1{{color:#6366f1;}} .added{{background:#d1fae5;padding:6px;margin:4px 0;border-
     with open(output_html_path, 'w', encoding='utf-8') as f:
         f.write(html)
     return {'output_html': output_html_path, **diff_data}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def compare_page_counts(path1: str, path2: str) -> dict:
+    """Compare page counts between two PDFs."""
+    try:
+        import fitz as _fitz
+        doc1 = _fitz.open(path1)
+        doc2 = _fitz.open(path2)
+        count1, count2 = doc1.page_count, doc2.page_count
+        doc1.close(); doc2.close()
+        return {
+            'file1_pages': count1,
+            'file2_pages': count2,
+            'difference': abs(count1 - count2),
+            'same_page_count': count1 == count2,
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def compare_file_sizes(path1: str, path2: str) -> dict:
+    """Compare file sizes of two PDFs."""
+    import os
+    try:
+        size1 = os.path.getsize(path1)
+        size2 = os.path.getsize(path2)
+        diff = size2 - size1
+        pct_change = round(diff / size1 * 100, 1) if size1 > 0 else 0
+        return {
+            'file1_bytes': size1,
+            'file2_bytes': size2,
+            'file1_label': f'{size1/1024:.1f} KB',
+            'file2_label': f'{size2/1024:.1f} KB',
+            'size_difference': diff,
+            'percent_change': pct_change,
+            'file2_is_larger': size2 > size1,
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def extract_unique_words(path1: str, path2: str) -> dict:
+    """Find words that appear in one PDF but not the other."""
+    import re, fitz as _fitz
+    try:
+        def get_words(path):
+            doc = _fitz.open(path)
+            text = ' '.join(page.get_text() for page in doc)
+            doc.close()
+            return set(re.findall(r'\b[a-zA-Z]{4,}\b', text.lower()))
+        words1 = get_words(path1)
+        words2 = get_words(path2)
+        only_in_1 = list(words1 - words2)[:30]
+        only_in_2 = list(words2 - words1)[:30]
+        common = len(words1 & words2)
+        return {
+            'words_only_in_file1': only_in_1,
+            'words_only_in_file2': only_in_2,
+            'common_word_count': common,
+            'vocabulary_similarity_pct': round(common / max(len(words1 | words2), 1) * 100, 1),
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def generate_comparison_summary(path1: str, path2: str) -> dict:
+    """Generate a complete comparison summary between two PDFs."""
+    page_comp = compare_page_counts(path1, path2)
+    size_comp = compare_file_sizes(path1, path2)
+    return {
+        'pages': page_comp,
+        'file_sizes': size_comp,
+        'summary': {
+            'identical_page_count': page_comp.get('same_page_count', False),
+            'size_change_pct': size_comp.get('percent_change', 0),
+        }
+    }

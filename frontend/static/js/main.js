@@ -161,6 +161,10 @@ const TOOLS = [
     desc:'Instantly summarize any PDF with AI',    endpoint:'/api/summarize-pdf', multiFile:false, accept:'.pdf', resultIsText:true,
     fields:[{type:'select',name:'length',label:'Summary Length',options:[{value:'short',label:'Short (3 sentences)'},{value:'medium',label:'Medium (5 sentences)'},{value:'long',label:'Long (10 sentences)'}]}]},
 
+  { id:'ai-summarizer',   path:'ai-summarizer', name:'AI PDF Summarizer',   category:'ai',           icon:'fas fa-brain',                accent:'#7C3AED', accent2:'#4F46E5', badge:'new',
+    desc:'AI-powered key points & smart summary', endpoint:'/api/summarize-pdf', multiFile:false, accept:'.pdf', resultIsText:true,
+    fields:[{type:'select',name:'length',label:'Summary Length',options:[{value:'short',label:'Short (3 sentences)'},{value:'medium',label:'Medium (5 sentences)'},{value:'long',label:'Long (10 sentences)'}]}]},
+
   { id:'translate-pdf',   name:'Translate PDF',       category:'ai',           icon:'fas fa-language',             accent:'#6366F1', accent2:'#8B5CF6', badge:'new',
     desc:'Translate PDF to any language using AI', endpoint:'/api/translate-pdf', multiFile:false, accept:'.pdf',
     fields:[

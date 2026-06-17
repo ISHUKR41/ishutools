@@ -864,3 +864,80 @@ def check_form_completeness(input_path: str, password: str = '') -> dict:
         'required_empty': required_empty,
         'is_complete': len(required_empty) == 0,
     }
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def detect_form_fields(input_path: str) -> dict:
+    """Detect all form fields and return their names, types, and positions."""
+    try:
+        doc = fitz.open(input_path)
+        fields = []
+        for page_num, page in enumerate(doc):
+            for widget in (page.widgets() or []):
+                fields.append({
+                    'name': widget.field_name or '',
+                    'type': widget.field_type_string or 'Unknown',
+                    'page': page_num + 1,
+                    'rect': list(widget.rect),
+                    'value': str(widget.field_value or ''),
+                    'required': bool(widget.field_flags & 2),
+                    'read_only': bool(widget.field_flags & 1),
+                    'choices': list(widget.choice_values or []),
+                })
+        doc.close()
+        return {
+            'has_form_fields': len(fields) > 0,
+            'field_count': len(fields),
+            'fields': fields,
+        }
+    except Exception as e:
+        return {'error': str(e), 'has_form_fields': False, 'fields': []}
+
+
+def auto_fill_form(input_path: str, output_path: str,
+                   auto_values: dict = None) -> dict:
+    """Auto-fill form with provided values dict {field_name: value}."""
+    if auto_values is None:
+        auto_values = {}
+    return fill_pdf_form(input_path, output_path, fields=auto_values, flatten=False)
+
+
+def get_form_field_names(input_path: str) -> list:
+    """Return a list of all form field names in the PDF."""
+    data = detect_form_fields(input_path)
+    return [f['name'] for f in data.get('fields', [])]
+
+
+def clear_form(input_path: str, output_path: str) -> dict:
+    """Clear (reset) all form field values to empty."""
+    try:
+        doc = fitz.open(input_path)
+        count = 0
+        for page in doc:
+            for widget in (page.widgets() or []):
+                try:
+                    widget.field_value = ''
+                    widget.update()
+                    count += 1
+                except Exception:
+                    pass
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'fields_cleared': count}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def duplicate_form_template(input_path: str, output_path: str, copies: int = 2) -> dict:
+    """Create multiple copies of a form in one PDF (for batch printing)."""
+    try:
+        doc = fitz.open(input_path)
+        base_count = doc.page_count
+        for _ in range(copies - 1):
+            doc.insert_pdf(doc, from_page=0, to_page=base_count-1, start_at=-1)
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'copies': copies, 'total_pages': base_count * copies}
+    except Exception as e:
+        return {'error': str(e)}

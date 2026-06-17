@@ -1129,3 +1129,70 @@ def unlock_owner_restrictions_only(input_path: str, output_path: str, owner_pass
     orig = os.path.getsize(input_path)
     final = os.path.getsize(output_path)
     return {'output_path': output_path, 'restrictions_removed': True, 'original_size': orig, 'output_size': final}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def check_pdf_encryption_details(input_path: str) -> dict:
+    """Return detailed encryption information for a PDF."""
+    try:
+        doc = fitz.open(input_path)
+        perm = doc.permissions if doc.is_encrypted else -1
+        info = {
+            'is_encrypted': doc.is_encrypted,
+            'needs_password': doc.needs_pass,
+            'permissions': {
+                'can_print': bool(perm & fitz.PDF_PERM_PRINT) if perm >= 0 else True,
+                'can_copy': bool(perm & fitz.PDF_PERM_COPY) if perm >= 0 else True,
+                'can_annotate': bool(perm & fitz.PDF_PERM_ANNOTATE) if perm >= 0 else True,
+                'can_form': bool(perm & fitz.PDF_PERM_FORM) if perm >= 0 else True,
+            },
+            'page_count': doc.page_count,
+        }
+        doc.close()
+        return info
+    except Exception as e:
+        return {'error': str(e), 'is_encrypted': False}
+
+
+def remove_print_restrictions(input_path: str, output_path: str,
+                                password: str = '') -> dict:
+    """Remove print/copy restrictions from an unlocked PDF."""
+    try:
+        doc = fitz.open(input_path)
+        if doc.needs_pass and password:
+            if not doc.authenticate(password):
+                return {'error': 'Wrong password'}
+        new_pdf = fitz.open()
+        for pg in range(doc.page_count):
+            new_pdf.insert_pdf(doc, from_page=pg, to_page=pg)
+        new_pdf.save(output_path, garbage=4, deflate=True, encryption=fitz.PDF_ENCRYPT_NONE)
+        new_pdf.close(); doc.close()
+        return {'output_path': output_path, 'restrictions_removed': True}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def is_password_protected(input_path: str) -> bool:
+    """Quick check if a PDF file is password protected."""
+    try:
+        doc = fitz.open(input_path)
+        result = doc.needs_pass
+        doc.close()
+        return result
+    except Exception:
+        return False
+
+
+def test_password(input_path: str, password: str) -> bool:
+    """Test if a password can unlock a PDF without fully decrypting it."""
+    try:
+        doc = fitz.open(input_path)
+        if not doc.needs_pass:
+            doc.close()
+            return True
+        result = doc.authenticate(password)
+        doc.close()
+        return bool(result)
+    except Exception:
+        return False

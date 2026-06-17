@@ -1421,3 +1421,50 @@ table{{border-collapse:collapse;width:100%;}} td,th{{border:1px solid #ddd;paddi
 th{{background:#1e40af;color:white;}} blockquote{{border-left:4px solid #6366f1;margin:0;padding-left:16px;color:#555;}}
 </style></head><body><p>{html}</p></body></html>'''
     return html_to_pdf(full_html, output_path, is_url=False)
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def get_html_metadata(html_content: str) -> dict:
+    """Extract title, description, and other metadata from HTML string."""
+    import re
+    title_match = re.search(r'<title[^>]*>([^<]+)</title>', html_content, re.IGNORECASE)
+    desc_match = re.search(r'<meta\s+name=["\']description["\']\s+content=["\'](.*?)["\']\s*/?>',
+                            html_content, re.IGNORECASE | re.DOTALL)
+    h1_match = re.search(r'<h1[^>]*>([^<]+)</h1>', html_content, re.IGNORECASE)
+    image_count = len(re.findall(r'<img\s', html_content, re.IGNORECASE))
+    link_count = len(re.findall(r'<a\s+href=', html_content, re.IGNORECASE))
+    return {
+        'title': title_match.group(1).strip() if title_match else '',
+        'description': desc_match.group(1).strip() if desc_match else '',
+        'h1': h1_match.group(1).strip() if h1_match else '',
+        'image_count': image_count,
+        'link_count': link_count,
+        'html_length': len(html_content),
+    }
+
+
+def validate_url(url: str) -> dict:
+    """Validate and parse a URL before converting to PDF."""
+    from urllib.parse import urlparse
+    try:
+        parsed = urlparse(url)
+        is_valid = all([parsed.scheme in ('http', 'https'), parsed.netloc])
+        return {
+            'valid': is_valid,
+            'scheme': parsed.scheme,
+            'domain': parsed.netloc,
+            'path': parsed.path,
+            'url': url,
+            'is_https': parsed.scheme == 'https',
+        }
+    except Exception as e:
+        return {'valid': False, 'error': str(e)}
+
+
+def estimate_pdf_pages_from_html(html_content: str) -> int:
+    """Estimate how many pages the HTML will produce as a PDF."""
+    import re
+    text_length = len(re.sub(r'<[^>]+>', '', html_content))
+    estimated_pages = max(1, text_length // 3000)
+    return estimated_pages

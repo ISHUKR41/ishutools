@@ -1416,3 +1416,61 @@ def translate_pdf_pages_range(
                 if 0 <= p < len(doc): page_list.append(p)
     doc.close()
     return translate_pdf(input_path, output_path, target_lang=target_lang, pages=page_range, password=password)
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def detect_language_from_text(text: str) -> str:
+    """Detect language from a text sample using character analysis."""
+    if not text or len(text.strip()) < 10:
+        return 'en'
+    devanagari = sum(1 for c in text if '\u0900' <= c <= '\u097F')
+    arabic_range = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
+    chinese_range = sum(1 for c in text if '\u4E00' <= c <= '\u9FFF')
+    japanese = sum(1 for c in text if '\u3040' <= c <= '\u309F' or '\u30A0' <= c <= '\u30FF')
+    korean = sum(1 for c in text if '\uAC00' <= c <= '\uD7A3')
+    scores = {
+        'hi': devanagari, 'ar': arabic_range, 'zh-CN': chinese_range,
+        'ja': japanese, 'ko': korean, 'en': max(0, len(text)//5 - devanagari - arabic_range)
+    }
+    return max(scores, key=scores.get)
+
+
+def get_supported_languages() -> dict:
+    """Return all supported translation languages with their names."""
+    return {
+        'af':'Afrikaans','sq':'Albanian','am':'Amharic','ar':'Arabic','hy':'Armenian',
+        'az':'Azerbaijani','eu':'Basque','be':'Belarusian','bn':'Bengali','bs':'Bosnian',
+        'bg':'Bulgarian','ca':'Catalan','ceb':'Cebuano','ny':'Chichewa',
+        'zh-cn':'Chinese (Simplified)','zh-tw':'Chinese (Traditional)',
+        'co':'Corsican','hr':'Croatian','cs':'Czech','da':'Danish','nl':'Dutch',
+        'en':'English','eo':'Esperanto','et':'Estonian','tl':'Filipino','fi':'Finnish',
+        'fr':'French','fy':'Frisian','gl':'Galician','ka':'Georgian','de':'German',
+        'el':'Greek','gu':'Gujarati','ht':'Haitian Creole','ha':'Hausa','haw':'Hawaiian',
+        'iw':'Hebrew','hi':'Hindi','hmn':'Hmong','hu':'Hungarian','is':'Icelandic',
+        'ig':'Igbo','id':'Indonesian','ga':'Irish','it':'Italian','ja':'Japanese',
+        'jw':'Javanese','kn':'Kannada','kk':'Kazakh','km':'Khmer','ko':'Korean',
+        'ku':'Kurdish','ky':'Kyrgyz','lo':'Lao','la':'Latin','lv':'Latvian',
+        'lt':'Lithuanian','lb':'Luxembourgish','mk':'Macedonian','mg':'Malagasy',
+        'ms':'Malay','ml':'Malayalam','mt':'Maltese','mi':'Maori','mr':'Marathi',
+        'mn':'Mongolian','my':'Myanmar (Burmese)','ne':'Nepali','no':'Norwegian',
+        'or':'Odia','ps':'Pashto','fa':'Persian','pl':'Polish','pt':'Portuguese',
+        'pa':'Punjabi','ro':'Romanian','ru':'Russian','sm':'Samoan','gd':'Scots Gaelic',
+        'sr':'Serbian','st':'Sesotho','sn':'Shona','sd':'Sindhi','si':'Sinhala',
+        'sk':'Slovak','sl':'Slovenian','so':'Somali','es':'Spanish','su':'Sundanese',
+        'sw':'Swahili','sv':'Swedish','tg':'Tajik','ta':'Tamil','te':'Telugu',
+        'th':'Thai','tr':'Turkish','uk':'Ukrainian','ur':'Urdu','ug':'Uyghur',
+        'uz':'Uzbek','vi':'Vietnamese','cy':'Welsh','xh':'Xhosa','yi':'Yiddish',
+        'yo':'Yoruba','zu':'Zulu',
+    }
+
+
+def estimate_translation_time(page_count: int, target_lang: str = 'hi') -> dict:
+    """Estimate how long a PDF translation will take."""
+    seconds_per_page = 3 if target_lang in ('en', 'es', 'fr', 'de', 'pt') else 5
+    total_seconds = max(5, page_count * seconds_per_page)
+    return {
+        'estimated_seconds': total_seconds,
+        'estimated_label': f'{total_seconds}–{total_seconds+30} seconds' if total_seconds < 60 else f'{total_seconds//60}–{total_seconds//60+1} minutes',
+        'page_count': page_count,
+    }

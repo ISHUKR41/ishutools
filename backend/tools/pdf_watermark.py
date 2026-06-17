@@ -1312,3 +1312,94 @@ def add_page_stamps(
     doc.save(output_path, garbage=4, deflate=True)
     doc.close()
     return {'output_path': output_path, 'stamps_applied': applied}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def add_qr_watermark(input_path: str, output_path: str, url: str,
+                      position: str = 'bottom-right', size: int = 80,
+                      pages: str = 'all') -> dict:
+    """Add a QR code watermark linking to `url` on specified pages."""
+    try:
+        import qrcode
+        import io as _io
+        qr = qrcode.QRCode(version=1, box_size=4, border=2)
+        qr.add_data(url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color='black', back_color='white')
+        buf = _io.BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+        doc = fitz.open(input_path)
+        total = doc.page_count
+        page_list = list(range(total)) if pages == 'all' else [int(p)-1 for p in pages.split(',') if p.strip().isdigit()]
+        applied = []
+        for pg_num in page_list:
+            if 0 <= pg_num < total:
+                page = doc[pg_num]
+                r = page.rect
+                if position == 'bottom-right':
+                    rect = fitz.Rect(r.width-size-10, r.height-size-10, r.width-10, r.height-10)
+                elif position == 'bottom-left':
+                    rect = fitz.Rect(10, r.height-size-10, size+10, r.height-10)
+                elif position == 'top-right':
+                    rect = fitz.Rect(r.width-size-10, 10, r.width-10, size+10)
+                else:
+                    rect = fitz.Rect(10, 10, size+10, size+10)
+                buf.seek(0)
+                page.insert_image(rect, stream=buf.read())
+                applied.append(pg_num + 1)
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'qr_url': url, 'pages_watermarked': applied}
+    except ImportError:
+        return {'error': 'qrcode library not available'}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def add_confidentiality_notice(input_path: str, output_path: str,
+                                 notice_type: str = 'confidential') -> dict:
+    """Add a standard legal confidentiality notice watermark."""
+    notices = {
+        'confidential': 'CONFIDENTIAL',
+        'draft': 'DRAFT',
+        'do_not_copy': 'DO NOT COPY',
+        'internal': 'INTERNAL USE ONLY',
+        'proprietary': 'PROPRIETARY',
+        'sample': 'SAMPLE',
+        'void': 'VOID',
+        'approved': 'APPROVED',
+        'rejected': 'REJECTED',
+        'classified': 'CLASSIFIED',
+    }
+    text = notices.get(notice_type, notice_type.upper())
+    colors_map = {
+        'confidential': '#FF0000', 'draft': '#888888',
+        'do_not_copy': '#CC0000', 'internal': '#0000AA',
+        'approved': '#008800', 'rejected': '#CC0000',
+        'void': '#AA0000', 'classified': '#000000',
+    }
+    color = colors_map.get(notice_type, '#FF0000')
+    return add_watermark(input_path, output_path, text=text, color=color,
+                          opacity=0.3, font_size=52, rotation=-35,
+                          position='center', pages='all', use_regex=False)
+
+
+def get_watermark_positions() -> list:
+    """Return list of supported watermark positions."""
+    return ['center', 'top-left', 'top-center', 'top-right',
+            'bottom-left', 'bottom-center', 'bottom-right', 'diagonal']
+
+
+def batch_watermark(input_paths: list, output_dir: str, text: str,
+                     color: str = '#FF0000', opacity: float = 0.3) -> dict:
+    """Apply the same watermark to multiple PDF files."""
+    import os
+    results = []
+    for path in input_paths:
+        name = os.path.basename(path)
+        out = os.path.join(output_dir, 'wm_' + name)
+        result = add_watermark(path, out, text=text, color=color, opacity=opacity)
+        results.append({'file': name, 'output': out, 'success': 'error' not in result})
+    return {'processed': len(results), 'results': results}

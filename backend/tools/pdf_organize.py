@@ -1293,3 +1293,91 @@ def get_page_thumbnails_grid(input_path: str, output_path: str, cols: int = 4, t
     doc.close()
     grid.save(output_path, 'PNG', optimize=True)
     return {'output_path': output_path, 'total_pages': total, 'cols': cols, 'rows': rows}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def get_page_complexity_scores(input_path: str) -> dict:
+    """Score each page by complexity (text density + image count + annotations)."""
+    try:
+        doc = fitz.open(input_path)
+        scores = []
+        for pg_num, page in enumerate(doc):
+            text = page.get_text()
+            images = page.get_images()
+            annots = list(page.annots() or [])
+            text_score = min(100, len(text) // 10)
+            image_score = len(images) * 15
+            annot_score = len(annots) * 5
+            total_score = min(100, text_score + image_score + annot_score)
+            scores.append({
+                'page': pg_num + 1,
+                'complexity': total_score,
+                'level': 'High' if total_score > 70 else 'Medium' if total_score > 30 else 'Low',
+                'text_chars': len(text),
+                'images': len(images),
+                'annotations': len(annots),
+            })
+        doc.close()
+        avg = round(sum(s['complexity'] for s in scores) / max(len(scores), 1))
+        return {'page_scores': scores, 'average_complexity': avg, 'total_pages': len(scores)}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def reverse_page_order(input_path: str, output_path: str) -> dict:
+    """Reverse the page order of a PDF (last page becomes first)."""
+    try:
+        doc = fitz.open(input_path)
+        total = doc.page_count
+        new_doc = fitz.open()
+        for pg_num in range(total - 1, -1, -1):
+            new_doc.insert_pdf(doc, from_page=pg_num, to_page=pg_num)
+        new_doc.save(output_path, garbage=4, deflate=True)
+        new_doc.close(); doc.close()
+        return {'output_path': output_path, 'original_pages': total, 'reversed': True}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def interleave_pdfs(path1: str, path2: str, output_path: str) -> dict:
+    """Interleave pages from two PDFs (1A, 1B, 2A, 2B... for duplex scanning)."""
+    try:
+        doc1 = fitz.open(path1)
+        doc2 = fitz.open(path2)
+        new_doc = fitz.open()
+        max_pages = max(doc1.page_count, doc2.page_count)
+        for i in range(max_pages):
+            if i < doc1.page_count:
+                new_doc.insert_pdf(doc1, from_page=i, to_page=i)
+            if i < doc2.page_count:
+                new_doc.insert_pdf(doc2, from_page=i, to_page=i)
+        new_doc.save(output_path, garbage=4, deflate=True)
+        total = new_doc.page_count
+        new_doc.close(); doc1.close(); doc2.close()
+        return {'output_path': output_path, 'total_pages': total}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def delete_pages_by_content(input_path: str, output_path: str,
+                              search_term: str, delete_matching: bool = True) -> dict:
+    """Delete pages that contain (or don't contain) a specific search term."""
+    import re
+    try:
+        doc = fitz.open(input_path)
+        new_doc = fitz.open()
+        deleted = []
+        for pg_num, page in enumerate(doc):
+            text = page.get_text()
+            has_term = bool(re.search(re.escape(search_term), text, re.IGNORECASE))
+            should_delete = has_term if delete_matching else not has_term
+            if should_delete:
+                deleted.append(pg_num + 1)
+            else:
+                new_doc.insert_pdf(doc, from_page=pg_num, to_page=pg_num)
+        new_doc.save(output_path, garbage=4, deflate=True)
+        new_doc.close(); doc.close()
+        return {'output_path': output_path, 'pages_deleted': deleted, 'remaining_pages': doc.page_count - len(deleted)}
+    except Exception as e:
+        return {'error': str(e)}

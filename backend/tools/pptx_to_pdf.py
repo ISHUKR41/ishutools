@@ -1216,3 +1216,51 @@ def extract_slide_titles(input_path: str) -> list:
         return titles
     except Exception as e:
         return [{'error': str(e)}]
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def get_pptx_info(input_path: str) -> dict:
+    """Get information about a PowerPoint file (slides, notes, media)."""
+    try:
+        from pptx import Presentation
+        prs = Presentation(input_path)
+        slide_count = len(prs.slides)
+        notes_count = sum(1 for s in prs.slides if s.has_notes_slide and s.notes_slide.notes_text_frame.text.strip())
+        media_count = 0
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if hasattr(shape, 'image'):
+                    media_count += 1
+        width_emu = prs.slide_width
+        height_emu = prs.slide_height
+        width_in = round(width_emu / 914400, 2)
+        height_in = round(height_emu / 914400, 2)
+        return {
+            'slide_count': slide_count,
+            'slides_with_notes': notes_count,
+            'images': media_count,
+            'slide_width_inches': width_in,
+            'slide_height_inches': height_in,
+            'aspect_ratio': '16:9' if abs(width_in/height_in - 16/9) < 0.1 else '4:3' if abs(width_in/height_in - 4/3) < 0.1 else 'Custom',
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def extract_pptx_text(input_path: str) -> str:
+    """Extract text from all slides of a PowerPoint file."""
+    try:
+        from pptx import Presentation
+        prs = Presentation(input_path)
+        texts = []
+        for i, slide in enumerate(prs.slides):
+            slide_text = []
+            for shape in slide.shapes:
+                if hasattr(shape, 'text') and shape.text.strip():
+                    slide_text.append(shape.text.strip())
+            if slide_text:
+                texts.append(f'--- Slide {i+1} ---\n' + '\n'.join(slide_text))
+        return '\n\n'.join(texts)
+    except Exception as e:
+        return f'Error: {str(e)}'

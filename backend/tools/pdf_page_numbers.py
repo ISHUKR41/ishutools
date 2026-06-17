@@ -1171,3 +1171,96 @@ def add_page_numbers_with_total(
     doc.save(output_path, garbage=4, deflate=True)
     doc.close()
     return {'output_path': output_path, 'format': format_str, 'total_pages': total}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def add_running_header(input_path: str, output_path: str, header_text: str,
+                        font_size: int = 9, color: str = '#888888',
+                        skip_first: bool = True) -> dict:
+    """Add a running header with custom text to all pages (or skip first page)."""
+    try:
+        doc = fitz.open(input_path)
+        r, g, b = [int(color.lstrip('#')[i:i+2], 16)/255 for i in (0, 2, 4)]
+        applied = 0
+        for pg_num, page in enumerate(doc):
+            if skip_first and pg_num == 0:
+                continue
+            rect = page.rect
+            x = rect.width / 2 - len(header_text) * font_size * 0.25
+            y = 20
+            page.insert_text((x, y), header_text, fontsize=font_size,
+                              color=(r, g, b), fontname='helv')
+            applied += 1
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'pages_modified': applied, 'header': header_text}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def add_running_footer(input_path: str, output_path: str, footer_text: str,
+                        font_size: int = 9, color: str = '#888888',
+                        skip_first: bool = False) -> dict:
+    """Add a running footer with custom text to all pages."""
+    try:
+        doc = fitz.open(input_path)
+        r, g, b = [int(color.lstrip('#')[i:i+2], 16)/255 for i in (0, 2, 4)]
+        applied = 0
+        for pg_num, page in enumerate(doc):
+            if skip_first and pg_num == 0:
+                continue
+            rect = page.rect
+            x = rect.width / 2 - len(footer_text) * font_size * 0.25
+            y = rect.height - 20
+            page.insert_text((x, y), footer_text, fontsize=font_size,
+                              color=(r, g, b), fontname='helv')
+            applied += 1
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'pages_modified': applied, 'footer': footer_text}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def remove_page_numbers(input_path: str, output_path: str,
+                         area: str = 'bottom') -> dict:
+    """Remove existing page numbers from header or footer area using whiteout."""
+    try:
+        doc = fitz.open(input_path)
+        for page in doc:
+            rect = page.rect
+            if area == 'bottom':
+                cover = fitz.Rect(0, rect.height - 40, rect.width, rect.height)
+            else:
+                cover = fitz.Rect(0, 0, rect.width, 40)
+            page.draw_rect(cover, color=(1, 1, 1), fill=(1, 1, 1))
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'area_cleared': area}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def get_page_number_style_preview(format_str: str = 'Page {n} of {total}',
+                                   start: int = 1, total: int = 10) -> list:
+    """Preview what page numbers will look like for each page."""
+    previews = []
+    for n in range(start, start + total):
+        text = format_str.replace('{n}', str(n)).replace('{total}', str(total))
+        if '{roman}' in format_str:
+            roman = _int_to_roman(n)
+            text = text.replace('{roman}', roman)
+        previews.append({'page': n, 'text': text})
+    return previews
+
+
+def _int_to_roman(n: int) -> str:
+    """Convert integer to Roman numeral."""
+    vals = [(1000,'M'),(900,'CM'),(500,'D'),(400,'CD'),(100,'C'),(90,'XC'),
+            (50,'L'),(40,'XL'),(10,'X'),(9,'IX'),(5,'V'),(4,'IV'),(1,'I')]
+    result = ''
+    for v, r in vals:
+        while n >= v:
+            result += r; n -= v
+    return result

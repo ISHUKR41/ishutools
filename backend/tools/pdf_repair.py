@@ -1286,3 +1286,90 @@ def repair_and_flatten(input_path: str, output_path: str, password: str = '') ->
     try: os.remove(tmp)
     except: pass
     return {**repair_result, 'output_path': output_path, 'flattened': True}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def validate_pdf_integrity(input_path: str) -> dict:
+    """Run a comprehensive integrity check on a PDF file."""
+    issues = []
+    passed = []
+    try:
+        with open(input_path, 'rb') as f:
+            header = f.read(8)
+            if not header.startswith(b'%PDF-'):
+                issues.append('Missing %PDF- header (file may not be a PDF)')
+            else:
+                passed.append('Valid PDF header found')
+    except Exception as e:
+        return {'error': str(e)}
+
+    try:
+        doc = fitz.open(input_path)
+        if doc.page_count > 0:
+            passed.append(f'PDF has {doc.page_count} page(s)')
+        else:
+            issues.append('PDF has 0 pages')
+        if doc.is_encrypted:
+            issues.append('PDF is password-protected')
+        else:
+            passed.append('PDF is not encrypted')
+        meta = doc.metadata or {}
+        if meta.get('producer') or meta.get('creator'):
+            passed.append('Metadata present')
+        try:
+            page = doc[0]
+            _ = page.get_text()
+            passed.append('Page content extractable')
+        except Exception:
+            issues.append('Page 0 content extraction failed')
+        doc.close()
+    except Exception as e:
+        issues.append(f'PyMuPDF open error: {str(e)[:60]}')
+
+    try:
+        import pikepdf as _pk
+        with _pk.open(input_path) as pdf:
+            passed.append(f'pikepdf validated {len(pdf.pages)} page(s)')
+    except Exception as e:
+        issues.append(f'pikepdf validation: {str(e)[:60]}')
+
+    return {
+        'valid': len(issues) == 0,
+        'issues': issues,
+        'passed': passed,
+        'issue_count': len(issues),
+    }
+
+
+def get_pdf_object_count(input_path: str) -> dict:
+    """Get the number of objects, streams, and images in a PDF."""
+    try:
+        doc = fitz.open(input_path)
+        image_count = 0
+        for pg in range(doc.page_count):
+            image_count += len(doc.get_page_images(pg))
+        xref_count = doc.xref_length()
+        doc.close()
+        return {
+            'xref_count': xref_count,
+            'image_count': image_count,
+            'page_count': doc.page_count if not doc.is_closed else 0,
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def clone_pdf_metadata(source_path: str, target_path: str, output_path: str) -> dict:
+    """Copy metadata from source PDF to target PDF."""
+    try:
+        src = fitz.open(source_path)
+        meta = src.metadata or {}
+        src.close()
+        doc = fitz.open(target_path)
+        doc.set_metadata(meta)
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'metadata_cloned': meta}
+    except Exception as e:
+        return {'error': str(e)}

@@ -1382,3 +1382,69 @@ def get_pdf_permissions(input_path: str, password: str = '') -> dict:
             }
     except Exception as e:
         return {'error': str(e), 'is_encrypted': True}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def check_permission_level(input_path: str, password: str = '') -> dict:
+    """Check what permissions a PDF allows (print, copy, edit, fill)."""
+    try:
+        doc = fitz.open(input_path)
+        if password:
+            doc.authenticate(password)
+        perm = doc.permissions
+        result = {
+            'is_encrypted': doc.is_encrypted,
+            'can_print': bool(perm & fitz.PDF_PERM_PRINT),
+            'can_copy': bool(perm & fitz.PDF_PERM_COPY),
+            'can_annotate': bool(perm & fitz.PDF_PERM_ANNOTATE),
+            'can_form': bool(perm & fitz.PDF_PERM_FORM),
+            'can_assemble': bool(perm & fitz.PDF_PERM_ASSEMBLE),
+            'can_print_hq': bool(perm & fitz.PDF_PERM_PRINT_HQ),
+        }
+        doc.close()
+        return result
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def add_copy_protection(input_path: str, output_path: str,
+                         user_password: str = '', owner_password: str = 'IshuToolsOwner') -> dict:
+    """Protect a PDF to prevent copying and editing while allowing viewing."""
+    try:
+        doc = fitz.open(input_path)
+        perm = fitz.PDF_PERM_PRINT | fitz.PDF_PERM_PRINT_HQ
+        doc.save(
+            output_path,
+            encryption=fitz.PDF_ENCRYPT_AES_256,
+            user_pw=user_password,
+            owner_pw=owner_password,
+            permissions=perm,
+            garbage=4,
+            deflate=True
+        )
+        doc.close()
+        return {
+            'output_path': output_path,
+            'copy_protected': True,
+            'print_allowed': True,
+            'edit_blocked': True,
+            'copy_blocked': True,
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def get_encryption_level(input_path: str) -> str:
+    """Return a human-readable description of the PDF encryption level."""
+    try:
+        doc = fitz.open(input_path)
+        if not doc.is_encrypted:
+            doc.close()
+            return 'Not encrypted'
+        meta = doc.metadata or {}
+        enc_type = meta.get('encryption', 'Unknown')
+        doc.close()
+        return enc_type or 'Encrypted (unknown level)'
+    except Exception:
+        return 'Unable to determine'

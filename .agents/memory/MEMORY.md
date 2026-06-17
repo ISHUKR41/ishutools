@@ -10,6 +10,8 @@
 - [Marquee strip pattern](marquee-strip.md) — Duplicate marquee-row with aria-hidden="true" for seamless loop; use min-width:100% + animation-delay:-halfDuration for the duplicate
 - [Counter IntersectionObserver](counter-io.md) — initCounters uses IO with threshold:.5; counters appear mid-animation in screenshots (correct — they animate on scroll-into-view)
 - [redact-pdf accent color](redact-color.md) — redact-pdf originally used #1F2937 (near-black); changed to #64748B/#475569 for visible gradient on dark background
-- [TOOLS array completeness](tools-array.md) — JS TOOLS array (main.js) must have entry for EVERY tool; counter data-count in index.html set to 36; as of 2026-06-17 array has 35 entries (edit-pdf, pdf-forms, jpg-to-pdf, pdf-to-jpg added)
+- [TOOLS array completeness](tools-array.md) — JS TOOLS array (main.js) must have entry for EVERY tool; counter data-count in index.html set to 36; 36 tools confirmed via /api/health; ai-summarizer uses apiEndpoint:'/api/summarize-pdf'
 - [Scroll reveal opacity danger](scroll-reveal.md) — NEVER use opacity:0 in reveal-up/IO patterns; use CSS @keyframes y-only animation so content is always readable during transitions
 - [SEO hidden div penalty](seo-hidden.md) — Replaced position:absolute opacity:0 hidden SEO div with visible seo-tools-dir section; cloaking is penalized by Google; visible structured dirs are canonical
+- [Tool .py file scale](tool-py-scale.md) — All 34 tool .py files have 28-42 functions each (953 total, 41k+ lines); append new functions at bottom; always syntax-check with compile() before restart
+- [API route naming](api-routes.md) — Route names differ from UI names: page-numbers→add-page-numbers, watermark→add-watermark, pdf-to-jpg→pdf-to-img; always verify in app.py before testing

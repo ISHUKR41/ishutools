@@ -1394,3 +1394,89 @@ def extract_action_items(input_path: str, password: str = '') -> dict:
         'total_found': len(action_items),
         'note': 'AI-extracted using keyword analysis',
     }
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def extract_action_items(text: str) -> list:
+    """Extract action items, todos, and tasks from PDF text using pattern matching."""
+    import re
+    patterns = [
+        r'\b(TODO|TO DO|Action Item|Task|Deliverable|Action Required)[\s:]+([^\n.!?]{10,100})',
+        r'^\s*[-•*]\s+([A-Z][^.\n]{10,80}(?:will|should|must|need to|required)[^.\n]{0,50})',
+        r'\b(must|should|will|shall|needs? to)\s+([a-z][^.\n]{10,80})',
+    ]
+    items = []
+    for pat in patterns:
+        matches = re.findall(pat, text, re.IGNORECASE | re.MULTILINE)
+        for m in matches:
+            item = m[-1].strip() if isinstance(m, tuple) else m.strip()
+            if len(item) > 15 and item not in items:
+                items.append(item)
+    return items[:20]
+
+
+def calculate_reading_time(text: str, wpm: int = 200) -> dict:
+    """Calculate estimated reading time for the PDF content."""
+    words = len(text.split())
+    minutes = max(1, round(words / wpm))
+    seconds = max(10, round((words / wpm) * 60))
+    return {
+        'word_count': words,
+        'reading_time_minutes': minutes,
+        'reading_time_seconds': seconds,
+        'reading_time_label': f'{minutes} min read' if minutes < 60 else f'{minutes//60}h {minutes%60}m read',
+    }
+
+
+def get_document_statistics(text: str) -> dict:
+    """Get comprehensive document statistics — word count, sentences, chars, unique words."""
+    import re
+    words = text.split()
+    sentences = re.split(r'[.!?]+', text)
+    sentences = [s.strip() for s in sentences if len(s.strip()) > 10]
+    unique_words = set(w.lower().strip('.,!?;:"\'') for w in words if len(w) > 3)
+    paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
+    avg_sentence_len = round(len(words) / max(len(sentences), 1))
+    return {
+        'word_count': len(words),
+        'character_count': len(text),
+        'sentence_count': len(sentences),
+        'paragraph_count': len(paragraphs),
+        'unique_words': len(unique_words),
+        'avg_sentence_length': avg_sentence_len,
+        'estimated_reading_time': f'{max(1, len(words)//200)} min',
+    }
+
+
+def detect_document_language(text: str) -> str:
+    """Detect the primary language of a document using character frequency analysis."""
+    if not text:
+        return 'unknown'
+    devanagari = sum(1 for c in text if '\u0900' <= c <= '\u097F')
+    arabic = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
+    chinese = sum(1 for c in text if '\u4E00' <= c <= '\u9FFF')
+    latin = sum(1 for c in text if c.isascii() and c.isalpha())
+    scores = {'hi': devanagari, 'ar': arabic, 'zh': chinese, 'en': latin}
+    detected = max(scores, key=scores.get)
+    if scores[detected] < 10:
+        return 'en'
+    return detected
+
+
+def chunk_text_for_translation(text: str, max_chars: int = 4500) -> list:
+    """Split text into chunks for translation without breaking sentences."""
+    import re
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    chunks = []
+    current = ''
+    for s in sentences:
+        if len(current) + len(s) < max_chars:
+            current += ' ' + s
+        else:
+            if current:
+                chunks.append(current.strip())
+            current = s
+    if current:
+        chunks.append(current.strip())
+    return chunks

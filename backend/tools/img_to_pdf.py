@@ -1388,3 +1388,90 @@ def convert_image_formats_then_pdf(
             try: os.remove(p)
             except: pass
     return {**result, 'enhancements_applied': {'brightness': enhance_brightness, 'contrast': enhance_contrast, 'sharpness': enhance_sharpness, 'grayscale': grayscale}}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def get_image_info(image_path: str) -> dict:
+    """Get dimensions, format, and mode of an image file."""
+    try:
+        with Image.open(image_path) as img:
+            return {
+                'width': img.width, 'height': img.height,
+                'mode': img.mode, 'format': img.format or 'Unknown',
+                'has_transparency': img.mode in ('RGBA', 'LA', 'PA'),
+                'dpi': img.info.get('dpi', (72, 72)),
+            }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def convert_image_to_searchable_pdf(image_path: str, output_path: str,
+                                      lang: str = 'eng', dpi: int = 300) -> dict:
+    """Convert a single image to a searchable PDF using OCR overlay."""
+    try:
+        import pytesseract
+        img = Image.open(image_path).convert('RGB')
+        pdf_bytes = pytesseract.image_to_pdf_or_hocr(img, extension='pdf', lang=lang)
+        with open(output_path, 'wb') as f:
+            f.write(pdf_bytes)
+        return {'output_path': output_path, 'searchable': True, 'lang': lang}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def optimize_images_for_pdf(image_paths: list, max_dimension: int = 2480,
+                              jpeg_quality: int = 85) -> list:
+    """Optimize a list of images for PDF conversion (resize, compress)."""
+    optimized = []
+    import tempfile, os
+    for path in image_paths:
+        try:
+            img = Image.open(path).convert('RGB')
+            if max(img.width, img.height) > max_dimension:
+                ratio = max_dimension / max(img.width, img.height)
+                new_size = (int(img.width * ratio), int(img.height * ratio))
+                img = img.resize(new_size, Image.LANCZOS)
+            tmp = tempfile.mktemp(suffix='.jpg')
+            img.save(tmp, 'JPEG', quality=jpeg_quality, optimize=True, progressive=True)
+            optimized.append(tmp)
+        except Exception:
+            optimized.append(path)
+    return optimized
+
+
+def create_photo_album_pdf(image_paths: list, output_path: str,
+                            title: str = 'Photo Album', captions: list = None) -> dict:
+    """Create a photo album style PDF with title page and captions."""
+    try:
+        from reportlab.pdfgen import canvas as rl_canvas
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.utils import ImageReader
+        captions = captions or []
+        c = rl_canvas.Canvas(output_path, pagesize=A4)
+        pw, ph = A4
+        c.setFont('Helvetica-Bold', 24)
+        c.drawCentredString(pw/2, ph/2 + 40, title)
+        c.setFont('Helvetica', 14)
+        c.drawCentredString(pw/2, ph/2, 'Created by IshuTools.fun')
+        c.showPage()
+        for i, path in enumerate(image_paths):
+            try:
+                img = Image.open(path)
+                img_reader = ImageReader(path)
+                img_w, img_h = img.width, img.height
+                ratio = min((pw-60) / img_w, (ph-100) / img_h)
+                disp_w, disp_h = img_w * ratio, img_h * ratio
+                x = (pw - disp_w) / 2
+                y = (ph - disp_h) / 2 + 20
+                c.drawImage(img_reader, x, y, disp_w, disp_h)
+                caption = captions[i] if i < len(captions) else f'Photo {i+1}'
+                c.setFont('Helvetica', 10)
+                c.drawCentredString(pw/2, 20, caption)
+            except Exception:
+                pass
+            c.showPage()
+        c.save()
+        return {'output_path': output_path, 'pages': len(image_paths) + 1}
+    except Exception as e:
+        return {'error': str(e)}

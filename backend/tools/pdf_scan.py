@@ -866,3 +866,73 @@ def estimate_scan_quality(image_path: str) -> dict:
         }
     except Exception as e:
         return {'error': str(e)}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def detect_scan_quality(image_path: str) -> dict:
+    """Analyze a scanned image and report quality metrics."""
+    try:
+        img = Image.open(image_path).convert('L')
+        import numpy as np
+        arr = np.array(img)
+        mean_brightness = float(arr.mean())
+        contrast = float(arr.std())
+        dark_pixels = int((arr < 50).sum())
+        total_pixels = arr.size
+        dark_ratio = dark_pixels / total_pixels
+        quality = 'Excellent' if contrast > 60 and 100 < mean_brightness < 220 else \
+                  'Good' if contrast > 40 else \
+                  'Poor (low contrast — enhancement recommended)'
+        return {
+            'mean_brightness': round(mean_brightness, 1),
+            'contrast_score': round(contrast, 1),
+            'dark_pixel_ratio': round(dark_ratio * 100, 1),
+            'quality': quality,
+            'enhancement_recommended': contrast < 50 or mean_brightness < 80 or mean_brightness > 230,
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def estimate_ocr_accuracy(image_path: str, lang: str = 'eng') -> dict:
+    """Estimate OCR accuracy by running confidence check on a single image."""
+    try:
+        import pytesseract
+        img = Image.open(image_path).convert('RGB')
+        data = pytesseract.image_to_data(img, lang=lang, output_type=pytesseract.Output.DICT)
+        confidences = [c for c in data['conf'] if isinstance(c, (int, float)) and c > 0]
+        avg_conf = sum(confidences) / len(confidences) if confidences else 0
+        word_count = len([w for w in data['text'] if w.strip()])
+        quality = 'High (>80%)' if avg_conf > 80 else 'Medium (50-80%)' if avg_conf > 50 else 'Low (<50%) — try image enhancement'
+        return {
+            'average_confidence': round(avg_conf, 1),
+            'detected_words': word_count,
+            'ocr_quality': quality,
+            'confidence_scores': confidences[:10],
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def get_supported_ocr_languages() -> dict:
+    """Return available OCR languages (Tesseract)."""
+    import shutil, subprocess
+    result = {'available': [], 'error': None}
+    try:
+        tesseract_bin = shutil.which('tesseract')
+        if tesseract_bin:
+            out = subprocess.run([tesseract_bin, '--list-langs'], capture_output=True, text=True)
+            langs = [l.strip() for l in (out.stdout + out.stderr).split('\n') if l.strip() and not l.startswith('List')]
+            result['available'] = langs
+    except Exception as e:
+        result['error'] = str(e)
+    result['common_languages'] = {
+        'eng': 'English', 'hin': 'Hindi', 'ara': 'Arabic', 'fra': 'French',
+        'deu': 'German', 'spa': 'Spanish', 'chi_sim': 'Chinese Simplified',
+        'chi_tra': 'Chinese Traditional', 'jpn': 'Japanese', 'kor': 'Korean',
+        'rus': 'Russian', 'por': 'Portuguese', 'ita': 'Italian',
+        'ben': 'Bengali', 'tam': 'Tamil', 'tel': 'Telugu', 'mar': 'Marathi',
+        'guj': 'Gujarati', 'kan': 'Kannada', 'mal': 'Malayalam',
+    }
+    return result

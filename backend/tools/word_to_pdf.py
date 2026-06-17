@@ -1162,3 +1162,47 @@ def get_docx_info(input_path: str) -> dict:
         }
     except Exception as e:
         return {'error': str(e)}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def get_docx_info(input_path: str) -> dict:
+    """Get information about a Word document (pages, words, images)."""
+    try:
+        from docx import Document
+        doc = Document(input_path)
+        paragraphs = len(doc.paragraphs)
+        tables = len(doc.tables)
+        words = sum(len(p.text.split()) for p in doc.paragraphs)
+        images = len(doc.inline_shapes)
+        sections = len(doc.sections)
+        return {
+            'paragraphs': paragraphs,
+            'tables': tables,
+            'estimated_words': words,
+            'images': images,
+            'sections': sections,
+            'estimated_pages': max(1, words // 250),
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def extract_docx_text(input_path: str) -> str:
+    """Extract plain text from a Word .docx file."""
+    try:
+        from docx import Document
+        doc = Document(input_path)
+        return '\n'.join(p.text for p in doc.paragraphs if p.text.strip())
+    except Exception as e:
+        return f'Error extracting text: {str(e)}'
+
+
+def docx_table_count(input_path: str) -> int:
+    """Count the number of tables in a Word document."""
+    try:
+        from docx import Document
+        doc = Document(input_path)
+        return len(doc.tables)
+    except Exception:
+        return 0

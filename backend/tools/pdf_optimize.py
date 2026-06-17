@@ -654,3 +654,68 @@ def batch_optimize_directory(input_dir: str, output_dir: str, target: str = 'web
             results.append({'file': fname, 'status': 'error', 'error': str(e)})
     total_saved = sum(r.get('bytes_saved', 0) for r in results if r['status'] == 'ok')
     return {'results': results, 'files_processed': len(results), 'total_bytes_saved': total_saved}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def get_optimization_suggestions(input_path: str) -> dict:
+    """Analyze PDF and suggest optimization strategies."""
+    suggestions = []
+    stats = {}
+    try:
+        doc = fitz.open(input_path)
+        page_count = doc.page_count
+        file_size = os.path.getsize(input_path) if os.path.exists(input_path) else 0
+        image_count = sum(len(doc.get_page_images(pg)) for pg in range(page_count))
+        avg_page_size = file_size / max(page_count, 1)
+        stats = {
+            'file_size': file_size,
+            'page_count': page_count,
+            'image_count': image_count,
+            'avg_page_size_bytes': round(avg_page_size),
+        }
+        if file_size > 5 * 1024 * 1024:
+            suggestions.append('File is large (>5MB) — consider compress PDF first')
+        if image_count > page_count * 2:
+            suggestions.append(f'Many images ({image_count}) — image optimization will help most')
+        if image_count == 0:
+            suggestions.append('No images found — lossless stream compression is the best option')
+        if avg_page_size > 500 * 1024:
+            suggestions.append('Large per-page size — likely high-resolution images, reduce DPI')
+        doc.close()
+    except Exception as e:
+        suggestions.append(f'Analysis error: {str(e)[:60]}')
+    return {'suggestions': suggestions, 'stats': stats}
+
+
+def remove_embedded_thumbnails(input_path: str, output_path: str) -> dict:
+    """Remove embedded thumbnail images from PDF (reduces file size)."""
+    try:
+        with pikepdf.open(input_path) as pdf:
+            removed = 0
+            for page in pdf.pages:
+                if pikepdf.Name('/Thumb') in page:
+                    del page[pikepdf.Name('/Thumb')]
+                    removed += 1
+            pdf.save(output_path, compress_streams=True)
+        return {'output_path': output_path, 'thumbnails_removed': removed}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def linearize_pdf(input_path: str, output_path: str) -> dict:
+    """Linearize PDF for fast web viewing (first page loads first)."""
+    try:
+        doc = fitz.open(input_path)
+        doc.save(output_path, linear=True, garbage=4, deflate=True)
+        doc.close()
+        orig_size = os.path.getsize(input_path)
+        new_size = os.path.getsize(output_path)
+        return {
+            'output_path': output_path,
+            'linearized': True,
+            'original_size': orig_size,
+            'new_size': new_size,
+        }
+    except Exception as e:
+        return {'error': str(e)}

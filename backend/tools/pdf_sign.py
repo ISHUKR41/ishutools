@@ -1385,3 +1385,80 @@ def get_signature_summary(input_path: str, password: str = '') -> dict:
         return {'signatures_found': len(sigs), 'signatures': sigs, 'is_signed': len(sigs) > 0}
     except Exception as e:
         return {'error': str(e), 'signatures_found': 0}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def add_initials(input_path: str, output_path: str, initials: str,
+                  color: str = '#003399', pages: str = 'all',
+                  corner: str = 'bottom-right', font_size: int = 14) -> dict:
+    """Add initials (small signature) to corner of each page."""
+    try:
+        doc = fitz.open(input_path)
+        total = doc.page_count
+        page_list = list(range(total)) if pages == 'all' else [int(p)-1 for p in pages.split(',') if p.strip().isdigit()]
+        r, g, b = [int(color.lstrip('#')[i:i+2], 16)/255 for i in (0, 2, 4)]
+        applied = []
+        for pg_num in page_list:
+            if 0 <= pg_num < total:
+                page = doc[pg_num]
+                rect = page.rect
+                margin = 10
+                if corner == 'bottom-right':
+                    x, y = rect.width - margin - len(initials) * 8, rect.height - margin
+                elif corner == 'bottom-left':
+                    x, y = margin, rect.height - margin
+                elif corner == 'top-right':
+                    x, y = rect.width - margin - len(initials) * 8, margin + font_size
+                else:
+                    x, y = margin, margin + font_size
+                page.insert_text((x, y), initials, fontsize=font_size,
+                                  color=(r, g, b), fontname='helv')
+                applied.append(pg_num + 1)
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'initials': initials, 'pages_signed': applied}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def add_signature_line(input_path: str, output_path: str,
+                        label: str = 'Authorized Signature', page_num: int = -1) -> dict:
+    """Add a signature line at the bottom of the last page."""
+    try:
+        doc = fitz.open(input_path)
+        pg_idx = doc.page_count - 1 if page_num < 0 else min(page_num - 1, doc.page_count - 1)
+        page = doc[pg_idx]
+        rect = page.rect
+        y_line = rect.height - 80
+        x_start = rect.width * 0.1
+        x_end = rect.width * 0.5
+        page.draw_line(fitz.Point(x_start, y_line), fitz.Point(x_end, y_line),
+                        color=(0, 0, 0), width=1)
+        page.insert_text((x_start, y_line + 14), label, fontsize=9,
+                          color=(0.4, 0.4, 0.4), fontname='helv')
+        from datetime import date
+        page.insert_text((x_end + 20, y_line + 14), f'Date: {date.today().strftime("%B %d, %Y")}',
+                          fontsize=9, color=(0.4, 0.4, 0.4), fontname='helv')
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'signature_line_added': True, 'page': pg_idx + 1}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def generate_signature_certificate(signature_text: str, date: str = '',
+                                    document_name: str = '') -> dict:
+    """Generate a signature certificate record (metadata dict for audit trail)."""
+    from datetime import datetime
+    import hashlib
+    ts = date or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+    cert = {
+        'signer': signature_text,
+        'timestamp': ts,
+        'document': document_name or 'Untitled Document',
+        'tool': 'IshuTools.fun',
+        'hash': hashlib.sha256(f'{signature_text}{ts}{document_name}'.encode()).hexdigest()[:16],
+        'status': 'Signed',
+    }
+    return cert

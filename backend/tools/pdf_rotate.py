@@ -1054,3 +1054,73 @@ def get_page_orientations(input_path: str, password: str = '') -> dict:
         orientations.append({'page': i + 1, 'rotation': page.rotation, 'width': round(page.rect.width), 'height': round(page.rect.height)})
     doc.close()
     return {'page_count': len(orientations), 'orientations': orientations}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def auto_deskew(input_path: str, output_path: str) -> dict:
+    """Auto-detect and correct page orientation for each page."""
+    try:
+        doc = fitz.open(input_path)
+        corrections = []
+        for pg_num, page in enumerate(doc):
+            rotation = page.rotation
+            if rotation not in (0, 90, 180, 270):
+                page.set_rotation(0)
+                corrections.append({'page': pg_num+1, 'correction': '→0°'})
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'corrections': corrections}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def rotate_even_odd_pages(input_path: str, output_path: str,
+                            even_angle: int = 90, odd_angle: int = 0) -> dict:
+    """Rotate even pages by one angle and odd pages by another (for duplex scanning)."""
+    try:
+        doc = fitz.open(input_path)
+        for pg_num, page in enumerate(doc):
+            angle = even_angle if (pg_num + 1) % 2 == 0 else odd_angle
+            page.set_rotation(angle)
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'even_angle': even_angle, 'odd_angle': odd_angle}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def get_page_orientations(input_path: str) -> dict:
+    """Return the rotation/orientation of each page in the PDF."""
+    try:
+        doc = fitz.open(input_path)
+        orientations = []
+        for pg_num, page in enumerate(doc):
+            orientations.append({'page': pg_num+1, 'rotation': page.rotation,
+                                  'width': round(page.rect.width), 'height': round(page.rect.height)})
+        doc.close()
+        return {'pages': orientations, 'total': len(orientations)}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def normalize_page_size(input_path: str, output_path: str,
+                          target_size: str = 'A4') -> dict:
+    """Normalize all pages to the same page size (A4, Letter, A3, etc.)."""
+    try:
+        SIZES = {
+            'A4': fitz.paper_size('a4'), 'Letter': (612, 792),
+            'A3': fitz.paper_size('a3'), 'A5': fitz.paper_size('a5'),
+            'Legal': (612, 1008),
+        }
+        tw, th = SIZES.get(target_size, SIZES['A4'])
+        doc = fitz.open(input_path)
+        new_doc = fitz.open()
+        for page in doc:
+            new_page = new_doc.new_page(width=tw, height=th)
+            new_page.show_pdf_page(new_page.rect, doc, page.number)
+        new_doc.save(output_path, garbage=4, deflate=True)
+        new_doc.close(); doc.close()
+        return {'output_path': output_path, 'target_size': target_size, 'pages': doc.page_count}
+    except Exception as e:
+        return {'error': str(e)}

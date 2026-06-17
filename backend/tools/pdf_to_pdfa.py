@@ -852,3 +852,73 @@ def get_pdfa_info() -> dict:
         'recommended': '2b',
         'note': 'PDF/A files are self-contained and suitable for legal/archival storage for 100+ years',
     }
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def validate_pdfa_compliance(input_path: str) -> dict:
+    """Basic validation checks to estimate PDF/A compliance."""
+    issues = []
+    passed = []
+    try:
+        doc = fitz.open(input_path)
+        meta = doc.metadata or {}
+        xmp = doc.get_xml_metadata()
+        if xmp and 'pdfaid:conformance' in xmp:
+            passed.append('Has PDF/A XMP metadata (pdfaid:conformance found)')
+        else:
+            issues.append('Missing PDF/A XMP metadata (pdfaid:conformance)')
+        if xmp and 'pdfaid:part' in xmp:
+            passed.append('Has PDF/A part identifier')
+        else:
+            issues.append('Missing PDF/A part identifier in XMP')
+        if meta.get('producer'):
+            passed.append(f'Producer: {meta["producer"]}')
+        has_embedded_fonts = False
+        for pg in range(min(3, doc.page_count)):
+            page = doc[pg]
+            for block in page.get_text('rawdict').get('blocks', []):
+                for line in block.get('lines', []):
+                    for span in line.get('spans', []):
+                        if span.get('font'):
+                            has_embedded_fonts = True
+                            break
+        if has_embedded_fonts:
+            passed.append('Fonts appear to be embedded')
+        else:
+            issues.append('Could not confirm font embedding')
+        doc.close()
+    except Exception as e:
+        issues.append(f'Validation error: {str(e)[:60]}')
+    return {
+        'likely_pdfa': len(issues) <= 1,
+        'issues': issues,
+        'passed': passed,
+        'issue_count': len(issues),
+    }
+
+
+def get_pdfa_level_info() -> dict:
+    """Return information about different PDF/A conformance levels."""
+    return {
+        'pdfa-1a': {
+            'name': 'PDF/A-1a (ISO 19005-1 Level A)',
+            'description': 'Strictest — requires tagged PDF, logical structure, Unicode mapping',
+            'recommended_for': 'Legal, regulatory documents requiring full accessibility',
+        },
+        'pdfa-1b': {
+            'name': 'PDF/A-1b (ISO 19005-1 Level B)',
+            'description': 'Basic — requires embedded fonts, no encryption, device-independent colors',
+            'recommended_for': 'General document archiving',
+        },
+        'pdfa-2b': {
+            'name': 'PDF/A-2b (ISO 19005-2 Level B)',
+            'description': 'Adds JPEG2000, transparency, optional content — most flexible',
+            'recommended_for': 'Modern documents, scientific publications (recommended)',
+        },
+        'pdfa-3b': {
+            'name': 'PDF/A-3b (ISO 19005-3 Level B)',
+            'description': 'Allows embedded files of any type (XML, CSV, Word, etc.)',
+            'recommended_for': 'E-invoicing, ZUGFeRD, Factur-X hybrid formats',
+        },
+    }

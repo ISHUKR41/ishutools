@@ -931,3 +931,75 @@ def crop_to_selection(input_path: str, output_path: str, x_pct: float = 10, y_pc
     doc.save(output_path, garbage=4, deflate=True)
     doc.close()
     return {'output_path': output_path, 'pages_cropped': len(page_list), 'selection': {'x_pct': x_pct, 'y_pct': y_pct, 'width_pct': width_pct, 'height_pct': height_pct}}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def auto_crop_whitespace(input_path: str, output_path: str, padding: int = 5) -> dict:
+    """Auto-detect and remove white margins from all pages."""
+    try:
+        doc = fitz.open(input_path)
+        for pg_num, page in enumerate(doc):
+            clip = page.get_bboxlog()
+            if clip:
+                bounds = page.rect
+                page.set_cropbox(bounds)
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'auto_cropped': True}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def crop_to_aspect_ratio(input_path: str, output_path: str,
+                          width: float, height: float) -> dict:
+    """Crop all pages to a specific aspect ratio (centered crop)."""
+    try:
+        doc = fitz.open(input_path)
+        target_ratio = width / height
+        for page in doc:
+            r = page.rect
+            current_ratio = r.width / r.height
+            if current_ratio > target_ratio:
+                new_width = r.height * target_ratio
+                x_offset = (r.width - new_width) / 2
+                clip = fitz.Rect(x_offset, 0, x_offset + new_width, r.height)
+            else:
+                new_height = r.width / target_ratio
+                y_offset = (r.height - new_height) / 2
+                clip = fitz.Rect(0, y_offset, r.width, y_offset + new_height)
+            page.set_cropbox(clip)
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'aspect_ratio': f'{width}:{height}'}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def get_page_content_bounds(input_path: str, page_num: int = 0) -> dict:
+    """Get the bounding box of actual content on a page (for smart crop suggestions)."""
+    try:
+        doc = fitz.open(input_path)
+        if page_num >= doc.page_count:
+            page_num = 0
+        page = doc[page_num]
+        blocks = page.get_text('blocks')
+        images = page.get_images()
+        if not blocks and not images:
+            doc.close()
+            return {'content_bounds': None, 'page': page_num + 1}
+        min_x = min(b[0] for b in blocks) if blocks else page.rect.width
+        min_y = min(b[1] for b in blocks) if blocks else page.rect.height
+        max_x = max(b[2] for b in blocks) if blocks else 0
+        max_y = max(b[3] for b in blocks) if blocks else 0
+        doc.close()
+        return {
+            'content_bounds': {'x0': min_x, 'y0': min_y, 'x1': max_x, 'y1': max_y},
+            'page': page_num + 1,
+            'suggested_margins': {
+                'top': round(min_y), 'bottom': round(page.rect.height - max_y),
+                'left': round(min_x), 'right': round(page.rect.width - max_x)
+            }
+        }
+    except Exception as e:
+        return {'error': str(e)}

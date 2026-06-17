@@ -938,3 +938,44 @@ def get_pdf_slide_count(input_path: str, password: str = '') -> dict:
         pages.append({'page': i+1, 'width_pt': round(r.width, 1), 'height_pt': round(r.height, 1), 'aspect': round(r.width/max(r.height, 1), 3)})
     doc.close()
     return {'page_count': len(pages), 'pages': pages[:10], 'most_common_size': pages[0] if pages else {}}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def get_slide_content_preview(input_path: str, max_slides: int = 5) -> dict:
+    """Preview content of first N slides converted from PDF."""
+    try:
+        import fitz as _fitz
+        doc = _fitz.open(input_path)
+        slides = []
+        for pg_num in range(min(max_slides, doc.page_count)):
+            page = doc[pg_num]
+            text = page.get_text().strip()[:200]
+            images = page.get_images()
+            slides.append({
+                'slide': pg_num + 1,
+                'text_preview': text,
+                'has_images': len(images) > 0,
+                'image_count': len(images),
+            })
+        doc.close()
+        return {'slide_previews': slides, 'total_slides': doc.page_count if doc else 0}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def estimate_presentation_complexity(input_path: str) -> str:
+    """Estimate conversion complexity for PDF to PowerPoint."""
+    try:
+        import fitz as _fitz
+        doc = _fitz.open(input_path)
+        image_count = sum(len(doc.get_page_images(pg)) for pg in range(doc.page_count))
+        total_text = sum(len(doc[pg].get_text()) for pg in range(doc.page_count))
+        doc.close()
+        if image_count > doc.page_count * 2:
+            return 'Complex (many images — output will be image-based slides)'
+        if total_text > doc.page_count * 500:
+            return 'High text density — text extraction mode recommended'
+        return 'Standard (good conversion expected)'
+    except Exception:
+        return 'Unable to estimate'

@@ -1648,3 +1648,69 @@ def extract_page_range_from_each(
         'errors': errors,
         'page_range': page_range,
     }
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def create_separator_page(title: str, page_num: int = None, output_path: str = None) -> bytes:
+    """Create a stylish separator page PDF as bytes."""
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.colors import HexColor
+    import io
+    buf = io.BytesIO()
+    c = rl_canvas.Canvas(buf, pagesize=A4)
+    w, h = A4
+    c.setFillColor(HexColor('#6366f1'))
+    c.rect(0, 0, w, h, fill=1, stroke=0)
+    c.setFillColor(HexColor('#ffffff'))
+    c.setFont('Helvetica-Bold', 28)
+    c.drawCentredString(w/2, h/2 + 20, title)
+    if page_num is not None:
+        c.setFont('Helvetica', 14)
+        c.drawCentredString(w/2, h/2 - 20, f'Section {page_num}')
+    c.setFont('Helvetica', 10)
+    c.drawCentredString(w/2, 30, 'Merged by IshuTools.fun — Free PDF Tools by Ishu Kumar')
+    c.showPage()
+    c.save()
+    return buf.getvalue()
+
+
+def count_total_pages_in_list(input_paths: list) -> dict:
+    """Count total pages across multiple PDF files before merging."""
+    import fitz as _fitz
+    results = []
+    total = 0
+    for path in input_paths:
+        try:
+            doc = _fitz.open(path)
+            count = doc.page_count
+            doc.close()
+            results.append({'file': path, 'pages': count})
+            total += count
+        except Exception as e:
+            results.append({'file': path, 'pages': 0, 'error': str(e)})
+    return {'files': results, 'total_pages': total, 'file_count': len(input_paths)}
+
+
+def deduplicate_pages(input_path: str, output_path: str, threshold: float = 0.95) -> dict:
+    """Remove near-duplicate pages from a PDF (based on text similarity)."""
+    import fitz as _fitz, hashlib
+    try:
+        doc = _fitz.open(input_path)
+        seen_hashes = set()
+        new_doc = _fitz.open()
+        removed = []
+        for pg_num, page in enumerate(doc):
+            text = page.get_text().strip()
+            h = hashlib.md5(text[:500].encode()).hexdigest()
+            if h in seen_hashes and len(text) > 50:
+                removed.append(pg_num + 1)
+            else:
+                seen_hashes.add(h)
+                new_doc.insert_pdf(doc, from_page=pg_num, to_page=pg_num)
+        new_doc.save(output_path, garbage=4, deflate=True)
+        new_doc.close(); doc.close()
+        return {'output_path': output_path, 'duplicates_removed': removed, 'pages_kept': doc.page_count - len(removed)}
+    except Exception as e:
+        return {'error': str(e)}

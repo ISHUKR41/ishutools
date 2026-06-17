@@ -1003,3 +1003,53 @@ def get_pdf_text_stats(input_path: str, password: str = '') -> dict:
         return stats
     except Exception as e:
         return {'error': str(e)}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def get_pdf_text_density(input_path: str) -> dict:
+    """Analyze PDF text density to predict conversion quality."""
+    try:
+        import fitz as _fitz
+        doc = _fitz.open(input_path)
+        densities = []
+        for pg_num, page in enumerate(doc):
+            text = page.get_text()
+            images = page.get_images()
+            text_ratio = len(text) / max(page.rect.width * page.rect.height, 1)
+            densities.append({
+                'page': pg_num + 1,
+                'text_chars': len(text),
+                'image_count': len(images),
+                'text_density': round(text_ratio * 1000, 2),
+                'conversion_quality': 'Excellent' if len(text) > 200 and not images else
+                                      'Good' if len(text) > 50 else
+                                      'Poor (likely scanned — use OCR first)',
+            })
+        doc.close()
+        avg_chars = sum(d['text_chars'] for d in densities) / max(len(densities), 1)
+        return {
+            'pages': densities,
+            'avg_chars_per_page': round(avg_chars),
+            'overall_quality': 'Excellent' if avg_chars > 200 else 'Good' if avg_chars > 50 else 'Poor — try OCR PDF first',
+            'is_scanned': avg_chars < 50,
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def count_tables_in_pdf(input_path: str) -> dict:
+    """Estimate the number of tables in a PDF using text layout analysis."""
+    try:
+        import fitz as _fitz
+        import re
+        doc = _fitz.open(input_path)
+        total_tables = 0
+        for page in doc:
+            text = page.get_text('blocks')
+            grid_like = sum(1 for b in text if len(b[4].split('\n')) > 3 and '\t' in b[4])
+            total_tables += grid_like
+        doc.close()
+        return {'estimated_tables': total_tables, 'note': 'Approximate count based on grid layout analysis'}
+    except Exception as e:
+        return {'error': str(e)}

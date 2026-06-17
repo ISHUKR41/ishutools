@@ -1360,3 +1360,74 @@ def get_supported_ocr_languages() -> dict:
         'indian_languages': ['hin', 'tam', 'tel', 'ben', 'mal', 'kan', 'guj', 'mar', 'pan', 'urd', 'nep'],
         'default': 'eng',
     }
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def extract_text_with_confidence(input_path: str, lang: str = 'eng',
+                                   min_confidence: int = 60) -> dict:
+    """Extract text from PDF pages with word-level confidence scores."""
+    try:
+        doc = fitz.open(input_path)
+        all_words = []
+        low_confidence_words = []
+        for pg_num in range(min(5, doc.page_count)):
+            page = doc[pg_num]
+            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+            img = Image.frombytes('RGB', [pix.width, pix.height], pix.samples)
+            data = pytesseract.image_to_data(img, lang=lang,
+                                              output_type=pytesseract.Output.DICT)
+            for i, word in enumerate(data['text']):
+                if word.strip() and isinstance(data['conf'][i], (int, float)):
+                    conf = int(data['conf'][i])
+                    if conf > 0:
+                        all_words.append({'word': word, 'conf': conf, 'page': pg_num+1})
+                        if conf < min_confidence:
+                            low_confidence_words.append(word)
+        doc.close()
+        avg_conf = sum(w['conf'] for w in all_words) / max(len(all_words), 1)
+        return {
+            'total_words': len(all_words),
+            'avg_confidence': round(avg_conf, 1),
+            'low_confidence_count': len(low_confidence_words),
+            'low_confidence_examples': low_confidence_words[:10],
+            'quality': 'Excellent' if avg_conf > 85 else 'Good' if avg_conf > 65 else 'Poor',
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def is_searchable_pdf(input_path: str) -> dict:
+    """Check if a PDF already has text (searchable) or needs OCR."""
+    try:
+        doc = fitz.open(input_path)
+        text_pages = 0
+        total_pages = doc.page_count
+        for pg_num in range(min(5, total_pages)):
+            text = doc[pg_num].get_text().strip()
+            if len(text) > 50:
+                text_pages += 1
+        doc.close()
+        is_searchable = text_pages > 0
+        return {
+            'is_searchable': is_searchable,
+            'text_pages_found': text_pages,
+            'total_pages_checked': min(5, total_pages),
+            'needs_ocr': not is_searchable,
+            'recommendation': 'Already searchable — OCR not needed' if is_searchable else 'Scanned PDF — run OCR for searchable text',
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def batch_ocr_summary(results: list) -> dict:
+    """Summarize OCR results from multiple files."""
+    total_pages = sum(r.get('pages_processed', 0) for r in results)
+    success_count = sum(1 for r in results if 'error' not in r)
+    return {
+        'files_processed': len(results),
+        'successful': success_count,
+        'failed': len(results) - success_count,
+        'total_pages_ocrd': total_pages,
+        'success_rate': round(success_count / max(len(results), 1) * 100, 1),
+    }

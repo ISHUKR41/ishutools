@@ -1279,3 +1279,74 @@ def preview_pii_found(input_path: str, password: str = '') -> dict:
         found[key] = {'count': len(matches), 'examples': [str(m)[:20] for m in matches[:3]]}
         total += len(matches)
     return {'pii_found': found, 'total_items': total, 'safe_to_redact': total > 0}
+
+
+# ── ADDITIONAL FUNCTIONS — IshuTools v2.0 ────────────────────────────────────
+
+def detect_pii_patterns(text: str) -> dict:
+    """Detect common PII patterns in text and return matches."""
+    import re
+    patterns = {
+        'email': r'\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b',
+        'phone': r'\b(?:\+?\d{1,3}[\s\-]?)?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}\b',
+        'ssn': r'\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b',
+        'credit_card': r'\b(?:\d{4}[\s\-]?){3}\d{4}\b',
+        'ip_address': r'\b(?:\d{1,3}\.){3}\d{1,3}\b',
+        'date_of_birth': r'\b(?:0?[1-9]|1[0-2])[\/\-](?:0?[1-9]|[12]\d|3[01])[\/\-](?:19|20)\d{2}\b',
+        'aadhaar': r'\b\d{4}\s?\d{4}\s?\d{4}\b',
+        'pan': r'\b[A-Z]{5}[0-9]{4}[A-Z]\b',
+    }
+    found = {}
+    for pii_type, pat in patterns.items():
+        matches = re.findall(pat, text, re.IGNORECASE)
+        if matches:
+            found[pii_type] = {'count': len(matches), 'examples': matches[:3]}
+    return {'detected': found, 'total_types': len(found), 'has_pii': len(found) > 0}
+
+
+def redact_all_pii(input_path: str, output_path: str,
+                    pii_types: list = None, color: str = '#000000') -> dict:
+    """Auto-redact all detected PII from PDF (email, phone, SSN, Aadhaar, PAN)."""
+    import re
+    if pii_types is None:
+        pii_types = ['email', 'phone', 'ssn', 'credit_card', 'aadhaar', 'pan']
+    patterns_map = {
+        'email': r'\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b',
+        'phone': r'\b(?:\+?\d{1,3}[\s\-]?)?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}\b',
+        'ssn': r'\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b',
+        'credit_card': r'\b(?:\d{4}[\s\-]?){3}\d{4}\b',
+        'aadhaar': r'\b\d{4}\s?\d{4}\s?\d{4}\b',
+        'pan': r'\b[A-Z]{5}[0-9]{4}[A-Z]\b',
+    }
+    terms = []
+    for pii_type in pii_types:
+        if pii_type in patterns_map:
+            terms.append(patterns_map[pii_type])
+    if not terms:
+        return {'error': 'No valid PII types specified'}
+    return redact_pdf(input_path, output_path, search_terms=terms, use_regex=True,
+                       fill_color=color, strip_metadata=True)
+
+
+def get_redaction_preview(input_path: str, search_terms: list,
+                           use_regex: bool = False) -> dict:
+    """Preview what will be redacted without actually redacting — returns count/location."""
+    import re
+    try:
+        doc = fitz.open(input_path)
+        preview = []
+        total_matches = 0
+        for pg_num, page in enumerate(doc):
+            text = page.get_text()
+            for term in search_terms:
+                if use_regex:
+                    matches = re.findall(term, text, re.IGNORECASE)
+                else:
+                    matches = [m.group() for m in re.finditer(re.escape(term), text, re.IGNORECASE)]
+                for m in matches:
+                    preview.append({'page': pg_num + 1, 'term': term, 'match': m[:30]})
+                    total_matches += 1
+        doc.close()
+        return {'total_matches': total_matches, 'preview': preview[:50]}
+    except Exception as e:
+        return {'error': str(e), 'total_matches': 0}
