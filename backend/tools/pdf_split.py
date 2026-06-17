@@ -791,3 +791,124 @@ def get_page_word_counts(input_path: str, password: str = '') -> list:
     except Exception as e:
         logger.warning(f'get_page_word_counts failed: {e}')
     return results
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — Smart split, content-aware, bookmark-based ────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def split_by_bookmarks(input_path: str, output_dir: str,
+                        password: str = '') -> dict:
+    """
+    Split a PDF into separate files based on its bookmark (TOC) structure.
+    Each top-level bookmark becomes a separate PDF file.
+
+    Returns list of created files with their bookmark titles.
+    """
+    import fitz, os
+
+    doc = fitz.open(input_path)
+    if doc.is_encrypted and password:
+        doc.authenticate(password)
+
+    toc = doc.get_toc()
+    if not toc:
+        raise ValueError('No bookmarks found in this PDF. Use page-range split instead.')
+
+    # Filter top-level bookmarks (level 1)
+    top_bookmarks = [(title, page - 1) for level, title, page in toc if level == 1]
+
+    created_files = []
+    for i, (title, start_page) in enumerate(top_bookmarks):
+        end_page = top_bookmarks[i + 1][1] - 1 if i + 1 < len(top_bookmarks) else doc.page_count - 1
+
+        safe_title = ''.join(c if c.isalnum() or c in ' -_' else '_' for c in title)[:50]
+        out_name = f'{i+1:02d}_{safe_title}.pdf'
+        out_path = os.path.join(output_dir, out_name)
+
+        out_doc = fitz.open()
+        out_doc.insert_pdf(doc, from_page=start_page, to_page=end_page)
+        out_doc.save(out_path, garbage=4, deflate=True)
+        out_doc.close()
+        created_files.append({'file': out_name, 'title': title,
+                               'pages': end_page - start_page + 1})
+
+    doc.close()
+    return {'created': created_files, 'total_sections': len(created_files)}
+
+
+def split_by_file_size(input_path: str, output_dir: str,
+                        max_size_mb: float = 10.0,
+                        password: str = '') -> dict:
+    """
+    Split a PDF so each output part is no larger than max_size_mb.
+    Pages are grouped greedily until the target size is reached.
+    """
+    import fitz, os
+
+    doc = fitz.open(input_path)
+    if doc.is_encrypted and password:
+        doc.authenticate(password)
+
+    max_bytes = int(max_size_mb * 1024 * 1024)
+    parts = []
+    current_pages = []
+    part_num = 1
+
+    for pg_idx in range(doc.page_count):
+        current_pages.append(pg_idx)
+
+        # Estimate size by building the part
+        if len(current_pages) % 5 == 0 or pg_idx == doc.page_count - 1:
+            test_doc = fitz.open()
+            for p in current_pages:
+                test_doc.insert_pdf(doc, from_page=p, to_page=p)
+            import io
+            buf = io.BytesIO()
+            test_doc.save(buf)
+            est_size = buf.tell()
+            test_doc.close()
+
+            if est_size > max_bytes and len(current_pages) > 1:
+                # Save without the last page
+                save_pages = current_pages[:-1]
+                out_path = os.path.join(output_dir, f'part_{part_num:03d}.pdf')
+                out_doc = fitz.open()
+                for p in save_pages:
+                    out_doc.insert_pdf(doc, from_page=p, to_page=p)
+                out_doc.save(out_path, garbage=4, deflate=True)
+                out_doc.close()
+                parts.append({'file': f'part_{part_num:03d}.pdf', 'pages': len(save_pages)})
+                part_num += 1
+                current_pages = [pg_idx]
+
+    # Save remaining
+    if current_pages:
+        out_path = os.path.join(output_dir, f'part_{part_num:03d}.pdf')
+        out_doc = fitz.open()
+        for p in current_pages:
+            out_doc.insert_pdf(doc, from_page=p, to_page=p)
+        out_doc.save(out_path, garbage=4, deflate=True)
+        out_doc.close()
+        parts.append({'file': f'part_{part_num:03d}.pdf', 'pages': len(current_pages)})
+
+    doc.close()
+    return {'parts': parts, 'total_parts': len(parts)}
+
+
+def split_and_zip(input_path: str, output_zip: str, mode: str = 'all',
+                   ranges: str = '', every_n: int = 1) -> dict:
+    """
+    Split PDF and package all output files in a ZIP archive.
+    This is the primary split function called by the API endpoint.
+    Uses the existing split_pdf function and returns a ZIP.
+    """
+    import tempfile, zipfile, os
+
+    out_dir = tempfile.mkdtemp()
+    result = split_pdf.__wrapped__(input_path, out_dir, output_zip,
+                                    mode=mode, ranges=ranges, every_n=every_n) \
+             if hasattr(split_pdf, '__wrapped__') else \
+             split_pdf(input_path, out_dir, output_zip, mode=mode,
+                       ranges=ranges, every_n=every_n)
+    return {'output_zip': output_zip}

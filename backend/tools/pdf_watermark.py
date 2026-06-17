@@ -827,3 +827,159 @@ def detect_existing_watermarks(input_path: str) -> dict:
     except Exception as e:
         logger.warning(f'detect_existing_watermarks failed: {e}')
         return {'has_watermark': False, 'error': str(e)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — Image Watermark, QR Watermark, Tiled ─────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def add_image_watermark(input_path: str, output_path: str,
+                         image_path: str,
+                         opacity: float = 0.20,
+                         position: str = 'center',
+                         scale: float = 0.4,
+                         pages: str = 'all') -> dict:
+    """
+    Overlay a semi-transparent image (logo/stamp) as a watermark on PDF pages.
+
+    Args:
+        image_path: Path to PNG/JPG watermark image
+        opacity: 0.0 (invisible) to 1.0 (opaque)
+        position: 'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+        scale: Image scale relative to page width (0.1 – 1.0)
+    """
+    import fitz
+    from PIL import Image
+    import io
+
+    pil_img = Image.open(image_path).convert('RGBA')
+    r, g, b, a = pil_img.split()
+    a = a.point(lambda x: int(x * opacity))
+    pil_img = Image.merge('RGBA', (r, g, b, a))
+    buf = io.BytesIO()
+    pil_img.save(buf, format='PNG')
+    img_bytes = buf.getvalue()
+
+    doc = fitz.open(input_path)
+    page_indices = range(doc.page_count) if pages == 'all' else \
+                   [int(p.strip()) - 1 for p in pages.split(',') if p.strip().isdigit()]
+
+    for pg_idx in page_indices:
+        if 0 <= pg_idx < doc.page_count:
+            pg = doc[pg_idx]
+            w, h = pg.rect.width, pg.rect.height
+            wm_w = w * scale
+            wm_h = wm_w * pil_img.height / max(pil_img.width, 1)
+            m = 30
+
+            pos_map = {
+                'center':       fitz.Rect((w - wm_w) / 2, (h - wm_h) / 2,
+                                           (w + wm_w) / 2, (h + wm_h) / 2),
+                'top-left':     fitz.Rect(m, m, wm_w + m, wm_h + m),
+                'top-right':    fitz.Rect(w - wm_w - m, m, w - m, wm_h + m),
+                'bottom-left':  fitz.Rect(m, h - wm_h - m, wm_w + m, h - m),
+                'bottom-right': fitz.Rect(w - wm_w - m, h - wm_h - m, w - m, h - m),
+            }
+            rect = pos_map.get(position, pos_map['center'])
+            pg.insert_image(rect, stream=img_bytes)
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'pages_watermarked': len(list(page_indices))}
+
+
+def add_tiled_watermark(input_path: str, output_path: str,
+                         text: str = 'CONFIDENTIAL',
+                         opacity: float = 0.08,
+                         font_size: int = 28,
+                         angle: int = 45,
+                         tile_spacing: int = 120) -> dict:
+    """
+    Apply a tiled (grid) watermark covering the entire page area.
+    Repeats the watermark text in a grid pattern — common in enterprise documents.
+
+    Args:
+        tile_spacing: Distance between watermark tile centers in points
+    """
+    import fitz
+
+    doc = fitz.open(input_path)
+
+    for pg in doc:
+        w, h = pg.rect.width, pg.rect.height
+        import math
+        rad = math.radians(angle)
+
+        x = 0
+        while x < w + tile_spacing:
+            y = 0
+            while y < h + tile_spacing:
+                try:
+                    pg.insert_text(
+                        fitz.Point(x, y), text,
+                        fontsize=font_size,
+                        color=(0.5, 0.5, 0.5),
+                        rotate=angle,
+                        render_mode=0,
+                        overlay=True,
+                    )
+                except Exception:
+                    pass
+                y += tile_spacing
+            x += tile_spacing
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path}
+
+
+def add_qr_watermark(input_path: str, output_path: str,
+                      qr_data: str = 'https://ishutools.fun',
+                      position: str = 'bottom-right',
+                      size: int = 60,
+                      opacity: float = 0.25,
+                      pages: str = 'all') -> dict:
+    """
+    Add a QR code watermark to PDF pages.
+    The QR code can encode a URL, document ID, or verification hash.
+    """
+    import qrcode
+    import fitz
+    from PIL import Image
+    import io
+
+    qr = qrcode.QRCode(box_size=8, border=1,
+                        error_correction=qrcode.constants.ERROR_CORRECT_M)
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color='black', back_color='white').convert('RGBA')
+
+    # Apply opacity
+    r, g, b, a = qr_img.split()
+    a = a.point(lambda x: int(x * opacity))
+    qr_img = Image.merge('RGBA', (r, g, b, a))
+    buf = io.BytesIO()
+    qr_img.save(buf, format='PNG')
+    qr_bytes = buf.getvalue()
+
+    doc = fitz.open(input_path)
+    page_indices = range(doc.page_count) if pages == 'all' else \
+                   [int(p) - 1 for p in pages.split(',') if p.strip().isdigit()]
+
+    for pg_idx in page_indices:
+        if 0 <= pg_idx < doc.page_count:
+            pg = doc[pg_idx]
+            w, h = pg.rect.width, pg.rect.height
+            m = 10
+            pos_map = {
+                'bottom-right': fitz.Rect(w - size - m, h - size - m, w - m, h - m),
+                'bottom-left':  fitz.Rect(m, h - size - m, size + m, h - m),
+                'top-right':    fitz.Rect(w - size - m, m, w - m, size + m),
+                'top-left':     fitz.Rect(m, m, size + m, size + m),
+            }
+            rect = pos_map.get(position, pos_map['bottom-right'])
+            pg.insert_image(rect, stream=qr_bytes)
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'qr_data': qr_data}

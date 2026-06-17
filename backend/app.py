@@ -1,12 +1,13 @@
 """
 IshuTools.fun - Main Flask Application
-Professional PDF Tools Suite — 35+ Tools
+Professional PDF Tools Suite — 36+ Tools
 Author: Ishu Kumar (GitHub: ISHUKR41 / ISHUKR75)
 Domain: ishutools.fun
 """
 
 import os
 import uuid
+from pathlib import Path
 import tempfile
 import logging
 from flask import Flask, request, jsonify, send_file, send_from_directory
@@ -84,6 +85,13 @@ def save_uploaded_file(file_obj, suffix='.pdf'):
     file_obj.save(path)
     return path
 
+def file_stem(file_obj, default='output'):
+    """Extract the original filename stem (without extension) for smart download names."""
+    if file_obj and file_obj.filename:
+        name = secure_filename(file_obj.filename)
+        return Path(name).stem or default
+    return default
+
 def save_uploaded_files(files_list, suffix='.pdf'):
     """Save multiple uploaded files and return list of paths."""
     return [save_uploaded_file(f, suffix) for f in files_list]
@@ -154,7 +162,7 @@ def robots():
 # ── Health Check ─────────────────────────────────────────────────────────────
 @app.route('/api/health')
 def health():
-    return jsonify({'status': 'ok', 'service': 'IshuTools PDF Suite', 'version': '3.0', 'tools': 35})
+    return jsonify({'status': 'ok', 'service': 'IshuTools PDF Suite', 'version': '3.0', 'tools': 36})
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ─────────────── ORGANIZE PDF TOOLS ─────────────────────────────────────────
@@ -170,7 +178,8 @@ def api_merge_pdf():
         paths = save_uploaded_files(files)
         out   = output_path('merged.pdf')
         merge_pdfs(paths, out)
-        return send_result(out, 'merged.pdf')
+        stems = '_'.join(file_stem(f) for f in files[:3])
+        return send_result(out, f'{stems}_merged.pdf')
     except Exception as e:
         logger.exception("merge-pdf error")
         return error_response(str(e))
@@ -185,11 +194,12 @@ def api_split_pdf():
         split_mode = request.form.get('mode', 'all')   # all | range | every_n
         ranges     = request.form.get('ranges', '')
         every_n    = int(request.form.get('every_n', 1))
+        stem = file_stem(file)
         path       = save_uploaded_file(file)
         out_dir    = tempfile.mkdtemp()
         result_zip = output_path('split_pages.zip')
         split_pdf(path, out_dir, result_zip, mode=split_mode, ranges=ranges, every_n=every_n)
-        return send_result(result_zip, 'split_pages.zip', 'application/zip')
+        return send_result(result_zip, f'{stem}_split.zip', 'application/zip')
     except Exception as e:
         logger.exception("split-pdf error")
         return error_response(str(e))
@@ -202,12 +212,13 @@ def api_compress_pdf():
         if not file:
             return error_response('No file uploaded.')
         quality = request.form.get('quality', 'medium')
+        stem = file_stem(file)
         path    = save_uploaded_file(file)
         out     = output_path('compressed.pdf')
         original_size = os.path.getsize(path)
         compress_pdf(path, out, quality=quality)
         new_size = os.path.getsize(out)
-        resp = send_result(out, 'compressed.pdf')
+        resp = send_result(out, f'{stem}_compressed.pdf')
         resp.headers['X-Original-Size']  = str(original_size)
         resp.headers['X-Compressed-Size'] = str(new_size)
         reduction = round((original_size - new_size) / max(original_size, 1) * 100, 1)
@@ -228,10 +239,11 @@ def api_remove_pages():
         pages = request.form.get('pages', '')
         if not pages:
             return error_response('Please specify pages to remove (e.g. 1,3,5-8).')
+        stem  = file_stem(file)
         path  = save_uploaded_file(file)
         out   = output_path('pages_removed.pdf')
         remove_pages(path, out, page_selector=pages)
-        return send_result(out, 'pages_removed.pdf')
+        return send_result(out, f'{stem}_pages_removed.pdf')
     except Exception as e:
         logger.exception("remove-pages error")
         return error_response(str(e))
@@ -246,10 +258,11 @@ def api_extract_pages():
         pages = request.form.get('pages', '')
         if not pages:
             return error_response('Please specify pages to extract (e.g. 1,3,5-8).')
+        stem  = file_stem(file)
         path  = save_uploaded_file(file)
         out   = output_path('extracted.pdf')
         extract_pages(path, out, pages=pages)
-        return send_result(out, 'extracted.pdf')
+        return send_result(out, f'{stem}_extracted.pdf')
     except Exception as e:
         logger.exception("extract-pages error")
         return error_response(str(e))
@@ -264,10 +277,11 @@ def api_organize_pdf():
         order = request.form.get('order', '')
         if not order:
             return error_response('Please specify the new page order (e.g. 3,1,2).')
+        stem  = file_stem(file)
         path  = save_uploaded_file(file)
         out   = output_path('organized.pdf')
         organize_pdf(path, out, order=order)
-        return send_result(out, 'organized.pdf')
+        return send_result(out, f'{stem}_organized.pdf')
     except Exception as e:
         logger.exception("organize-pdf error")
         return error_response(str(e))
@@ -279,10 +293,11 @@ def api_repair_pdf():
         file = request.files.get('file')
         if not file:
             return error_response('No file uploaded.')
+        stem = file_stem(file)
         path = save_uploaded_file(file)
         out  = output_path('repaired.pdf')
         repair_pdf(path, out)
-        return send_result(out, 'repaired.pdf')
+        return send_result(out, f'{stem}_repaired.pdf')
     except Exception as e:
         logger.exception("repair-pdf error")
         return error_response(str(e))
@@ -296,15 +311,16 @@ def api_ocr_pdf():
             return error_response('No file uploaded.')
         language      = request.form.get('language', 'eng')
         output_format = request.form.get('output_format', 'pdf')
+        stem          = file_stem(file)
         path          = save_uploaded_file(file)
         if output_format == 'txt':
             out = output_path('ocr_output.txt')
             ocr_pdf(path, out, language=language, output_format='txt')
-            return send_result(out, 'ocr_output.txt', 'text/plain')
+            return send_result(out, f'{stem}_ocr.txt', 'text/plain')
         else:
             out = output_path('ocr_output.pdf')
             ocr_pdf(path, out, language=language, output_format='pdf')
-            return send_result(out, 'ocr_output.pdf')
+            return send_result(out, f'{stem}_ocr.pdf')
     except Exception as e:
         logger.exception("ocr-pdf error")
         return error_response(str(e))
@@ -317,10 +333,11 @@ def api_optimize_pdf():
         if not file:
             return error_response('No file uploaded.')
         target = request.form.get('target', 'web')
+        stem   = file_stem(file)
         path   = save_uploaded_file(file)
         out    = output_path('optimized.pdf')
         optimize_pdf(path, out, target=target)
-        return send_result(out, 'optimized.pdf')
+        return send_result(out, f'{stem}_optimized.pdf')
     except Exception as e:
         logger.exception("optimize-pdf error")
         return error_response(str(e))
@@ -375,10 +392,11 @@ def api_word_to_pdf():
         page_size   = request.form.get('page_size', 'A4').lower()
         quality     = request.form.get('quality', 'standard')
         gs_quality  = 'printer' if quality == 'high' else 'ebook'
+        stem = file_stem(file)
         path = save_uploaded_file(file, '.docx')
         out  = output_path('converted.pdf')
         word_to_pdf(path, out, page_size=page_size, gs_quality=gs_quality)
-        return send_result(out, 'converted.pdf')
+        return send_result(out, f'{stem}.pdf')
     except Exception as e:
         logger.exception("word-to-pdf error")
         return error_response(str(e))
@@ -399,10 +417,11 @@ def api_pptx_to_pdf():
             'letter':     'letter',
         }
         page_size = size_map.get(slide_size, 'landscape_a4')
+        stem = file_stem(file)
         path = save_uploaded_file(file, '.pptx')
         out  = output_path('converted.pdf')
         pptx_to_pdf(path, out, page_size=page_size, add_notes_appendix=include_notes)
-        return send_result(out, 'converted.pdf')
+        return send_result(out, f'{stem}.pdf')
     except Exception as e:
         logger.exception("pptx-to-pdf error")
         return error_response(str(e))
@@ -421,10 +440,11 @@ def api_excel_to_pdf():
             ps = page_size + 'L' if page_size == 'A4' else page_size + '_landscape'
         else:
             ps = page_size
+        stem = file_stem(file)
         path = save_uploaded_file(file, '.xlsx')
         out  = output_path('converted.pdf')
         excel_to_pdf(path, out, page_size=ps)
-        return send_result(out, 'converted.pdf')
+        return send_result(out, f'{stem}.pdf')
     except Exception as e:
         logger.exception("excel-to-pdf error")
         return error_response(str(e))
@@ -442,10 +462,11 @@ def api_html_to_pdf():
                 html_content = f.read()
         if not html_content and not html_url:
             return error_response('Please provide HTML content, a URL, or upload an HTML file.')
+        stem   = file_stem(file) if file and file.filename else 'webpage'
         out    = output_path('converted.pdf')
         source = html_url if html_url else html_content
         html_to_pdf(source, out, is_url=bool(html_url))
-        return send_result(out, 'converted.pdf')
+        return send_result(out, f'{stem}.pdf')
     except Exception as e:
         logger.exception("html-to-pdf error")
         return error_response(str(e))
@@ -467,8 +488,9 @@ def api_pdf_to_img():
         path        = save_uploaded_file(file)
         out_dir     = tempfile.mkdtemp()
         result_zip  = output_path('pdf_images.zip')
+        stem = file_stem(file)
         pdf_to_images(path, out_dir, result_zip, format_type=format_type, dpi=dpi, pages=pages)
-        return send_result(result_zip, 'pdf_images.zip', 'application/zip')
+        return send_result(result_zip, f'{stem}_images.zip', 'application/zip')
     except Exception as e:
         logger.exception("pdf-to-img error")
         return error_response(str(e))
@@ -490,10 +512,11 @@ def api_pdf_to_word():
                 end_page   = int(parts[1]) if len(parts) > 1 else start_page + 1
             except (ValueError, IndexError):
                 pass
+        stem = file_stem(file)
         path = save_uploaded_file(file)
         out  = output_path('converted.docx')
         pdf_to_word(path, out, password=password, start_page=start_page, end_page=end_page)
-        return send_result(out, 'converted.docx',
+        return send_result(out, f'{stem}.docx',
                           'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     except Exception as e:
         logger.exception("pdf-to-word error")
@@ -506,10 +529,11 @@ def api_pdf_to_excel():
         file = request.files.get('file')
         if not file:
             return error_response('No file uploaded.')
+        stem = file_stem(file)
         path = save_uploaded_file(file)
         out  = output_path('converted.xlsx')
         pdf_to_excel(path, out)
-        return send_result(out, 'converted.xlsx',
+        return send_result(out, f'{stem}.xlsx',
                           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     except Exception as e:
         logger.exception("pdf-to-excel error")
@@ -523,10 +547,11 @@ def api_pdf_to_pptx():
         if not file:
             return error_response('No file uploaded.')
         dpi  = int(request.form.get('dpi', 150))
+        stem = file_stem(file)
         path = save_uploaded_file(file)
         out  = output_path('converted.pptx')
         pdf_to_pptx(path, out, dpi=dpi)
-        return send_result(out, 'converted.pptx',
+        return send_result(out, f'{stem}.pptx',
                           'application/vnd.openxmlformats-officedocument.presentationml.presentation')
     except Exception as e:
         logger.exception("pdf-to-pptx error")
@@ -540,10 +565,11 @@ def api_pdf_to_pdfa():
         if not file:
             return error_response('No file uploaded.')
         level = request.form.get('level', '1b')
+        stem  = file_stem(file)
         path  = save_uploaded_file(file)
         out   = output_path('pdf_a.pdf')
         pdf_to_pdfa(path, out, level=level)
-        return send_result(out, 'pdf_a.pdf')
+        return send_result(out, f'{stem}_pdfa.pdf')
     except Exception as e:
         logger.exception("pdf-to-pdfa error")
         return error_response(str(e))
@@ -561,10 +587,11 @@ def api_rotate_pdf():
             return error_response('No file uploaded.')
         angle = int(request.form.get('angle', 90))
         pages = request.form.get('pages', 'all')
+        stem  = file_stem(file)
         path  = save_uploaded_file(file)
         out   = output_path('rotated.pdf')
         rotate_pdf(path, out, angle=angle, pages=pages)
-        return send_result(out, 'rotated.pdf')
+        return send_result(out, f'{stem}_rotated.pdf')
     except Exception as e:
         logger.exception("rotate-pdf error")
         return error_response(str(e))
@@ -580,11 +607,12 @@ def api_add_page_numbers():
         start_num = int(request.form.get('start_num', 1))
         font_size = int(request.form.get('font_size', 12))
         prefix    = request.form.get('prefix', '')
+        stem      = file_stem(file)
         path      = save_uploaded_file(file)
         out       = output_path('numbered.pdf')
         add_page_numbers(path, out, position=position, start_num=start_num,
                         font_size=font_size, prefix=prefix)
-        return send_result(out, 'numbered.pdf')
+        return send_result(out, f'{stem}_numbered.pdf')
     except Exception as e:
         logger.exception("add-page-numbers error")
         return error_response(str(e))
@@ -602,11 +630,12 @@ def api_add_watermark():
         font_size = int(request.form.get('font_size', 48))
         rotation  = int(request.form.get('rotation', 45))
         position  = request.form.get('position', 'center')
+        stem      = file_stem(file)
         path      = save_uploaded_file(file)
         out       = output_path('watermarked.pdf')
         add_watermark(path, out, text=text, opacity=opacity, color=color,
                      font_size=font_size, rotation=rotation, position=position)
-        return send_result(out, 'watermarked.pdf')
+        return send_result(out, f'{stem}_watermarked.pdf')
     except Exception as e:
         logger.exception("add-watermark error")
         return error_response(str(e))
@@ -623,10 +652,11 @@ def api_crop_pdf():
         right  = float(request.form.get('right', 100))
         top    = float(request.form.get('top', 100))
         unit   = request.form.get('unit', 'percent')
+        stem   = file_stem(file)
         path   = save_uploaded_file(file)
         out    = output_path('cropped.pdf')
         crop_pdf(path, out, left=left, bottom=bottom, right=right, top=top, unit=unit)
-        return send_result(out, 'cropped.pdf')
+        return send_result(out, f'{stem}_cropped.pdf')
     except Exception as e:
         logger.exception("crop-pdf error")
         return error_response(str(e))
@@ -645,11 +675,12 @@ def api_edit_pdf():
         y          = float(request.form.get('y', 100))
         font_size  = int(request.form.get('font_size', 14))
         color      = request.form.get('color', '#000000')
+        stem       = file_stem(file)
         path       = save_uploaded_file(file)
         out        = output_path('edited.pdf')
         edit_pdf(path, out, action=action, text=text, page_num=page_num,
                  x=x, y=y, font_size=font_size, color=color)
-        return send_result(out, 'edited.pdf')
+        return send_result(out, f'{stem}_edited.pdf')
     except Exception as e:
         logger.exception("edit-pdf error")
         return error_response(str(e))
@@ -664,10 +695,11 @@ def api_pdf_forms():
             return error_response('No file uploaded.')
         fields_json = request.form.get('fields', '{}')
         fields      = json.loads(fields_json)
+        stem        = file_stem(file)
         path        = save_uploaded_file(file)
         out         = output_path('filled_form.pdf')
         fill_pdf_form(path, out, fields=fields)
-        return send_result(out, 'filled_form.pdf')
+        return send_result(out, f'{stem}_filled.pdf')
     except Exception as e:
         logger.exception("pdf-forms error")
         return error_response(str(e))
@@ -684,6 +716,7 @@ def api_unlock_pdf():
         if not file:
             return error_response('No file uploaded.')
         password = request.form.get('password', '')
+        stem     = file_stem(file)
         path     = save_uploaded_file(file)
         out          = output_path('unlocked.pdf')
         try_common   = request.form.get('try_common_passwords', 'true').lower() != 'false'
@@ -691,7 +724,7 @@ def api_unlock_pdf():
         unlock_pdf(path, out, password=password,
                    try_common_passwords=try_common,
                    brute_force_level=brute_lvl)
-        return send_result(out, 'unlocked.pdf')
+        return send_result(out, f'{stem}_unlocked.pdf')
     except Exception as e:
         logger.exception("unlock-pdf error")
         return error_response(str(e))
@@ -708,12 +741,13 @@ def api_protect_pdf():
         permissions    = request.form.get('permissions', 'all')
         if not user_password:
             return error_response('Please provide a password.')
+        stem = file_stem(file)
         path = save_uploaded_file(file)
         out  = output_path('protected.pdf')
         protect_pdf(path, out, user_password=user_password,
                    owner_password=owner_password or user_password,
                    permissions=permissions)
-        return send_result(out, 'protected.pdf')
+        return send_result(out, f'{stem}_protected.pdf')
     except Exception as e:
         logger.exception("protect-pdf error")
         return error_response(str(e))
@@ -731,6 +765,7 @@ def api_sign_pdf():
         pages_sel      = request.form.get('pages', 'last')
         font_size      = int(request.form.get('font_size', 24))
         color          = request.form.get('color', '#003399')
+        stem           = file_stem(file)
         path           = save_uploaded_file(file)
         out = output_path('signed.pdf')
         sign_pdf(path, out, signature_type='text',
@@ -740,7 +775,7 @@ def api_sign_pdf():
                  font_size=font_size,
                  color=color,
                  style_preset=style_preset)
-        return send_result(out, 'signed.pdf')
+        return send_result(out, f'{stem}_signed.pdf')
     except Exception as e:
         logger.exception("sign-pdf error")
         return error_response(str(e))
@@ -760,11 +795,12 @@ def api_redact_pdf():
         presets = [] if preset == 'none' else [preset]
         if not terms and not presets:
             return error_response('Please provide text terms to redact or select a preset.')
+        stem = file_stem(file)
         path = save_uploaded_file(file)
         out  = output_path('redacted.pdf')
         redact_pdf(path, out, search_terms=terms, pattern_presets=presets,
                    fill_color=fill_color, strip_metadata=strip_meta)
-        return send_result(out, 'redacted.pdf')
+        return send_result(out, f'{stem}_redacted.pdf')
     except Exception as e:
         logger.exception("redact-pdf error")
         return error_response(str(e))
@@ -820,11 +856,12 @@ def api_translate_pdf():
         target_lang = request.form.get('target_lang', 'hi')
         source_lang = request.form.get('source_lang', 'auto')
         bilingual   = request.form.get('bilingual', 'false').lower() == 'true'
+        stem        = file_stem(file)
         path        = save_uploaded_file(file)
         out         = output_path('translated.pdf')
         translate_pdf(path, out, target_lang=target_lang,
                       source_lang=source_lang, bilingual=bilingual)
-        return send_result(out, 'translated.pdf')
+        return send_result(out, f'{stem}_translated_{target_lang}.pdf')
     except Exception as e:
         logger.exception("translate-pdf error")
         return error_response(str(e))

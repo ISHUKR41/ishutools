@@ -750,3 +750,107 @@ def get_page_orientation_summary(input_path: str, password: str = '') -> dict:
     except Exception as e:
         logger.warning(f'get_page_orientation_summary failed: {e}')
         return {'error': str(e)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — Content-aware auto-rotation, deskew ───────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def deskew_pdf_pages(input_path: str, output_path: str,
+                      max_skew_degrees: float = 10.0) -> dict:
+    """
+    Deskew scanned PDF pages — correct slight rotation from scanning.
+    Uses PIL/numpy to detect and fix page tilt.
+
+    Ideal for: scanned documents, photos of documents, OCR preprocessing.
+    """
+    import fitz
+    from PIL import Image
+    import numpy as np
+    import io
+
+    doc = fitz.open(input_path)
+    out_doc = fitz.open()
+    pages_deskewed = 0
+
+    for pg_idx in range(doc.page_count):
+        pg = doc[pg_idx]
+        mat = fitz.Matrix(2.0, 2.0)
+        clip = pg.get_pixmap(matrix=mat, alpha=False)
+        img = Image.frombytes('RGB', [clip.width, clip.height], clip.samples)
+        gray = img.convert('L')
+        gray_arr = np.array(gray)
+
+        # Detect skew angle using projection profile
+        try:
+            from PIL import ImageFilter
+            edges = gray.filter(ImageFilter.FIND_EDGES)
+            edge_arr = np.array(edges)
+            # Simple skew detection: find dominant angle via horizontal projection
+            angles = np.linspace(-max_skew_degrees, max_skew_degrees, 181)
+            best_angle = 0
+            best_score = -1
+            for angle in angles[::5]:  # sample every 0.5 degrees for speed
+                from PIL.Image import BICUBIC
+                rotated = gray.rotate(angle, resample=BICUBIC, expand=False)
+                arr = np.array(rotated)
+                score = float(np.sum(np.var(arr, axis=1)))
+                if score > best_score:
+                    best_score = score
+                    best_angle = angle
+
+            if abs(best_angle) > 0.3:
+                img = img.rotate(best_angle, resample=Image.BICUBIC, expand=False)
+                pages_deskewed += 1
+        except Exception:
+            pass
+
+        img_buf = io.BytesIO()
+        img.save(img_buf, format='PNG', optimize=True)
+        new_pg = out_doc.new_page(width=pg.rect.width, height=pg.rect.height)
+        new_pg.insert_image(new_pg.rect, stream=img_buf.getvalue())
+
+    out_doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    out_doc.close()
+    return {'output_path': output_path, 'pages_deskewed': pages_deskewed,
+            'total_pages': doc.page_count}
+
+
+def rotate_and_crop_margins(input_path: str, output_path: str,
+                              angle: int = 90,
+                              crop_margin_pt: float = 0.0) -> dict:
+    """
+    Rotate PDF pages AND optionally crop a margin around each page.
+    Useful for rotating landscape scans and trimming white borders.
+
+    Args:
+        angle: Rotation angle (90, 180, 270)
+        crop_margin_pt: Margin to crop from all sides (in PDF points)
+    """
+    import pikepdf
+
+    with pikepdf.open(input_path) as pdf:
+        for page in pdf.pages:
+            # Get current rotation
+            current_rot = int(page.get('/Rotate', 0))
+            new_rot = (current_rot + angle) % 360
+            page['/Rotate'] = pikepdf.Decimal(new_rot)
+
+            if crop_margin_pt > 0:
+                media_box = page.MediaBox
+                if media_box:
+                    x0 = float(media_box[0]) + crop_margin_pt
+                    y0 = float(media_box[1]) + crop_margin_pt
+                    x1 = float(media_box[2]) - crop_margin_pt
+                    y1 = float(media_box[3]) - crop_margin_pt
+                    if x1 > x0 and y1 > y0:
+                        page.MediaBox = pikepdf.Array([
+                            pikepdf.Decimal(x0), pikepdf.Decimal(y0),
+                            pikepdf.Decimal(x1), pikepdf.Decimal(y1),
+                        ])
+
+        pdf.save(output_path, compress_streams=True)
+
+    return {'output_path': output_path, 'angle': angle,
+            'crop_margin_pt': crop_margin_pt}

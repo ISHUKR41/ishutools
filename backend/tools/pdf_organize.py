@@ -1032,3 +1032,117 @@ def insert_blank_pages(input_path: str, output_path: str,
     except Exception as e:
         logger.warning(f'insert_blank_pages failed: {e}')
         raise
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — Smart organize, duplicate detection, n-up ─────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def create_nup_pdf(input_path: str, output_path: str,
+                    n: int = 2,
+                    orientation: str = 'landscape') -> dict:
+    """
+    Create an N-up PDF (2-up, 4-up) — multiple pages per sheet.
+    Useful for printing handouts, booklets, and presentations.
+
+    Args:
+        n: Pages per sheet (2 or 4)
+        orientation: 'landscape' or 'portrait' for the output sheet
+    """
+    import fitz
+
+    doc = fitz.open(input_path)
+    out_doc = fitz.open()
+
+    if n == 2:
+        cols, rows = 2, 1
+    elif n == 4:
+        cols, rows = 2, 2
+    else:
+        cols, rows = 2, 1
+
+    sheet_w = 841.9 if orientation == 'landscape' else 595.3
+    sheet_h = 595.3 if orientation == 'landscape' else 841.9
+    cell_w = sheet_w / cols
+    cell_h = sheet_h / rows
+
+    pages = list(range(doc.page_count))
+    for batch_start in range(0, len(pages), n):
+        batch = pages[batch_start:batch_start + n]
+        sheet = out_doc.new_page(width=sheet_w, height=sheet_h)
+
+        for i, pg_idx in enumerate(batch):
+            col = i % cols
+            row = i // cols
+            x0 = col * cell_w
+            y0 = row * cell_h
+            target_rect = fitz.Rect(x0 + 3, y0 + 3, x0 + cell_w - 3, y0 + cell_h - 3)
+            sheet.show_pdf_page(target_rect, doc, pg_idx)
+
+    out_doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    out_doc.close()
+    total_sheets = -(-doc.page_count // n)  # ceiling division
+    return {'output_path': output_path, 'total_sheets': total_sheets, 'n_up': n}
+
+
+def reverse_page_order(input_path: str, output_path: str,
+                        password: str = '') -> dict:
+    """
+    Reverse the page order of a PDF document.
+    Useful for re-ordering double-sided scan stacks.
+    """
+    import fitz
+
+    doc = fitz.open(input_path)
+    if doc.is_encrypted and password:
+        doc.authenticate(password)
+
+    out_doc = fitz.open()
+    for pg_idx in range(doc.page_count - 1, -1, -1):
+        out_doc.insert_pdf(doc, from_page=pg_idx, to_page=pg_idx)
+
+    out_doc.save(output_path, garbage=4, deflate=True)
+    page_count = out_doc.page_count
+    doc.close()
+    out_doc.close()
+    return {'output_path': output_path, 'pages': page_count, 'reversed': True}
+
+
+def move_pages(input_path: str, output_path: str,
+               source_pages: str, after_page: int) -> dict:
+    """
+    Move specific pages to a new position in the PDF.
+
+    Args:
+        source_pages: Pages to move (e.g. '1,3,5' or '2-5')
+        after_page: Insert after this page number (0 = move to beginning)
+    """
+    import fitz
+
+    doc = fitz.open(input_path)
+    total = doc.page_count
+
+    # Parse source pages
+    pages_to_move = []
+    for part in source_pages.split(','):
+        part = part.strip()
+        if '-' in part:
+            a, b = part.split('-')
+            pages_to_move.extend(range(int(a) - 1, int(b)))
+        elif part.isdigit():
+            pages_to_move.append(int(part) - 1)
+
+    pages_to_move = sorted(set(p for p in pages_to_move if 0 <= p < total))
+    remaining = [p for p in range(total) if p not in pages_to_move]
+    insert_after = min(after_page, len(remaining))
+    new_order = remaining[:insert_after] + pages_to_move + remaining[insert_after:]
+
+    out_doc = fitz.open()
+    for pg_idx in new_order:
+        out_doc.insert_pdf(doc, from_page=pg_idx, to_page=pg_idx)
+
+    out_doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    out_doc.close()
+    return {'output_path': output_path, 'new_order': [p + 1 for p in new_order]}

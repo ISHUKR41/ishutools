@@ -1119,3 +1119,148 @@ def get_page_dimensions_options() -> list:
         {'name': 'B5', 'width_mm': 176, 'height_mm': 250, 'width_pt': 499, 'height_pt': 709,
          'common_use': 'Japanese books'},
     ]
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — BeautifulSoup preprocessing, CSS themes ───────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def html_url_to_pdf_with_bs4(url: str, output_path: str,
+                               clean_ads: bool = True,
+                               add_styles: bool = True) -> dict:
+    """
+    Fetch a URL, preprocess with BeautifulSoup (clean ads, fix styles),
+    then convert the cleaned HTML to PDF using WeasyPrint.
+
+    Args:
+        clean_ads: Remove common ad/navigation/header/footer elements
+        add_styles: Inject print-friendly CSS
+    """
+    import urllib.request
+    from bs4 import BeautifulSoup
+
+    # Fetch URL
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (compatible; IshuTools/1.0; +https://ishutools.fun)'
+        }
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            raw_html = resp.read().decode('utf-8', errors='replace')
+    except Exception as e:
+        raise RuntimeError(f'Failed to fetch URL: {e}')
+
+    soup = BeautifulSoup(raw_html, 'html.parser')
+
+    if clean_ads:
+        # Remove non-content elements
+        for tag in soup.find_all(['nav', 'footer', 'aside', 'script', 'style',
+                                   'iframe', 'noscript', 'advertisement']):
+            tag.decompose()
+        for cls in ['ad', 'ads', 'advertisement', 'cookie', 'popup', 'modal',
+                    'sidebar', 'social-share', 'newsletter', 'comments']:
+            for el in soup.find_all(class_=lambda c: c and cls.lower() in c.lower()):
+                el.decompose()
+
+    if add_styles:
+        style_tag = soup.new_tag('style')
+        style_tag.string = """
+            body { font-family: Georgia, serif; max-width: 900px; margin: 0 auto;
+                   padding: 20px; color: #1a1a1a; line-height: 1.7; }
+            h1, h2, h3 { color: #2d3748; margin-top: 1.5em; }
+            img { max-width: 100%; height: auto; page-break-inside: avoid; }
+            a { color: #4338ca; }
+            pre, code { background: #f7f7f7; padding: 4px 8px; border-radius: 4px;
+                        font-family: monospace; font-size: 0.9em; }
+            table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+            th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+            th { background: #4338ca; color: white; }
+            @page { margin: 1.5cm; }
+        """
+        if soup.head:
+            soup.head.append(style_tag)
+        else:
+            head = soup.new_tag('head')
+            head.append(style_tag)
+            soup.insert(0, head)
+
+    cleaned_html = str(soup)
+    html_to_pdf(cleaned_html, output_path, is_url=False)
+    return {'output_path': output_path, 'source_url': url, 'cleaned': clean_ads}
+
+
+def convert_html_with_custom_css(html_content: str, output_path: str,
+                                   custom_css: str = '',
+                                   page_size: str = 'A4',
+                                   orientation: str = 'portrait') -> dict:
+    """
+    Convert HTML to PDF with custom CSS injection.
+    Allows precise control over typography, layout, colors, and page settings.
+
+    Args:
+        custom_css: CSS string to inject before conversion
+        page_size: 'A4' | 'Letter' | 'A3' | 'Legal'
+        orientation: 'portrait' | 'landscape'
+    """
+    from weasyprint import HTML, CSS
+
+    # Default print CSS
+    size_str = f'{page_size} {orientation}' if orientation == 'landscape' else page_size
+    base_css = f"""
+        @page {{ size: {size_str}; margin: 2cm; }}
+        body {{ font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.6;
+                color: #111; background: white; }}
+        h1 {{ font-size: 20pt; color: #1a1a2e; margin-bottom: 0.5em; }}
+        h2 {{ font-size: 16pt; color: #16213e; }}
+        h3 {{ font-size: 13pt; color: #0f3460; }}
+        table {{ border-collapse: collapse; width: 100%; }}
+        th, td {{ border: 1px solid #ccc; padding: 6px 10px; }}
+        th {{ background: #4338ca; color: #fff; }}
+        img {{ max-width: 100%; }}
+        pre {{ background: #f5f5f5; padding: 10px; border-left: 4px solid #4338ca;
+               overflow: auto; font-size: 9pt; }}
+        {custom_css}
+    """
+    css_obj = CSS(string=base_css)
+
+    if html_content.startswith('http'):
+        doc = HTML(url=html_content).write_pdf(stylesheets=[css_obj])
+    else:
+        doc = HTML(string=html_content).write_pdf(stylesheets=[css_obj])
+
+    with open(output_path, 'wb') as f:
+        f.write(doc)
+
+    return {'output_path': output_path, 'page_size': page_size, 'orientation': orientation}
+
+
+def batch_html_files_to_pdf(html_paths: list, output_path: str) -> dict:
+    """
+    Convert multiple HTML files to a single merged PDF.
+    Each HTML file becomes a section in the output PDF.
+    """
+    from weasyprint import HTML
+    import fitz, tempfile
+
+    tmp_pdfs = []
+    for html_path in html_paths:
+        tmp = tempfile.mktemp(suffix='.pdf')
+        with open(html_path, 'r', errors='ignore') as f:
+            html_str = f.read()
+        HTML(string=html_str, base_url=os.path.dirname(html_path)).write_pdf(tmp)
+        tmp_pdfs.append(tmp)
+
+    # Merge all tmp PDFs
+    out_doc = fitz.open()
+    for p in tmp_pdfs:
+        d = fitz.open(p)
+        out_doc.insert_pdf(d)
+        d.close()
+        try: os.unlink(p)
+        except: pass
+
+    out_doc.save(output_path, garbage=4, deflate=True)
+    total_pages = out_doc.page_count
+    out_doc.close()
+    return {'output_path': output_path, 'files_converted': len(html_paths),
+            'total_pages': total_pages}

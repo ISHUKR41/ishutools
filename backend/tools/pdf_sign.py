@@ -963,3 +963,196 @@ def generate_signature_from_name(name: str, output_path: str,
         'height': height,
         'name_used': name,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — QR Signature, Image Stamp, Batch Sign ────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def sign_with_qr_code(input_path: str, output_path: str,
+                       qr_data: str = 'https://ishutools.fun',
+                       position: str = 'bottom-right',
+                       pages: str = 'last',
+                       size: int = 80) -> dict:
+    """
+    Embed a QR code stamp on specified pages as a signature/verification mark.
+
+    Args:
+        qr_data: Data to encode in the QR code (URL, hash, signer info)
+        position: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+        size: QR code size in PDF points
+    """
+    import qrcode
+    import fitz
+    import tempfile
+    import io
+
+    # Generate QR code
+    qr = qrcode.QRCode(box_size=10, border=2,
+                        error_correction=qrcode.constants.ERROR_CORRECT_H)
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color='black', back_color='white')
+    qr_buf = io.BytesIO()
+    qr_img.save(qr_buf, format='PNG')
+    qr_bytes = qr_buf.getvalue()
+
+    doc = fitz.open(input_path)
+    page_indices = []
+
+    if pages == 'all':
+        page_indices = list(range(doc.page_count))
+    elif pages == 'last':
+        page_indices = [doc.page_count - 1]
+    elif pages == 'first':
+        page_indices = [0]
+    else:
+        try:
+            for part in pages.split(','):
+                part = part.strip()
+                if '-' in part:
+                    a, b = part.split('-')
+                    page_indices.extend(range(int(a) - 1, int(b)))
+                else:
+                    page_indices.append(int(part) - 1)
+        except Exception:
+            page_indices = [doc.page_count - 1]
+
+    for pg_idx in page_indices:
+        if 0 <= pg_idx < doc.page_count:
+            pg = doc[pg_idx]
+            rect = pg.rect
+            margin = 15
+
+            pos_map = {
+                'bottom-right': fitz.Rect(rect.width - size - margin,
+                                           rect.height - size - margin,
+                                           rect.width - margin,
+                                           rect.height - margin),
+                'bottom-left':  fitz.Rect(margin, rect.height - size - margin,
+                                           size + margin, rect.height - margin),
+                'top-right':    fitz.Rect(rect.width - size - margin, margin,
+                                           rect.width - margin, size + margin),
+                'top-left':     fitz.Rect(margin, margin, size + margin, size + margin),
+            }
+            qr_rect = pos_map.get(position, pos_map['bottom-right'])
+            pg.insert_image(qr_rect, stream=qr_bytes)
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+
+    return {'output_path': output_path, 'pages_signed': len(page_indices),
+            'qr_data': qr_data[:80]}
+
+
+def sign_with_image_stamp(input_path: str, output_path: str,
+                           image_path: str,
+                           position: str = 'bottom-right',
+                           pages: str = 'last',
+                           opacity: float = 0.85,
+                           size_percent: float = 15.0) -> dict:
+    """
+    Place an image (PNG signature / company stamp / logo) on PDF pages.
+
+    Args:
+        image_path: Path to PNG/JPG signature or stamp image
+        opacity: 0.0 (transparent) to 1.0 (opaque)
+        size_percent: Stamp size as % of page width
+    """
+    import fitz
+    from PIL import Image
+    import io
+
+    # Load and prepare image
+    pil_img = Image.open(image_path).convert('RGBA')
+
+    # Apply opacity to alpha channel
+    if opacity < 1.0:
+        r, g, b, a = pil_img.split()
+        a = a.point(lambda x: int(x * opacity))
+        pil_img = Image.merge('RGBA', (r, g, b, a))
+
+    img_buf = io.BytesIO()
+    pil_img.save(img_buf, format='PNG')
+    img_bytes = img_buf.getvalue()
+
+    doc = fitz.open(input_path)
+    page_indices = list(range(doc.page_count)) if pages == 'all' else \
+                   [doc.page_count - 1] if pages == 'last' else \
+                   [0] if pages == 'first' else [doc.page_count - 1]
+
+    for pg_idx in page_indices:
+        if 0 <= pg_idx < doc.page_count:
+            pg = doc[pg_idx]
+            rect = pg.rect
+            stamp_w = rect.width * (size_percent / 100)
+            stamp_h = stamp_w * pil_img.height / max(pil_img.width, 1)
+            margin = 20
+
+            pos_map = {
+                'bottom-right': fitz.Rect(rect.width - stamp_w - margin,
+                                           rect.height - stamp_h - margin,
+                                           rect.width - margin,
+                                           rect.height - margin),
+                'bottom-left':  fitz.Rect(margin, rect.height - stamp_h - margin,
+                                           stamp_w + margin, rect.height - margin),
+                'top-right':    fitz.Rect(rect.width - stamp_w - margin, margin,
+                                           rect.width - margin, stamp_h + margin),
+                'top-left':     fitz.Rect(margin, margin,
+                                           stamp_w + margin, stamp_h + margin),
+                'center':       fitz.Rect((rect.width - stamp_w) / 2,
+                                           (rect.height - stamp_h) / 2,
+                                           (rect.width + stamp_w) / 2,
+                                           (rect.height + stamp_h) / 2),
+            }
+            stamp_rect = pos_map.get(position, pos_map['bottom-right'])
+            pg.insert_image(stamp_rect, stream=img_bytes)
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'pages_stamped': len(page_indices)}
+
+
+def add_signature_line(input_path: str, output_path: str,
+                        label: str = 'Authorized Signature',
+                        page_num: int = -1,
+                        x: float = 100, y: float = 50) -> dict:
+    """
+    Add a professional signature line (horizontal rule + label) to a page.
+    Useful for legal documents, contracts, and forms.
+
+    Args:
+        label: Text below the signature line
+        page_num: Page number (1-based), -1 = last page
+        x: Left position in points from left
+        y: Bottom position in points from bottom
+    """
+    import fitz
+
+    doc = fitz.open(input_path)
+    pg_idx = (page_num - 1) if page_num > 0 else doc.page_count - 1
+    pg_idx = max(0, min(pg_idx, doc.page_count - 1))
+
+    pg = doc[pg_idx]
+    rect = pg.rect
+    line_y = rect.height - y
+    line_x1, line_x2 = x, x + 200
+
+    # Draw signature line
+    pg.draw_line(fitz.Point(line_x1, line_y), fitz.Point(line_x2, line_y),
+                 color=(0.1, 0.1, 0.1), width=0.8)
+
+    # Label below line
+    pg.insert_text(fitz.Point(line_x1, line_y + 14),
+                   label, fontsize=9, color=(0.3, 0.3, 0.3))
+
+    # Date line
+    pg.draw_line(fitz.Point(line_x2 + 20, line_y),
+                 fitz.Point(line_x2 + 160, line_y),
+                 color=(0.1, 0.1, 0.1), width=0.8)
+    pg.insert_text(fitz.Point(line_x2 + 20, line_y + 14),
+                   'Date', fontsize=9, color=(0.3, 0.3, 0.3))
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'page': pg_idx + 1, 'label': label}

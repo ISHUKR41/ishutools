@@ -755,3 +755,127 @@ def extract_hyperlinks(input_path: str, password: str = '') -> list:
         logger.warning(f'extract_hyperlinks failed: {e}')
 
     return results
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — pdfplumber extraction, camelot tables ─────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def pdf_to_word_high_fidelity(input_path: str, output_path: str,
+                                password: str = '',
+                                preserve_layout: bool = True) -> dict:
+    """
+    High-fidelity PDF to Word conversion using pdf2docx with advanced options.
+    Falls back to pdfplumber text extraction if pdf2docx fails.
+
+    Uses multiple strategies to maximize layout preservation.
+    """
+    from pdf2docx import Converter
+    import pdfplumber
+    from docx import Document
+    from docx.shared import Pt, Inches
+
+    # Strategy 1: pdf2docx (best for layout)
+    try:
+        cv = Converter(input_path)
+        cv.convert(output_path, start=0, end=None,
+                   layout=preserve_layout,
+                   debug=False)
+        cv.close()
+
+        # Verify output
+        import os
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 100:
+            return {
+                'output_path': output_path,
+                'engine': 'pdf2docx',
+                'strategy': 'high_fidelity',
+            }
+    except Exception as e:
+        logger.warning(f'pdf2docx failed, falling back: {e}')
+
+    # Strategy 2: pdfplumber text extraction → DOCX
+    doc = Document()
+    page_count = 0
+
+    with pdfplumber.open(input_path, password=password or None) as pdf:
+        for pg_idx, pg in enumerate(pdf.pages):
+            if pg_idx > 0:
+                doc.add_page_break()
+            text = pg.extract_text(x_tolerance=2, y_tolerance=3) or ''
+            if text.strip():
+                for line in text.split('\n'):
+                    p = doc.add_paragraph(line)
+                    p.paragraph_format.space_after = Pt(2)
+            page_count += 1
+
+    doc.save(output_path)
+    return {
+        'output_path': output_path,
+        'engine': 'pdfplumber',
+        'pages': page_count,
+        'strategy': 'text_extraction',
+    }
+
+
+def extract_images_from_pdf_to_docx(input_path: str, output_path: str,
+                                      password: str = '',
+                                      embed_images: bool = True) -> dict:
+    """
+    Extract both text AND images from a PDF and embed them in a DOCX document.
+    Images are placed inline with the text at their approximate positions.
+    """
+    import fitz
+    from docx import Document
+    from docx.shared import Inches, Pt
+    import io, tempfile
+
+    doc = Document()
+    doc.add_heading('Extracted PDF Content', level=1)
+    doc.add_paragraph(f'Source: {os.path.basename(input_path)} | Converted by IshuTools.fun')
+    doc.add_paragraph('─' * 60)
+
+    pdf = fitz.open(input_path)
+    if pdf.is_encrypted and password:
+        pdf.authenticate(password)
+
+    images_extracted = 0
+
+    for pg_idx in range(pdf.page_count):
+        pg = pdf[pg_idx]
+        doc.add_heading(f'Page {pg_idx + 1}', level=2)
+
+        # Text
+        text = pg.get_text('text')
+        if text.strip():
+            for para in text.split('\n\n'):
+                if para.strip():
+                    doc.add_paragraph(para.strip())
+
+        # Images
+        if embed_images:
+            for img_info in pg.get_images(full=True):
+                xref = img_info[0]
+                try:
+                    base_img = pdf.extract_image(xref)
+                    img_bytes = base_img['image']
+                    img_stream = io.BytesIO(img_bytes)
+
+                    # Limit image width to 5 inches
+                    p = doc.add_paragraph()
+                    run = p.add_run()
+                    run.add_picture(img_stream, width=Inches(min(5.0, 4.0)))
+                    images_extracted += 1
+                except Exception:
+                    continue
+
+        if pg_idx < pdf.page_count - 1:
+            doc.add_page_break()
+
+    pdf.close()
+    doc.save(output_path)
+    return {
+        'output_path': output_path,
+        'pages': pdf.page_count,
+        'images_extracted': images_extracted,
+    }

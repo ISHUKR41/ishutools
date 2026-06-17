@@ -869,3 +869,146 @@ def audit_redaction(input_path: str) -> dict:
     except Exception as e:
         logger.warning(f'audit_redaction failed: {e}')
         return {'error': str(e)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — Smart PII Redaction, Regex, Audit Trail ───────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def redact_pii_smart(input_path: str, output_path: str,
+                      redact_emails: bool = True,
+                      redact_phones: bool = True,
+                      redact_aadhaar: bool = True,
+                      redact_pan: bool = True,
+                      redact_ssn: bool = True,
+                      redact_credit_cards: bool = True,
+                      redact_ips: bool = False,
+                      fill_color: tuple = (0, 0, 0)) -> dict:
+    """
+    Smart PII (Personally Identifiable Information) redaction.
+    Automatically detects and redacts common PII patterns:
+    - Email addresses
+    - Phone numbers (international formats + Indian)
+    - Indian Aadhaar numbers (12-digit)
+    - Indian PAN numbers (ABCDE1234F format)
+    - US Social Security Numbers
+    - Credit/Debit card numbers
+    - IP addresses (optional)
+
+    All redaction is permanent (content removed from PDF data).
+    """
+    import re
+    import fitz
+
+    PATTERNS = {}
+    if redact_emails:
+        PATTERNS['Email'] = r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}'
+    if redact_phones:
+        PATTERNS['Phone'] = (r'(?:\+91[-\s]?)?\d{10}|'
+                              r'(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}|'
+                              r'\+\d{1,3}[-\s]\d{4,14}')
+    if redact_aadhaar:
+        PATTERNS['Aadhaar'] = r'\b\d{4}[-\s]\d{4}[-\s]\d{4}\b'
+    if redact_pan:
+        PATTERNS['PAN'] = r'\b[A-Z]{5}[0-9]{4}[A-Z]\b'
+    if redact_ssn:
+        PATTERNS['SSN'] = r'\b\d{3}[-\s]\d{2}[-\s]\d{4}\b'
+    if redact_credit_cards:
+        PATTERNS['CreditCard'] = (r'\b(?:4[0-9]{12}(?:[0-9]{3})?|'
+                                   r'5[1-5][0-9]{14}|3[47][0-9]{13}|'
+                                   r'6(?:011|5[0-9]{2})[0-9]{12})\b|'
+                                   r'\b\d{4}[-\s]\d{4}[-\s]\d{4}[-\s]\d{4}\b')
+    if redact_ips:
+        PATTERNS['IP'] = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
+
+    doc = fitz.open(input_path)
+    redaction_counts = {k: 0 for k in PATTERNS}
+    total_redacted = 0
+
+    for pg in doc:
+        for ptype, pattern in PATTERNS.items():
+            try:
+                areas = pg.search_for(pattern, quads=False)  # text search
+            except Exception:
+                areas = []
+
+            # Also use regex on extracted text
+            text = pg.get_text('text')
+            for match in re.finditer(pattern, text):
+                matched_text = match.group()
+                try:
+                    # Search for this specific text and redact
+                    rects = pg.search_for(matched_text)
+                    for rect in rects:
+                        pg.add_redact_annot(rect, fill=fill_color)
+                        redaction_counts[ptype] += 1
+                        total_redacted += 1
+                except Exception:
+                    pass
+
+        pg.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+
+    return {
+        'output_path': output_path,
+        'total_redactions': total_redacted,
+        'by_type': redaction_counts,
+    }
+
+
+def generate_redaction_report(input_path: str,
+                                search_terms: list = None,
+                                pattern_presets: list = None) -> dict:
+    """
+    Generate a report showing what WOULD be redacted (preview without modifying the PDF).
+    Returns page number, text matched, and position for each match.
+    """
+    import re
+    import fitz
+
+    PII_PATTERNS = {
+        'email':       r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}',
+        'phone':       r'(?:\+91[-\s]?)?\d{10}|\+?1[-.\s]?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}',
+        'aadhaar':     r'\b\d{4}[-\s]\d{4}[-\s]\d{4}\b',
+        'pan':         r'\b[A-Z]{5}[0-9]{4}[A-Z]\b',
+        'credit_card': r'\b\d{4}[-\s]\d{4}[-\s]\d{4}[-\s]\d{4}\b',
+    }
+
+    doc = fitz.open(input_path)
+    matches = []
+
+    for pg_idx, pg in enumerate(doc):
+        text = pg.get_text('text')
+
+        # Custom search terms
+        if search_terms:
+            for term in search_terms:
+                for m in re.finditer(re.escape(term), text, re.IGNORECASE):
+                    matches.append({
+                        'page': pg_idx + 1,
+                        'type': 'custom_term',
+                        'matched': m.group()[:100],
+                        'position': m.start(),
+                    })
+
+        # Preset patterns
+        if pattern_presets:
+            for preset in pattern_presets:
+                pattern = PII_PATTERNS.get(preset)
+                if pattern:
+                    for m in re.finditer(pattern, text):
+                        matches.append({
+                            'page': pg_idx + 1,
+                            'type': preset,
+                            'matched': m.group()[:100],
+                            'position': m.start(),
+                        })
+
+    doc.close()
+    return {
+        'total_matches': len(matches),
+        'matches': matches[:200],  # limit to first 200
+        'pages_scanned': doc.page_count,
+    }

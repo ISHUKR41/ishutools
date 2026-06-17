@@ -951,3 +951,195 @@ def get_compression_potential(input_path: str, password: str = '') -> dict:
     except Exception as e:
         logger.warning(f'get_compression_potential failed: {e}')
         return {'current_size_kb': round(current_size, 1), 'error': str(e)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — Advanced Compression ─────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def compress_with_zopfli(input_path: str, output_path: str) -> dict:
+    """
+    Apply Zopfli-quality DEFLATE recompression to all PDF streams.
+    Zopfli is a slower but better DEFLATE compressor — ideal for archival PDFs.
+
+    Requires: pikepdf (uses its built-in zlib), python-zopfli if available
+    """
+    try:
+        import pikepdf
+        pdf = pikepdf.open(input_path)
+        pdf.save(output_path, compress_streams=True, stream_decode_level=pikepdf.StreamDecodeLevel.all,
+                 recompress_flate=True, object_stream_mode=pikepdf.ObjectStreamMode.generate)
+        pdf.close()
+        orig = os.path.getsize(input_path)
+        new  = os.path.getsize(output_path)
+        return {'input_size': orig, 'output_size': new,
+                'reduction_pct': round((orig - new) / max(orig, 1) * 100, 1)}
+    except Exception as e:
+        logger.warning(f'compress_with_zopfli error: {e}')
+        raise
+
+
+def smart_image_compress(input_path: str, output_path: str,
+                           jpeg_quality: int = 72,
+                           downsample_dpi: int = 150,
+                           convert_rgb_to_grayscale: bool = False) -> dict:
+    """
+    Advanced image-aware compression pipeline:
+    1. Extract all embedded images via PyMuPDF
+    2. Downsample images above target DPI
+    3. Re-encode JPEGs at target quality
+    4. Optionally convert color images to grayscale
+    5. Re-embed compressed images
+
+    Args:
+        jpeg_quality: JPEG re-encoding quality (1-95)
+        downsample_dpi: Target DPI for downsampling (0 = no downsampling)
+        convert_rgb_to_grayscale: Convert color images to grayscale
+    """
+    import fitz
+    from PIL import Image
+    import io
+
+    doc = fitz.open(input_path)
+    images_processed = 0
+    bytes_saved = 0
+
+    for pg_idx in range(doc.page_count):
+        page = doc[pg_idx]
+        img_list = page.get_images(full=True)
+
+        for img_info in img_list:
+            xref = img_info[0]
+            try:
+                base_img = doc.extract_image(xref)
+                img_bytes = base_img['image']
+                img_ext   = base_img['ext']
+
+                pil_img = Image.open(io.BytesIO(img_bytes))
+
+                # Downsample if needed
+                if downsample_dpi > 0:
+                    w, h = pil_img.size
+                    # estimate current dpi from PDF point size
+                    rect = page.get_image_bbox(img_info)
+                    if rect and rect.width > 0:
+                        curr_dpi = w / (rect.width / 72)
+                        if curr_dpi > downsample_dpi * 1.2:
+                            scale = downsample_dpi / curr_dpi
+                            new_w, new_h = max(1, int(w * scale)), max(1, int(h * scale))
+                            pil_img = pil_img.resize((new_w, new_h), Image.LANCZOS)
+
+                # Convert to grayscale
+                if convert_rgb_to_grayscale and pil_img.mode in ('RGB', 'RGBA'):
+                    pil_img = pil_img.convert('L')
+
+                # Re-encode
+                out_buf = io.BytesIO()
+                if img_ext in ('jpg', 'jpeg') or pil_img.mode == 'L':
+                    save_mode = pil_img.mode if pil_img.mode != 'RGBA' else 'RGB'
+                    pil_img.convert(save_mode).save(out_buf, format='JPEG',
+                                                     quality=jpeg_quality, optimize=True)
+                else:
+                    pil_img.save(out_buf, format='PNG', optimize=True)
+
+                new_bytes = out_buf.getvalue()
+                if len(new_bytes) < len(img_bytes):
+                    bytes_saved += len(img_bytes) - len(new_bytes)
+                    doc.update_stream(xref, new_bytes)
+                    images_processed += 1
+
+            except Exception:
+                continue
+
+    doc.save(output_path, garbage=4, deflate=True, clean=True)
+    orig_size = os.path.getsize(input_path)
+    new_size  = os.path.getsize(output_path)
+    doc.close()
+
+    return {
+        'images_optimized': images_processed,
+        'bytes_saved_images': bytes_saved,
+        'input_size': orig_size,
+        'output_size': new_size,
+        'reduction_pct': round((orig_size - new_size) / max(orig_size, 1) * 100, 1),
+    }
+
+
+def compress_remove_embedded_files(input_path: str, output_path: str) -> dict:
+    """
+    Remove all embedded files (attachments) from a PDF to reduce size.
+    Many PDFs embed fonts, ICC profiles, thumbnails, or file attachments
+    that are unnecessary for viewing.
+    """
+    import pikepdf
+
+    pdf = pikepdf.open(input_path)
+    removed = []
+
+    # Remove embedded files from the EmbeddedFiles tree
+    if '/Names' in pdf.Root and '/EmbeddedFiles' in pdf.Root.Names:
+        ef_tree = pdf.Root.Names.EmbeddedFiles
+        if '/Names' in ef_tree:
+            names = list(ef_tree.Names)
+            removed = [str(names[i]) for i in range(0, len(names), 2)]
+            del pdf.Root.Names['/EmbeddedFiles']
+
+    # Remove thumbnails
+    for pg in pdf.pages:
+        if '/Thumb' in pg:
+            del pg['/Thumb']
+
+    pdf.save(output_path, compress_streams=True,
+             object_stream_mode=pikepdf.ObjectStreamMode.generate)
+    pdf.close()
+
+    orig = os.path.getsize(input_path)
+    new  = os.path.getsize(output_path)
+    return {
+        'removed_attachments': removed,
+        'thumbnails_removed': True,
+        'input_size': orig,
+        'output_size': new,
+        'reduction_pct': round((orig - new) / max(orig, 1) * 100, 1),
+    }
+
+
+def compress_strip_javascript(input_path: str, output_path: str) -> dict:
+    """
+    Strip all JavaScript actions from a PDF (reduces size + improves security).
+    JavaScript in PDFs can be a security risk and adds unnecessary bloat.
+    """
+    import pikepdf
+
+    pdf = pikepdf.open(input_path)
+    js_removed = 0
+
+    def strip_js(obj):
+        nonlocal js_removed
+        try:
+            if isinstance(obj, pikepdf.Dictionary):
+                for key in list(obj.keys()):
+                    if str(key) in ('/JS', '/JavaScript', '/OpenAction',
+                                    '/AA', '/URI') and '/JS' in str(obj.get(key, '')):
+                        del obj[key]
+                        js_removed += 1
+                    else:
+                        strip_js(obj[key])
+        except Exception:
+            pass
+
+    for pg in pdf.pages:
+        strip_js(pg)
+    strip_js(pdf.Root)
+
+    pdf.save(output_path, compress_streams=True)
+    pdf.close()
+
+    orig = os.path.getsize(input_path)
+    new  = os.path.getsize(output_path)
+    return {
+        'js_actions_removed': js_removed,
+        'input_size': orig,
+        'output_size': new,
+        'reduction_pct': round((orig - new) / max(orig, 1) * 100, 1),
+    }

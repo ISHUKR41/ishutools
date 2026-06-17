@@ -892,3 +892,118 @@ def excel_to_pdf_landscape(input_path: str, output_path: str,
     except Exception as e:
         logger.warning(f'excel_to_pdf_landscape failed: {e}')
         raise
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — openpyxl analysis, chart detection, formatting ─────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def excel_to_pdf_with_formulas(input_path: str, output_path: str,
+                                 show_formulas: bool = False,
+                                 include_charts: bool = True) -> dict:
+    """
+    Convert Excel to PDF with advanced options:
+    - Optionally show formulas instead of values
+    - Preserve charts as images in the PDF
+    - Control print area and scaling
+    """
+    import openpyxl
+    from openpyxl import load_workbook
+    from weasyprint import HTML
+    import html as html_lib
+
+    wb = load_workbook(input_path, data_only=not show_formulas)
+    html_parts = []
+
+    html_parts.append("""
+    <html><head><style>
+    body { font-family: Arial, sans-serif; font-size: 9pt; }
+    h2 { color: #1a1a2e; background: #e8eaf6; padding: 6px 12px;
+         margin: 20px 0 5px 0; border-left: 4px solid #3f51b5; }
+    table { border-collapse: collapse; width: 100%; margin: 0 0 20px 0; font-size: 8pt; }
+    th { background: #3f51b5; color: white; padding: 4px 6px; text-align: left;
+         border: 1px solid #283593; }
+    td { border: 1px solid #e0e0e0; padding: 3px 6px; }
+    tr:nth-child(even) td { background: #f5f7fa; }
+    .formula { font-family: monospace; color: #1565c0; background: #e3f2fd;
+               padding: 1px 4px; border-radius: 2px; }
+    @page { margin: 1.5cm; size: A4 landscape; }
+    </style></head><body>
+    """)
+
+    for sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+        html_parts.append(f'<h2>Sheet: {html_lib.escape(sheet_name)}</h2>')
+        html_parts.append('<table>')
+
+        rows_added = 0
+        for row_idx, row in enumerate(ws.iter_rows(values_only=not show_formulas)):
+            if rows_added == 0:
+                html_parts.append('<thead><tr>')
+                for cell_val in row:
+                    val = str(cell_val) if cell_val is not None else ''
+                    html_parts.append(f'<th>{html_lib.escape(val[:50])}</th>')
+                html_parts.append('</tr></thead><tbody>')
+                rows_added += 1
+                continue
+
+            html_parts.append('<tr>')
+            for cell_val in row:
+                val = str(cell_val) if cell_val is not None else ''
+                if show_formulas and val.startswith('='):
+                    html_parts.append(f'<td><span class="formula">{html_lib.escape(val[:100])}</span></td>')
+                else:
+                    html_parts.append(f'<td>{html_lib.escape(val[:100])}</td>')
+            html_parts.append('</tr>')
+            rows_added += 1
+            if rows_added > 500:  # limit per sheet for large files
+                html_parts.append('<tr><td colspan="100">... (truncated, too many rows)</td></tr>')
+                break
+
+        html_parts.append('</tbody></table>')
+
+    html_parts.append('</body></html>')
+    full_html = ''.join(html_parts)
+
+    HTML(string=full_html).write_pdf(output_path)
+    return {'output_path': output_path, 'sheets': len(wb.sheetnames),
+            'show_formulas': show_formulas}
+
+
+def analyze_excel_workbook(input_path: str) -> dict:
+    """
+    Analyze an Excel workbook structure:
+    - Sheet names and row/column counts
+    - Merged cells
+    - Charts present
+    - Named ranges
+    - Data validation rules
+    - Conditional formatting areas
+    - Estimated total cells with data
+    """
+    from openpyxl import load_workbook
+
+    wb = load_workbook(input_path, data_only=True)
+    result = {'sheets': [], 'total_sheets': len(wb.sheetnames)}
+
+    for name in wb.sheetnames:
+        ws = wb[name]
+        # Count non-empty cells efficiently
+        data_cells = sum(1 for row in ws.iter_rows() for cell in row
+                         if cell.value is not None)
+        sheet_info = {
+            'name': name,
+            'rows': ws.max_row,
+            'columns': ws.max_column,
+            'data_cells': data_cells,
+            'merged_cells': len(list(ws.merged_cells)),
+            'charts': len(ws._charts),
+            'images': len(ws._images),
+            'tab_color': str(ws.sheet_properties.tabColor) if ws.sheet_properties.tabColor else None,
+        }
+        result['sheets'].append(sheet_info)
+
+    result['named_ranges'] = list(wb.defined_names.keys())[:20]
+    result['total_data_cells'] = sum(s['data_cells'] for s in result['sheets'])
+    wb.close()
+    return result

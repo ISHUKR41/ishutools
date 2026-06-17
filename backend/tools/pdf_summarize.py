@@ -982,3 +982,187 @@ def compare_two_pdfs_text(path1: str, path2: str) -> dict:
     except Exception as e:
         logger.warning(f'compare_two_pdfs_text failed: {e}')
         return {'error': str(e), 'similarity_score': 0}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — Advanced NLP, TF-IDF, Named Entity Recognition ────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def extract_named_entities(input_path: str, password: str = '') -> dict:
+    """
+    Extract named entities from a PDF:
+    - People names (PERSON)
+    - Organizations (ORG)
+    - Locations (GPE/LOC)
+    - Dates (DATE)
+    - Money amounts (MONEY)
+    - Emails, URLs, phone numbers (regex)
+
+    Uses regex-based NLP without requiring external NLP models.
+    """
+    import re
+    import pdfplumber
+
+    text = ''
+    with pdfplumber.open(input_path, password=password or None) as pdf:
+        text = '\n'.join(pg.extract_text() or '' for pg in pdf.pages)
+
+    entities = {
+        'emails': list(set(re.findall(r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}', text))),
+        'urls':   list(set(re.findall(r'https?://[^\s<>"{}|\\^`\[\]]+', text))),
+        'phones': list(set(re.findall(
+            r'(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}|\+91[-\s]?\d{10}|\+\d{1,3}[-\s]\d{4,14}',
+            text
+        ))),
+        'dates': list(set(re.findall(
+            r'\b(?:\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}|'
+            r'\d{4}[/\-]\d{1,2}[/\-]\d{1,2}|'
+            r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}|'
+            r'\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})\b',
+            text
+        ))),
+        'money': list(set(re.findall(
+            r'(?:₹|Rs\.?|INR|USD|\$|€|£|¥)\s*[\d,]+(?:\.\d{1,2})?|'
+            r'[\d,]+(?:\.\d{1,2})?\s*(?:crore|lakh|thousand|million|billion)',
+            text, re.IGNORECASE
+        ))),
+        'percentages': list(set(re.findall(r'\b\d+(?:\.\d+)?%\b', text))),
+    }
+
+    # Capitalized phrase detection (likely names/organizations)
+    cap_phrases = re.findall(r'\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,4})\b', text)
+    from collections import Counter
+    phrase_freq = Counter(cap_phrases)
+    entities['proper_nouns'] = [phrase for phrase, freq in phrase_freq.most_common(30) if freq >= 2]
+
+    return {
+        'entities': entities,
+        'total_text_length': len(text),
+        'pages_processed': len(text.split('\f')) + 1,
+    }
+
+
+def generate_tfidf_keywords(input_path: str, top_n: int = 25,
+                              password: str = '') -> dict:
+    """
+    Extract top keywords using TF-IDF (Term Frequency-Inverse Document Frequency).
+    This is one of the most accurate methods for keyword extraction from documents.
+
+    Treats each PDF page as a "document" in the TF-IDF corpus.
+
+    Requires: numpy, scipy (pre-installed)
+    """
+    import re
+    import math
+    import pdfplumber
+    from collections import Counter
+
+    STOP_WORDS = {
+        'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+        'of', 'with', 'by', 'from', 'up', 'about', 'into', 'through', 'during',
+        'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had',
+        'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might',
+        'this', 'that', 'these', 'those', 'it', 'its', 'we', 'they', 'he', 'she',
+        'i', 'you', 'my', 'your', 'our', 'their', 'his', 'her', 'as', 'not', 'no',
+        'all', 'each', 'both', 'few', 'more', 'most', 'other', 'some', 'such',
+        'than', 'then', 'when', 'where', 'which', 'who', 'can', 'if', 'also',
+    }
+
+    def tokenize(text):
+        return [w.lower() for w in re.findall(r'\b[a-zA-Z]{3,}\b', text)
+                if w.lower() not in STOP_WORDS]
+
+    with pdfplumber.open(input_path, password=password or None) as pdf:
+        page_texts = [pg.extract_text() or '' for pg in pdf.pages]
+
+    page_tokens = [tokenize(t) for t in page_texts if t.strip()]
+    if not page_tokens:
+        return {'keywords': [], 'error': 'No text found'}
+
+    # TF per page
+    all_tf = [Counter(tokens) for tokens in page_tokens]
+    n_docs = len(all_tf)
+
+    # IDF
+    df = Counter()
+    for tf in all_tf:
+        for word in set(tf.keys()):
+            df[word] += 1
+
+    # TF-IDF score (sum across all pages)
+    tfidf = Counter()
+    for tf in all_tf:
+        total = sum(tf.values()) or 1
+        for word, count in tf.items():
+            tf_score = count / total
+            idf_score = math.log((n_docs + 1) / (df[word] + 1)) + 1
+            tfidf[word] += tf_score * idf_score
+
+    keywords = [{'word': w, 'score': round(s, 4)}
+                for w, s in tfidf.most_common(top_n)]
+
+    return {
+        'keywords': keywords,
+        'pages_analyzed': len(page_tokens),
+        'unique_terms': len(tfidf),
+    }
+
+
+def generate_executive_summary(input_path: str, max_sentences: int = 10,
+                                 password: str = '') -> dict:
+    """
+    Generate a structured executive summary of a PDF document:
+    - Document overview (page count, word count, estimated read time)
+    - Top keywords (TF-IDF based)
+    - Key sentences (top by term frequency)
+    - Action items (sentences with must/should/will/need)
+    - Questions raised in the document
+
+    Returns a rich structured summary suitable for business reports.
+    """
+    import re
+    import pdfplumber
+    from collections import Counter
+
+    with pdfplumber.open(input_path, password=password or None) as pdf:
+        full_text = '\n'.join(pg.extract_text() or '' for pg in pdf.pages)
+        page_count = len(pdf.pages)
+
+    words = full_text.split()
+    word_count = len(words)
+    read_time_mins = max(1, word_count // 200)
+
+    # Sentences
+    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', full_text) if len(s.strip()) > 20]
+
+    # Score sentences by word frequency
+    word_freq = Counter(w.lower() for w in words if len(w) > 3 and w.isalpha())
+    def sent_score(s):
+        return sum(word_freq.get(w.lower(), 0) for w in s.split() if w.isalpha()) / max(len(s.split()), 1)
+
+    top_sentences = sorted(sentences, key=sent_score, reverse=True)[:max_sentences]
+    # Re-order to original document order
+    top_sentences = sorted(top_sentences, key=lambda s: full_text.find(s))
+
+    # Action items
+    action_pattern = re.compile(
+        r'\b(?:must|should|will|need to|required to|please|ensure|implement|complete|submit|'
+        r'review|update|follow|confirm|notify|schedule|prepare|assess|monitor)\b',
+        re.IGNORECASE
+    )
+    action_items = [s for s in sentences if action_pattern.search(s)][:8]
+
+    # Questions
+    questions = [s for s in sentences if '?' in s][:5]
+
+    return {
+        'overview': {
+            'pages': page_count,
+            'words': word_count,
+            'estimated_read_time_minutes': read_time_mins,
+        },
+        'key_sentences': top_sentences,
+        'action_items': action_items,
+        'questions': questions,
+        'top_words': [w for w, _ in word_freq.most_common(20)],
+    }

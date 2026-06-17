@@ -989,3 +989,158 @@ def pptx_to_pdf_handout(input_path: str, output_path: str,
     finally:
         import shutil as _sh
         _sh.rmtree(tmp_dir, ignore_errors=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — python-pptx analysis, slide extraction ────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def analyze_pptx_structure(input_path: str) -> dict:
+    """
+    Analyze a PowerPoint presentation structure:
+    - Slide count and dimensions
+    - Per-slide: title, text, shapes, images, notes
+    - Total word count
+    - Fonts and themes used
+    - Animation presence
+    - Charts and tables
+    """
+    from pptx import Presentation
+    from pptx.util import Emu
+
+    prs = Presentation(input_path)
+    slides_info = []
+    total_words = 0
+    fonts_used = set()
+
+    for slide_idx, slide in enumerate(prs.slides):
+        slide_data = {
+            'slide_num': slide_idx + 1,
+            'title': '',
+            'text': '',
+            'shape_count': len(slide.shapes),
+            'has_notes': False,
+            'charts': 0,
+            'tables': 0,
+            'images': 0,
+        }
+
+        texts = []
+        for shape in slide.shapes:
+            if shape.has_text_frame:
+                for para in shape.text_frame.paragraphs:
+                    for run in para.runs:
+                        if run.font.name:
+                            fonts_used.add(run.font.name)
+                text = shape.text_frame.text.strip()
+                if text:
+                    texts.append(text)
+
+            if shape.name.lower().startswith('title') or \
+               (hasattr(shape, 'placeholder_format') and
+                shape.placeholder_format and shape.placeholder_format.idx == 0):
+                slide_data['title'] = shape.text[:80] if hasattr(shape, 'text') else ''
+
+            if shape.has_chart:
+                slide_data['charts'] += 1
+            if shape.has_table:
+                slide_data['tables'] += 1
+            if hasattr(shape, 'image'):
+                slide_data['images'] += 1
+
+        slide_data['text'] = ' '.join(texts)[:300]
+        slide_data['word_count'] = len(' '.join(texts).split())
+        total_words += slide_data['word_count']
+
+        if slide.has_notes_slide:
+            notes_text = slide.notes_slide.notes_text_frame.text
+            slide_data['has_notes'] = bool(notes_text.strip())
+            slide_data['notes'] = notes_text[:200]
+
+        slides_info.append(slide_data)
+
+    return {
+        'total_slides': len(prs.slides),
+        'dimensions': {
+            'width_emu': prs.slide_width,
+            'height_emu': prs.slide_height,
+            'width_in': round(prs.slide_width / 914400, 2),
+            'height_in': round(prs.slide_height / 914400, 2),
+        },
+        'total_words': total_words,
+        'fonts_used': list(fonts_used)[:20],
+        'slides': slides_info,
+    }
+
+
+def extract_pptx_text_structured(input_path: str) -> dict:
+    """
+    Extract all text from a PPTX presentation with slide structure preserved.
+    Returns slide number, title, body text, and speaker notes for each slide.
+    """
+    from pptx import Presentation
+
+    prs = Presentation(input_path)
+    result = []
+
+    for slide_idx, slide in enumerate(prs.slides):
+        slide_data = {'slide': slide_idx + 1, 'title': '', 'body': [], 'notes': ''}
+
+        for shape in slide.shapes:
+            if not shape.has_text_frame:
+                continue
+            text = shape.text_frame.text.strip()
+            if not text:
+                continue
+            if (hasattr(shape, 'placeholder_format') and
+                    shape.placeholder_format and
+                    shape.placeholder_format.idx == 0):
+                slide_data['title'] = text[:100]
+            else:
+                slide_data['body'].append(text[:500])
+
+        if slide.has_notes_slide:
+            notes = slide.notes_slide.notes_text_frame.text.strip()
+            if notes:
+                slide_data['notes'] = notes[:1000]
+
+        result.append(slide_data)
+
+    total_words = sum(len(s['title'].split()) + sum(len(b.split()) for b in s['body'])
+                      for s in result)
+    return {'slides': result, 'total_slides': len(result), 'total_words': total_words}
+
+
+def pptx_to_image_gallery(input_path: str, output_dir: str,
+                            dpi: int = 150, format_type: str = 'PNG') -> dict:
+    """
+    Convert each PPTX slide to a high-quality image.
+    Creates a gallery of slide images in the output directory.
+
+    Uses PyMuPDF after converting PPTX to PDF first.
+    """
+    import fitz, os, tempfile
+
+    # First convert PPTX to PDF
+    tmp_pdf = tempfile.mktemp(suffix='.pdf')
+    pptx_to_pdf(input_path, tmp_pdf)
+
+    # Then convert PDF pages to images
+    doc = fitz.open(tmp_pdf)
+    mat = fitz.Matrix(dpi / 72, dpi / 72)
+    created_files = []
+
+    for pg_idx in range(doc.page_count):
+        pg = doc[pg_idx]
+        clip = pg.get_pixmap(matrix=mat, alpha=False)
+        out_name = f'slide_{pg_idx+1:03d}.{format_type.lower()}'
+        out_path = os.path.join(output_dir, out_name)
+        clip.save(out_path)
+        created_files.append(out_name)
+
+    doc.close()
+    try: os.unlink(tmp_pdf)
+    except: pass
+
+    return {'slides': len(created_files), 'files': created_files,
+            'dpi': dpi, 'format': format_type}

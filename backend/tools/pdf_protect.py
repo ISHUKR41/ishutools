@@ -991,3 +991,170 @@ def add_metadata_protection(input_path: str, output_path: str,
     except Exception as e:
         logger.warning(f'add_metadata_protection failed: {e}')
         raise
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — AES-256, Cert-based, Metadata Encryption ─────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def protect_with_aes256(input_path: str, output_path: str,
+                         user_password: str,
+                         owner_password: str = '',
+                         allow_print: bool = True,
+                         allow_copy: bool = False,
+                         allow_modify: bool = False) -> dict:
+    """
+    Apply AES-256 encryption (PDF 2.0 standard) for maximum security.
+    AES-256 is the strongest encryption available in PDF format.
+
+    Args:
+        allow_print: Allow high-quality printing
+        allow_copy: Allow text/image copying
+        allow_modify: Allow document modification
+    """
+    import pikepdf
+    from pikepdf import Encryption, Permissions
+
+    perms = Permissions(
+        print_highres=allow_print,
+        extract=allow_copy,
+        modify_annotation=False,
+        modify_form=False,
+        modify_other=allow_modify,
+        print_lowres=allow_print,
+    )
+
+    enc = Encryption(
+        user=user_password,
+        owner=owner_password or user_password + '_owner',
+        R=6,        # PDF 2.0 = AES-256
+        allow=perms,
+    )
+
+    with pikepdf.open(input_path) as pdf:
+        pdf.save(output_path, encryption=enc, compress_streams=True)
+
+    return {
+        'output_path': output_path,
+        'encryption': 'AES-256 (PDF 2.0)',
+        'allow_print': allow_print,
+        'allow_copy': allow_copy,
+        'allow_modify': allow_modify,
+    }
+
+
+def encrypt_pdf_metadata(input_path: str, output_path: str,
+                          author: str = 'IshuTools',
+                          title: str = '',
+                          subject: str = '',
+                          keywords: str = '',
+                          creator: str = 'IshuTools.fun') -> dict:
+    """
+    Set/update PDF metadata (author, title, subject, keywords, creator).
+    Also removes producer fingerprint that may reveal editing tools used.
+    """
+    import pikepdf
+
+    with pikepdf.open(input_path) as pdf:
+        with pdf.open_metadata() as meta:
+            if title:
+                meta['dc:title'] = title
+            if author:
+                meta['dc:creator'] = [author]
+            if subject:
+                meta['dc:description'] = subject
+            if keywords:
+                meta['pdf:Keywords'] = keywords
+            meta['xmp:CreatorTool'] = creator
+
+        # Also set legacy metadata dict
+        pdf.docinfo['/Author']  = author
+        pdf.docinfo['/Creator'] = creator
+        if title:
+            pdf.docinfo['/Title'] = title
+        if subject:
+            pdf.docinfo['/Subject'] = subject
+        if keywords:
+            pdf.docinfo['/Keywords'] = keywords
+        # Remove producer fingerprint
+        if '/Producer' in pdf.docinfo:
+            del pdf.docinfo['/Producer']
+
+        pdf.save(output_path, compress_streams=True)
+
+    return {'output_path': output_path, 'metadata_updated': True,
+            'author': author, 'title': title}
+
+
+def check_password_strength(password: str) -> dict:
+    """
+    Evaluate PDF password strength.
+    Returns score (0-100), strength label, and improvement suggestions.
+    """
+    import re
+
+    score = 0
+    issues = []
+    suggestions = []
+
+    # Length scoring
+    length = len(password)
+    if length >= 16:
+        score += 35
+    elif length >= 12:
+        score += 25
+    elif length >= 8:
+        score += 15
+    else:
+        score += 5
+        issues.append('Too short')
+        suggestions.append('Use at least 12 characters')
+
+    # Complexity
+    if re.search(r'[a-z]', password):
+        score += 10
+    else:
+        suggestions.append('Add lowercase letters')
+
+    if re.search(r'[A-Z]', password):
+        score += 15
+    else:
+        suggestions.append('Add uppercase letters')
+
+    if re.search(r'[0-9]', password):
+        score += 15
+    else:
+        suggestions.append('Add numbers')
+
+    if re.search(r'[!@#$%^&*()_+=\-\[\]{}|;:,.<>?]', password):
+        score += 25
+    else:
+        suggestions.append('Add special characters (!@#$%^&*)')
+
+    # Entropy bonus
+    unique_chars = len(set(password))
+    if unique_chars >= 12:
+        score = min(score + 10, 100)
+    elif unique_chars < 5:
+        score = max(score - 15, 0)
+        issues.append('Low character diversity')
+
+    # Common pattern penalties
+    if password.lower() in ('password', '123456', 'qwerty', 'admin', 'letmein'):
+        score = 0
+        issues.append('Common password')
+        suggestions.append('Do not use common passwords')
+
+    strength = ('Very Weak' if score < 20 else
+                'Weak'      if score < 40 else
+                'Fair'      if score < 60 else
+                'Strong'    if score < 80 else
+                'Very Strong')
+
+    return {
+        'score': score,
+        'strength': strength,
+        'length': length,
+        'issues': issues,
+        'suggestions': suggestions,
+    }

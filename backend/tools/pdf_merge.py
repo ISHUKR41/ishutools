@@ -938,3 +938,159 @@ def get_pdf_structure(input_path: str, password: str = '') -> dict:
     except Exception as e:
         logger.warning(f'get_pdf_structure error: {e}')
     return result
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — QR, Barcode, Advanced Merge ──────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def merge_with_qr_coverpage(pdf_paths: list, output_path: str,
+                              title: str = 'Merged Document',
+                              qr_url: str = 'https://ishutools.fun') -> dict:
+    """
+    Merge PDFs with an auto-generated cover page containing a QR code.
+    QR code links to qr_url (e.g. the document's online location).
+
+    Requires: qrcode, reportlab, fitz
+    """
+    import qrcode
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.pagesizes import A4
+    import tempfile, io
+
+    try:
+        # 1. Generate QR code image
+        qr_img = qrcode.make(qr_url)
+        qr_tmp = tempfile.mktemp(suffix='.png')
+        qr_img.save(qr_tmp)
+
+        # 2. Build cover page with ReportLab
+        cover_path = tempfile.mktemp(suffix='.pdf')
+        c = rl_canvas.Canvas(cover_path, pagesize=A4)
+        w, h = A4
+        c.setFillColorRGB(0.24, 0.28, 0.55)
+        c.rect(0, 0, w, h, fill=1, stroke=0)
+        c.setFillColorRGB(1, 1, 1)
+        c.setFont('Helvetica-Bold', 28)
+        c.drawCentredString(w / 2, h * 0.72, title)
+        c.setFont('Helvetica', 13)
+        c.drawCentredString(w / 2, h * 0.65, f'Merged document — {len(pdf_paths)} files')
+        c.drawCentredString(w / 2, h * 0.61, f'Created by IshuTools.fun')
+        # QR code
+        c.drawImage(qr_tmp, w / 2 - 60, h * 0.30, 120, 120, mask='auto')
+        c.setFont('Helvetica', 9)
+        c.drawCentredString(w / 2, h * 0.27, qr_url)
+        c.save()
+
+        # 3. Merge cover + all PDFs
+        all_paths = [cover_path] + list(pdf_paths)
+        merge_pdfs(all_paths, output_path)
+
+        import os; os.unlink(qr_tmp); os.unlink(cover_path)
+        return {'output_path': output_path, 'file_count': len(pdf_paths), 'has_coverpage': True}
+    except Exception as e:
+        logger.warning(f'merge_with_qr_coverpage error: {e}')
+        raise
+
+
+def merge_with_bookmarks_toc(pdf_paths: list, output_path: str,
+                               titles: list = None) -> dict:
+    """
+    Merge PDFs and generate a linked Table of Contents page (PDF bookmarks).
+    Each entry in the TOC is a clickable link to the corresponding document start.
+
+    Args:
+        pdf_paths: List of PDF file paths
+        output_path: Output merged PDF path
+        titles: Optional list of document titles (falls back to filenames)
+    """
+    import fitz
+    from pathlib import Path
+
+    try:
+        result_doc = fitz.open()
+        toc_entries = []
+        page_offset = 0
+
+        for i, path in enumerate(pdf_paths):
+            src = fitz.open(path)
+            title = (titles[i] if titles and i < len(titles)
+                     else Path(path).stem.replace('_', ' ').title())
+            toc_entries.append([1, title, page_offset + 1])
+            result_doc.insert_pdf(src)
+            page_offset += src.page_count
+            src.close()
+
+        result_doc.set_toc(toc_entries)
+        result_doc.save(output_path, garbage=4, deflate=True)
+        result_doc.close()
+
+        return {
+            'output_path': output_path,
+            'file_count': len(pdf_paths),
+            'total_pages': page_offset,
+            'toc_entries': len(toc_entries),
+        }
+    except Exception as e:
+        logger.warning(f'merge_with_bookmarks_toc error: {e}')
+        raise
+
+
+def merge_by_directory(directory: str, output_path: str,
+                        pattern: str = '*.pdf',
+                        sort_by: str = 'name') -> dict:
+    """
+    Merge all PDFs in a directory matching a glob pattern.
+
+    Args:
+        directory: Directory path to scan
+        output_path: Output merged PDF path
+        pattern: Glob pattern (default '*.pdf')
+        sort_by: 'name' | 'mtime' | 'size'
+    """
+    import glob, os
+
+    files = glob.glob(os.path.join(directory, '**', pattern), recursive=True)
+    if not files:
+        raise FileNotFoundError(f'No PDFs found in {directory} matching {pattern}')
+
+    key_map = {
+        'name': lambda f: os.path.basename(f).lower(),
+        'mtime': lambda f: os.path.getmtime(f),
+        'size': lambda f: os.path.getsize(f),
+    }
+    files.sort(key=key_map.get(sort_by, key_map['name']))
+
+    merge_pdfs(files, output_path)
+    return {
+        'output_path': output_path,
+        'file_count': len(files),
+        'files': [os.path.basename(f) for f in files],
+    }
+
+
+def split_merge_interleave(pdf_paths: list, output_path: str) -> dict:
+    """
+    Interleave pages from multiple PDFs (round-robin page ordering).
+    Useful for combining front and back scans of double-sided documents.
+
+    E.g. [file1.pdf p1, file2.pdf p1, file1.pdf p2, file2.pdf p2, ...]
+    """
+    import fitz
+
+    docs = [fitz.open(p) for p in pdf_paths]
+    max_pages = max(d.page_count for d in docs)
+    out_doc = fitz.open()
+
+    for pg_idx in range(max_pages):
+        for doc in docs:
+            if pg_idx < doc.page_count:
+                out_doc.insert_pdf(doc, from_page=pg_idx, to_page=pg_idx)
+
+    out_doc.save(output_path, garbage=4, deflate=True)
+    total = out_doc.page_count
+    for d in docs:
+        d.close()
+    out_doc.close()
+
+    return {'output_path': output_path, 'total_pages': total, 'sources': len(pdf_paths)}

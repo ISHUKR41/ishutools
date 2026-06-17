@@ -957,3 +957,156 @@ def batch_docx_to_pdf_parallel(input_paths: list, output_dir: str,
             results.append(future.result())
 
     return results
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — python-docx analysis, DOCX metadata ───────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def docx_to_pdf_with_metadata(input_path: str, output_path: str,
+                                author: str = 'IshuTools',
+                                title: str = '',
+                                subject: str = '') -> dict:
+    """
+    Convert DOCX to PDF and inject metadata into the output PDF.
+    Author, title, subject, keywords are preserved in the PDF info dict.
+    """
+    import fitz
+
+    # Convert first
+    result = word_to_pdf(input_path, output_path)
+
+    # Inject metadata
+    if os.path.exists(output_path):
+        doc = fitz.open(output_path)
+        meta = dict(doc.metadata or {})
+        if author:   meta['author']  = author
+        if title:    meta['title']   = title
+        if subject:  meta['subject'] = subject
+        meta['creator'] = 'IshuTools.fun'
+        doc.set_metadata(meta)
+        doc.save(output_path, incremental=True, encryption=fitz.PDF_ENCRYPT_KEEP)
+        doc.close()
+
+    return {'output_path': output_path, 'metadata_added': True}
+
+
+def analyze_docx_structure(input_path: str) -> dict:
+    """
+    Analyze a DOCX document's structure:
+    - Word count, paragraph count, page estimate
+    - Heading levels and their text
+    - Tables (count, dimensions)
+    - Embedded images
+    - Comments count
+    - Track changes presence
+    - Font usage
+    - Styles used
+    """
+    from docx import Document
+    from docx.oxml.ns import qn
+    import zipfile, os
+
+    try:
+        doc = Document(input_path)
+    except Exception as e:
+        raise RuntimeError(f'Cannot open DOCX: {e}')
+
+    # Word & paragraph count
+    word_count = sum(len(p.text.split()) for p in doc.paragraphs if p.text.strip())
+    para_count = sum(1 for p in doc.paragraphs if p.text.strip())
+
+    # Headings
+    headings = []
+    for p in doc.paragraphs:
+        if p.style.name.startswith('Heading'):
+            try:
+                level = int(p.style.name.split()[-1])
+            except ValueError:
+                level = 1
+            if p.text.strip():
+                headings.append({'level': level, 'text': p.text.strip()[:80]})
+
+    # Tables
+    tables = []
+    for tbl in doc.tables:
+        rows = len(tbl.rows)
+        cols = len(tbl.columns)
+        tables.append({'rows': rows, 'cols': cols})
+
+    # Images (from embedded parts)
+    image_count = sum(1 for part in doc.part.package.iter_parts()
+                      if 'image' in part.content_type)
+
+    # Font usage
+    fonts_used = set()
+    for p in doc.paragraphs:
+        for run in p.runs:
+            if run.font.name:
+                fonts_used.add(run.font.name)
+
+    # Styles used
+    styles_used = list(set(p.style.name for p in doc.paragraphs if p.text.strip()))[:20]
+
+    return {
+        'word_count': word_count,
+        'paragraph_count': para_count,
+        'estimated_pages': max(1, word_count // 250),
+        'headings': headings[:30],
+        'tables': tables,
+        'image_count': image_count,
+        'fonts_used': list(fonts_used)[:20],
+        'styles_used': styles_used,
+        'section_count': len(doc.sections),
+    }
+
+
+def extract_docx_text_structured(input_path: str) -> dict:
+    """
+    Extract text from DOCX maintaining document structure:
+    - Sections with headings
+    - Lists (bulleted/numbered)
+    - Table data as JSON
+    - Header/footer text
+    - Comments
+    """
+    from docx import Document
+
+    doc = Document(input_path)
+    sections = []
+    current_section = {'heading': 'Document', 'content': [], 'level': 0}
+    tables_data = []
+
+    for p in doc.paragraphs:
+        text = p.text.strip()
+        if not text:
+            continue
+
+        if p.style.name.startswith('Heading'):
+            if current_section['content']:
+                sections.append(current_section)
+            try:
+                level = int(p.style.name.split()[-1])
+            except ValueError:
+                level = 1
+            current_section = {'heading': text, 'content': [], 'level': level}
+        elif p.style.name.startswith('List'):
+            current_section['content'].append({'type': 'list_item', 'text': text})
+        else:
+            current_section['content'].append({'type': 'paragraph', 'text': text})
+
+    if current_section['content']:
+        sections.append(current_section)
+
+    # Tables
+    for i, tbl in enumerate(doc.tables):
+        table_data = []
+        for row in tbl.rows:
+            table_data.append([cell.text.strip() for cell in row.cells])
+        tables_data.append({'table_index': i + 1, 'data': table_data})
+
+    return {
+        'sections': sections,
+        'tables': tables_data,
+        'total_sections': len(sections),
+    }

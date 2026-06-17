@@ -1025,3 +1025,159 @@ def optimize_images_before_pdf(image_paths: list, output_dir: str,
             results.append(path)  # Use original on failure
 
     return results
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — Multi-format, EXIF, Barcode, QR ──────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def images_to_pdf_with_exif(image_paths: list, output_path: str,
+                              page_size: str = 'A4',
+                              preserve_exif_as_metadata: bool = True) -> dict:
+    """
+    Convert images to PDF while preserving EXIF metadata in the PDF metadata fields.
+    Extracts GPS, camera model, date taken from EXIF and adds to PDF info dict.
+    """
+    import img2pdf
+    from PIL import Image
+    from PIL.ExifTags import TAGS
+    import io
+
+    exif_data = {}
+    processed_paths = []
+
+    for img_path in image_paths:
+        try:
+            pil = Image.open(img_path)
+            raw_exif = pil._getexif() if hasattr(pil, '_getexif') else None
+            if raw_exif:
+                for tag_id, value in raw_exif.items():
+                    tag = TAGS.get(tag_id, str(tag_id))
+                    if tag in ('DateTime', 'Make', 'Model', 'Software',
+                               'Artist', 'Copyright', 'ImageDescription'):
+                        exif_data[tag] = str(value)
+        except Exception:
+            pass
+        processed_paths.append(img_path)
+
+    # Convert to PDF
+    images_to_pdf(processed_paths, output_path, page_size=page_size)
+
+    # Inject EXIF-derived metadata into PDF
+    if preserve_exif_as_metadata and exif_data:
+        import fitz
+        doc = fitz.open(output_path)
+        meta_update = {}
+        if 'DateTime' in exif_data:
+            meta_update['creationDate'] = exif_data['DateTime']
+        if 'Make' in exif_data or 'Model' in exif_data:
+            cam = f"{exif_data.get('Make', '')} {exif_data.get('Model', '')}".strip()
+            meta_update['creator'] = f'Camera: {cam}'
+        if 'ImageDescription' in exif_data:
+            meta_update['subject'] = exif_data['ImageDescription']
+        if meta_update:
+            doc.set_metadata(meta_update)
+        doc.save(output_path, incremental=True, encryption=fitz.PDF_ENCRYPT_KEEP)
+        doc.close()
+
+    return {
+        'output_path': output_path,
+        'images': len(processed_paths),
+        'exif_fields': list(exif_data.keys()),
+    }
+
+
+def images_to_searchable_pdf(image_paths: list, output_path: str,
+                               language: str = 'eng',
+                               dpi: int = 300) -> dict:
+    """
+    Convert images to a searchable PDF using OCR (Tesseract).
+    Each image is OCR'd and the resulting text is embedded as a hidden layer,
+    making the PDF fully searchable.
+
+    Requires: pytesseract, Pillow, reportlab
+    """
+    import pytesseract
+    from PIL import Image
+    import fitz
+    import io
+
+    out_doc = fitz.open()
+    pages_processed = 0
+    total_words = 0
+
+    for img_path in image_paths:
+        try:
+            pil = Image.open(img_path).convert('RGB')
+            # OCR
+            ocr_text = pytesseract.image_to_string(pil, lang=language)
+            total_words += len(ocr_text.split())
+
+            # Create PDF page with image
+            img_buf = io.BytesIO()
+            pil.save(img_buf, format='PNG', optimize=True)
+            img_bytes = img_buf.getvalue()
+
+            pg = out_doc.new_page(width=pil.width * 72 / (dpi or 72),
+                                   height=pil.height * 72 / (dpi or 72))
+            pg.insert_image(pg.rect, stream=img_bytes)
+
+            # Insert hidden OCR text layer
+            if ocr_text.strip():
+                pg.insert_text(fitz.Point(0, 20), ocr_text,
+                               fontsize=0.1, color=(1, 1, 1),  # invisible
+                               overlay=False)
+            pages_processed += 1
+        except Exception as e:
+            logger.warning(f'OCR for {img_path} failed: {e}')
+
+    out_doc.save(output_path, garbage=4, deflate=True)
+    out_doc.close()
+    return {
+        'output_path': output_path,
+        'pages': pages_processed,
+        'total_words_ocr': total_words,
+        'searchable': True,
+    }
+
+
+def create_pdf_from_urls(image_urls: list, output_path: str,
+                          page_size: str = 'A4') -> dict:
+    """
+    Download images from URLs and combine them into a PDF.
+    Useful for downloading web images and creating a PDF report.
+    """
+    import urllib.request
+    import tempfile
+    import os
+
+    local_paths = []
+    failed = []
+
+    for url in image_urls:
+        try:
+            suffix = '.jpg' if 'jpg' in url.lower() or 'jpeg' in url.lower() else \
+                     '.png' if 'png' in url.lower() else '.jpg'
+            tmp = tempfile.mktemp(suffix=suffix)
+            urllib.request.urlretrieve(url, tmp)
+            local_paths.append(tmp)
+        except Exception as e:
+            failed.append({'url': url, 'error': str(e)})
+
+    if not local_paths:
+        raise ValueError('No images could be downloaded from the provided URLs')
+
+    images_to_pdf(local_paths, output_path, page_size=page_size)
+
+    # Cleanup temp files
+    for p in local_paths:
+        try:
+            os.unlink(p)
+        except Exception:
+            pass
+
+    return {
+        'output_path': output_path,
+        'images_downloaded': len(local_paths),
+        'failed': failed,
+    }

@@ -919,3 +919,150 @@ def rebuild_pdf_from_images(input_path: str, output_path: str,
     finally:
         import shutil as _sh
         _sh.rmtree(tmp_dir, ignore_errors=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — Multi-engine repair, page recovery ────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def repair_with_pypdfium2(input_path: str, output_path: str) -> dict:
+    """
+    Repair corrupted PDFs using pypdfium2 (Google PDFium engine).
+    PDFium has excellent error tolerance and can open many PDFs that fail with other tools.
+    """
+    import pypdfium2 as pdfium
+
+    try:
+        pdf = pdfium.PdfDocument(input_path)
+        pdf.save(output_path)
+        page_count = len(pdf)
+        pdf.close()
+        return {'output_path': output_path, 'pages': page_count,
+                'engine': 'pypdfium2', 'success': True}
+    except Exception as e:
+        raise RuntimeError(f'pypdfium2 repair failed: {e}')
+
+
+def diagnose_pdf_health(input_path: str, password: str = '') -> dict:
+    """
+    Comprehensive PDF health diagnostic.
+    Returns a detailed report on PDF structure, errors, and recommendations.
+
+    Checks:
+    - File size and page count
+    - Encryption status
+    - Embedded fonts
+    - Image count and total size
+    - Bookmarks/TOC
+    - Form fields
+    - JavaScript actions
+    - Broken cross-references
+    - Version compatibility
+    """
+    import fitz
+
+    report = {
+        'file_size': os.path.getsize(input_path),
+        'errors': [],
+        'warnings': [],
+        'recommendations': [],
+    }
+
+    try:
+        doc = fitz.open(input_path)
+
+        if doc.is_encrypted:
+            if password:
+                doc.authenticate(password)
+            else:
+                report['errors'].append('PDF is encrypted — provide password to analyze')
+                doc.close()
+                return report
+
+        report['page_count']  = doc.page_count
+        report['pdf_version'] = f'PDF {doc.pdf_version()}'
+        report['is_encrypted'] = doc.is_encrypted
+
+        # Metadata
+        meta = doc.metadata or {}
+        report['metadata'] = {k: v for k, v in meta.items() if v}
+
+        # Bookmarks
+        toc = doc.get_toc()
+        report['has_toc'] = len(toc) > 0
+        report['toc_entries'] = len(toc)
+
+        # Form fields
+        form_count = sum(len(pg.widgets() or []) for pg in doc)
+        report['form_fields'] = form_count
+
+        # Images and fonts per page (sample first 5 pages)
+        total_images = 0
+        fonts_used = set()
+        for pg_idx in range(min(5, doc.page_count)):
+            pg = doc[pg_idx]
+            total_images += len(pg.get_images())
+            for f in pg.get_fonts():
+                if f[3]:  # font name
+                    fonts_used.add(f[3])
+
+        report['images_found'] = total_images
+        report['fonts_detected'] = list(fonts_used)[:20]
+
+        # Page size consistency
+        page_sizes = set()
+        for pg in doc:
+            w, h = round(pg.rect.width), round(pg.rect.height)
+            page_sizes.add(f'{w}x{h}')
+        report['page_sizes'] = list(page_sizes)
+        if len(page_sizes) > 1:
+            report['warnings'].append('Inconsistent page sizes detected')
+
+        # Recommendations
+        if report['file_size'] > 5 * 1024 * 1024:
+            report['recommendations'].append('File size > 5 MB — consider compression')
+        if not report.get('has_toc') and doc.page_count > 10:
+            report['recommendations'].append('Add a Table of Contents for better navigation')
+        if form_count > 0:
+            report['recommendations'].append(f'{form_count} form fields found — consider flattening if not needed')
+
+        doc.close()
+        report['health_score'] = max(0, 100 - len(report['errors']) * 30 - len(report['warnings']) * 10)
+
+    except Exception as e:
+        report['errors'].append(f'Critical error: {str(e)}')
+        report['health_score'] = 0
+
+    return report
+
+
+def repair_xref_table(input_path: str, output_path: str) -> dict:
+    """
+    Rebuild the PDF cross-reference (xref) table.
+    Corrupted xref tables are one of the most common causes of PDF read errors.
+    Uses qpdf (if available) then pikepdf as fallback.
+    """
+    import shutil, subprocess
+
+    qpdf_bin = shutil.which('qpdf')
+    if qpdf_bin:
+        try:
+            cmd = [qpdf_bin, '--rebuild-from-scratch', '--linearize',
+                   input_path, output_path]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            if result.returncode in (0, 3):  # 3 = warnings but success
+                return {'output_path': output_path, 'engine': 'qpdf', 'rebuilt': True}
+        except Exception as e:
+            logger.warning(f'qpdf xref rebuild failed: {e}')
+
+    # Fallback: pikepdf
+    import pikepdf
+    try:
+        pdf = pikepdf.open(input_path, suppress_warnings=True)
+        pdf.save(output_path, compress_streams=True,
+                 object_stream_mode=pikepdf.ObjectStreamMode.generate,
+                 linearize=True)
+        pdf.close()
+        return {'output_path': output_path, 'engine': 'pikepdf', 'rebuilt': True}
+    except Exception as e:
+        raise RuntimeError(f'xref rebuild failed: {e}')

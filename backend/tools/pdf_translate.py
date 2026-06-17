@@ -900,3 +900,165 @@ def get_supported_languages_detailed() -> list:
         lang['is_popular'] = lang['code'] in POPULAR
 
     return LANGUAGES
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — langdetect, chardet, multi-engine translation ─────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def detect_and_translate_auto(input_path: str, output_path: str,
+                                target_lang: str = 'hi',
+                                bilingual: bool = False) -> dict:
+    """
+    Auto-detect source language then translate to target language.
+    Uses langdetect for source detection + deep-translator for translation.
+    """
+    try:
+        from langdetect import detect, DetectorFactory
+        DetectorFactory.seed = 0
+    except ImportError:
+        return translate_pdf(input_path, output_path, target_lang=target_lang,
+                             source_lang='auto', bilingual=bilingual)
+
+    import pdfplumber
+
+    # Detect language from first 3 pages
+    with pdfplumber.open(input_path) as pdf:
+        sample_text = '\n'.join(
+            pg.extract_text() or '' for pg in pdf.pages[:3]
+        )[:2000]
+
+    detected_lang = 'en'
+    try:
+        if len(sample_text.strip()) >= 20:
+            detected_lang = detect(sample_text)
+    except Exception:
+        pass
+
+    result = translate_pdf(input_path, output_path,
+                            target_lang=target_lang,
+                            source_lang=detected_lang,
+                            bilingual=bilingual)
+    result['detected_source_lang'] = detected_lang
+    return result
+
+
+def translate_text_batch(texts: list, target_lang: str,
+                          source_lang: str = 'auto',
+                          batch_size: int = 10) -> list:
+    """
+    Translate a list of text strings in batches (efficient for large documents).
+    Uses deep-translator's Google Translate backend.
+
+    Args:
+        texts: List of strings to translate
+        batch_size: Number of texts to process per API call
+    """
+    from deep_translator import GoogleTranslator
+
+    translator = GoogleTranslator(source=source_lang, target=target_lang)
+    results = []
+
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
+        for text in batch:
+            if not text or not text.strip():
+                results.append(text)
+                continue
+            try:
+                # Split long text into chunks < 5000 chars
+                if len(text) > 4500:
+                    chunks = [text[j:j+4500] for j in range(0, len(text), 4500)]
+                    translated_chunks = [translator.translate(c) or c for c in chunks]
+                    results.append(' '.join(translated_chunks))
+                else:
+                    results.append(translator.translate(text) or text)
+            except Exception:
+                results.append(text)  # Keep original on error
+
+    return results
+
+
+def extract_and_translate_to_docx(input_path: str, output_docx_path: str,
+                                    target_lang: str = 'hi',
+                                    source_lang: str = 'auto') -> dict:
+    """
+    Extract PDF text, translate it, and save as a formatted DOCX document.
+    Each page becomes a section in the DOCX with the translated content.
+    """
+    import pdfplumber
+    from docx import Document
+    from docx.shared import Pt, RGBColor, Inches
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from deep_translator import GoogleTranslator
+
+    translator = GoogleTranslator(source=source_lang, target=target_lang)
+    doc = Document()
+
+    # Title
+    title = doc.add_heading('Translated Document', level=1)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    doc.add_paragraph(f'Target Language: {target_lang} | Source: IshuTools.fun')
+    doc.add_paragraph('—' * 50)
+
+    translated_pages = 0
+    with pdfplumber.open(input_path) as pdf:
+        for pg_idx, pg in enumerate(pdf.pages):
+            text = (pg.extract_text() or '').strip()
+            if not text:
+                continue
+
+            # Page header
+            heading = doc.add_heading(f'Page {pg_idx + 1}', level=2)
+
+            # Translate
+            try:
+                if len(text) > 4500:
+                    chunks = [text[j:j+4500] for j in range(0, len(text), 4500)]
+                    translated = ' '.join(translator.translate(c) or c for c in chunks)
+                else:
+                    translated = translator.translate(text) or text
+            except Exception:
+                translated = text
+
+            doc.add_paragraph(translated)
+            translated_pages += 1
+
+    doc.save(output_docx_path)
+    return {
+        'output_path': output_docx_path,
+        'pages_translated': translated_pages,
+        'target_lang': target_lang,
+    }
+
+
+SUPPORTED_LANGUAGE_MAP = {
+    'af': 'Afrikaans', 'sq': 'Albanian', 'am': 'Amharic', 'ar': 'Arabic',
+    'hy': 'Armenian', 'az': 'Azerbaijani', 'eu': 'Basque', 'be': 'Belarusian',
+    'bn': 'Bengali', 'bs': 'Bosnian', 'bg': 'Bulgarian', 'ca': 'Catalan',
+    'zh-CN': 'Chinese (Simplified)', 'zh-TW': 'Chinese (Traditional)',
+    'hr': 'Croatian', 'cs': 'Czech', 'da': 'Danish', 'nl': 'Dutch',
+    'en': 'English', 'eo': 'Esperanto', 'et': 'Estonian', 'fi': 'Finnish',
+    'fr': 'French', 'gl': 'Galician', 'ka': 'Georgian', 'de': 'German',
+    'el': 'Greek', 'gu': 'Gujarati', 'ht': 'Haitian Creole', 'ha': 'Hausa',
+    'he': 'Hebrew', 'hi': 'Hindi', 'hu': 'Hungarian', 'is': 'Icelandic',
+    'ig': 'Igbo', 'id': 'Indonesian', 'ga': 'Irish', 'it': 'Italian',
+    'ja': 'Japanese', 'kn': 'Kannada', 'kk': 'Kazakh', 'km': 'Khmer',
+    'ko': 'Korean', 'ku': 'Kurdish', 'ky': 'Kyrgyz', 'lo': 'Lao',
+    'lv': 'Latvian', 'lt': 'Lithuanian', 'lb': 'Luxembourgish', 'mk': 'Macedonian',
+    'mg': 'Malagasy', 'ms': 'Malay', 'ml': 'Malayalam', 'mt': 'Maltese',
+    'mi': 'Maori', 'mr': 'Marathi', 'mn': 'Mongolian', 'my': 'Myanmar',
+    'ne': 'Nepali', 'no': 'Norwegian', 'or': 'Odia', 'ps': 'Pashto',
+    'fa': 'Persian', 'pl': 'Polish', 'pt': 'Portuguese', 'pa': 'Punjabi',
+    'ro': 'Romanian', 'ru': 'Russian', 'sm': 'Samoan', 'sr': 'Serbian',
+    'si': 'Sinhala', 'sk': 'Slovak', 'sl': 'Slovenian', 'so': 'Somali',
+    'es': 'Spanish', 'sw': 'Swahili', 'sv': 'Swedish', 'tl': 'Tagalog',
+    'tg': 'Tajik', 'ta': 'Tamil', 'tt': 'Tatar', 'te': 'Telugu',
+    'th': 'Thai', 'tr': 'Turkish', 'tk': 'Turkmen', 'uk': 'Ukrainian',
+    'ur': 'Urdu', 'ug': 'Uyghur', 'uz': 'Uzbek', 'vi': 'Vietnamese',
+    'cy': 'Welsh', 'xh': 'Xhosa', 'yi': 'Yiddish', 'yo': 'Yoruba', 'zu': 'Zulu',
+}
+
+def get_full_language_list() -> list:
+    """Return complete list of supported translation languages with codes and native names."""
+    return [{'code': k, 'name': v} for k, v in SUPPORTED_LANGUAGE_MAP.items()]

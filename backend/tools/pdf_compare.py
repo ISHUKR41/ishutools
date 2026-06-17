@@ -960,3 +960,165 @@ def compare_metadata_only(path1: str, path2: str) -> dict:
         'different_fields': len(differences),
         'is_identical': len(differences) == 0,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── ENTERPRISE ADDITIONS — Visual diff, word-level diff, metadata compare ────
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def compare_visual_diff(path1: str, path2: str, output_path: str,
+                          dpi: int = 100) -> dict:
+    """
+    Create a visual pixel-level diff between two PDFs.
+    Highlights pixels that differ between the two documents in red.
+    Identical content shows in gray. Changed areas highlighted in red/green.
+
+    Requires: Pillow, numpy, fitz
+    """
+    import fitz
+    from PIL import Image, ImageChops
+    import numpy as np
+    import io
+
+    doc1 = fitz.open(path1)
+    doc2 = fitz.open(path2)
+    out_doc = fitz.open()
+
+    pages_compared = min(doc1.page_count, doc2.page_count)
+    total_diff_pixels = 0
+
+    for pg_idx in range(pages_compared):
+        pg1 = doc1[pg_idx]
+        pg2 = doc2[pg_idx]
+
+        mat = fitz.Matrix(dpi / 72, dpi / 72)
+        clip1 = pg1.get_pixmap(matrix=mat, alpha=False)
+        clip2 = pg2.get_pixmap(matrix=mat, alpha=False)
+
+        img1 = Image.frombytes('RGB', [clip1.width, clip1.height], clip1.samples)
+        img2 = Image.frombytes('RGB', [clip2.width, clip2.height], clip2.samples)
+
+        # Resize to same size
+        target_size = (min(img1.width, img2.width), min(img1.height, img2.height))
+        img1 = img1.resize(target_size, Image.LANCZOS)
+        img2 = img2.resize(target_size, Image.LANCZOS)
+
+        # Compute diff
+        diff = ImageChops.difference(img1, img2)
+        diff_arr = np.array(diff)
+        diff_mask = np.any(diff_arr > 15, axis=2)  # threshold for noise
+        diff_pixels = int(diff_mask.sum())
+        total_diff_pixels += diff_pixels
+
+        # Create visualization: blend original + highlight diffs in red
+        diff_rgb = np.array(img1.convert('RGB'))
+        diff_rgb[diff_mask] = [255, 0, 0]  # Red for changed pixels
+        result_img = Image.fromarray(diff_rgb.astype(np.uint8))
+
+        img_buf = io.BytesIO()
+        result_img.save(img_buf, format='PNG')
+
+        new_pg = out_doc.new_page(width=pg1.rect.width, height=pg1.rect.height)
+        new_pg.insert_image(new_pg.rect, stream=img_buf.getvalue())
+
+        # Label
+        new_pg.insert_text(fitz.Point(10, 15),
+                            f'Page {pg_idx+1} — {diff_pixels:,} different pixels',
+                            fontsize=8, color=(0.8, 0, 0))
+
+    out_doc.save(output_path, garbage=4, deflate=True)
+    doc1.close()
+    doc2.close()
+    out_doc.close()
+
+    return {
+        'output_path': output_path,
+        'pages_compared': pages_compared,
+        'total_diff_pixels': total_diff_pixels,
+        'similarity_pct': round(100 * (1 - total_diff_pixels /
+                                       max(1, pages_compared * dpi * dpi * 100)), 2),
+    }
+
+
+def compare_metadata(path1: str, path2: str) -> dict:
+    """
+    Compare PDF metadata between two documents.
+    Returns a structured diff of all metadata fields.
+    """
+    import fitz
+
+    doc1 = fitz.open(path1)
+    doc2 = fitz.open(path2)
+
+    meta1 = doc1.metadata or {}
+    meta2 = doc2.metadata or {}
+
+    diff = {}
+    all_keys = set(list(meta1.keys()) + list(meta2.keys()))
+    for key in all_keys:
+        v1 = meta1.get(key, '')
+        v2 = meta2.get(key, '')
+        if v1 != v2:
+            diff[key] = {'doc1': v1, 'doc2': v2}
+
+    result = {
+        'doc1': {
+            'pages': doc1.page_count,
+            'size': os.path.getsize(path1),
+            'metadata': meta1,
+        },
+        'doc2': {
+            'pages': doc2.page_count,
+            'size': os.path.getsize(path2),
+            'metadata': meta2,
+        },
+        'metadata_differences': diff,
+        'page_count_diff': doc2.page_count - doc1.page_count,
+        'size_diff_bytes': os.path.getsize(path2) - os.path.getsize(path1),
+    }
+    doc1.close()
+    doc2.close()
+    return result
+
+
+def find_added_removed_pages(path1: str, path2: str) -> dict:
+    """
+    Detect pages that were added to or removed from a PDF revision.
+    Uses perceptual image hashing to match pages across documents.
+    """
+    import fitz
+    from PIL import Image
+    import numpy as np
+    import io
+
+    def page_hash(doc, pg_idx, size=16):
+        """Compute a simple perceptual hash for a page."""
+        pg = doc[pg_idx]
+        mat = fitz.Matrix(72 / 72 * 0.5, 72 / 72 * 0.5)  # low-res
+        clip = pg.get_pixmap(matrix=mat, alpha=False)
+        img = Image.frombytes('RGB', [clip.width, clip.height], clip.samples)
+        img = img.resize((size, size), Image.LANCZOS).convert('L')
+        arr = np.array(img)
+        mean = arr.mean()
+        return ''.join('1' if v > mean else '0' for v in arr.flatten())
+
+    doc1 = fitz.open(path1)
+    doc2 = fitz.open(path2)
+
+    hashes1 = {page_hash(doc1, i): i + 1 for i in range(doc1.page_count)}
+    hashes2 = {page_hash(doc2, i): i + 1 for i in range(doc2.page_count)}
+
+    in_doc1_only = {h: p for h, p in hashes1.items() if h not in hashes2}
+    in_doc2_only = {h: p for h, p in hashes2.items() if h not in hashes1}
+    common = len(set(hashes1.keys()) & set(hashes2.keys()))
+
+    doc1.close()
+    doc2.close()
+
+    return {
+        'pages_removed': sorted(in_doc1_only.values()),
+        'pages_added': sorted(in_doc2_only.values()),
+        'pages_unchanged': common,
+        'doc1_pages': doc1.page_count,
+        'doc2_pages': doc2.page_count,
+    }
