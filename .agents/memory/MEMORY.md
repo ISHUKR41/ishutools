@@ -1,1 +1,4 @@
 - [IshuTools import quirks](import-quirks.md) — pdfminer.layout does NOT have LTAnon or LTTable; use only LTTextBox
+- [Drop zone click fix](dropzone-fix.md) — Always add explicit click handler on drop zone div; CSS overlay alone unreliable across browsers
+- [Hero layout fix](layout-fix.md) — Never use min-height:100vh on hero; hides tools below fold. Use padding only.
+- [GSAP opacity danger](gsap-opacity.md) — Never use opacity:0 in gsap.from() for above-fold elements; use y-only animations so content is always visible
