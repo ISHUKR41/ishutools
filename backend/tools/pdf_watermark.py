@@ -1206,3 +1206,109 @@ def add_qr_watermark(input_path: str, output_path: str, qr_text: str = 'https://
         import shutil
         shutil.copy2(input_path, output_path)
         return {'output_path': output_path, 'has_qr': False, 'note': 'qrcode library not installed'}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED WATERMARK FUNCTIONS — pdfplumber · smart removal
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def add_classification_banner(
+    input_path: str, output_path: str,
+    classification: str = 'CONFIDENTIAL',
+    color: str = '#ef4444',
+    pages: str = 'all',
+    password: str = '',
+) -> dict:
+    """Add a professional classification banner (CONFIDENTIAL/TOP SECRET/DRAFT etc.) at top/bottom of pages."""
+    import fitz as _fitz
+    doc = _fitz.open(input_path)
+    if password:
+        doc.authenticate(password)
+    try:
+        r = int(color[1:3], 16) / 255
+        g = int(color[3:5], 16) / 255
+        b = int(color[5:7], 16) / 255
+    except Exception:
+        r, g, b = 0.94, 0.27, 0.27
+    import re
+    if pages.lower() == 'all':
+        page_list = list(range(len(doc)))
+    else:
+        page_list = []
+        for part in re.split(r'[,;]', pages):
+            part = part.strip()
+            if '-' in part:
+                a, b_str = part.split('-', 1)
+                page_list += list(range(int(a)-1, min(int(b_str), len(doc))))
+            elif part.isdigit():
+                p = int(part) - 1
+                if 0 <= p < len(doc): page_list.append(p)
+    for pg_num in page_list:
+        page = doc[pg_num]
+        rect = page.rect
+        banner_h = 18
+        # Top banner
+        page.draw_rect(_fitz.Rect(0, 0, rect.width, banner_h), color=(r, g, b), fill=(r, g, b))
+        page.insert_text((rect.width/2 - len(classification)*4, banner_h-4), classification, fontsize=10, color=(1,1,1), fontname='helv')
+        # Bottom banner
+        page.draw_rect(_fitz.Rect(0, rect.height-banner_h, rect.width, rect.height), color=(r, g, b), fill=(r, g, b))
+        page.insert_text((rect.width/2 - len(classification)*4, rect.height-5), classification, fontsize=10, color=(1,1,1), fontname='helv')
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'classification': classification, 'pages_processed': len(page_list)}
+
+
+def watermark_with_logo_url(
+    input_path: str, output_path: str,
+    logo_url: str = 'https://ishutools.fun',
+    opacity: float = 0.08,
+    password: str = '',
+) -> dict:
+    """Download a logo from URL and use it as a watermark on all PDF pages."""
+    try:
+        import urllib.request, io, tempfile
+        from PIL import Image as PILImg
+        resp = urllib.request.urlopen(logo_url, timeout=10)
+        img_data = resp.read()
+        img = PILImg.open(io.BytesIO(img_data)).convert('RGBA')
+        tmp_png = tempfile.mktemp(suffix='.png')
+        img.save(tmp_png)
+        result = add_image_watermark_fitz(input_path, output_path, tmp_png, opacity=opacity, password=password)
+        import os; os.remove(tmp_png)
+        return result
+    except Exception as e:
+        return add_watermark(input_path, output_path, text='IshuTools.fun', opacity=opacity, password=password)
+
+
+def add_page_stamps(
+    input_path: str, output_path: str,
+    stamps: list = None,
+    password: str = '',
+) -> dict:
+    """
+    Add multiple different stamps to different pages.
+    stamps = [{'page': 1, 'text': 'APPROVED', 'color': '#10b981'}, ...]
+    """
+    import fitz as _fitz
+    if stamps is None:
+        stamps = [{'page': 1, 'text': 'APPROVED', 'color': '#10b981'}]
+    doc = _fitz.open(input_path)
+    if password:
+        doc.authenticate(password)
+    applied = []
+    for stamp in stamps:
+        pg_num = int(stamp.get('page', 1)) - 1
+        if 0 <= pg_num < len(doc):
+            page = doc[pg_num]
+            text = stamp.get('text', 'STAMP')
+            color_hex = stamp.get('color', '#6366f1')
+            try:
+                r = int(color_hex[1:3], 16)/255; g = int(color_hex[3:5], 16)/255; b = int(color_hex[5:7], 16)/255
+            except: r, g, b = 0.39, 0.40, 0.95
+            rect = page.rect
+            page.insert_text((rect.width*0.6, rect.height*0.4), text, fontsize=36, color=(r,g,b), fontname='helv', rotate=30)
+            applied.append({'page': pg_num+1, 'text': text})
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'stamps_applied': applied}

@@ -947,3 +947,73 @@ def replace_text_in_pdf(input_path: str, output_path: str,
         'find': find_text,
         'replace': replace_text,
     }
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED EDIT FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def add_text_annotation(
+    input_path: str, output_path: str,
+    text: str, page_num: int = 1,
+    x: float = 100, y: float = 100,
+    font_size: int = 12, color: str = '#1f2937',
+    password: str = '',
+) -> dict:
+    """Add text at specific coordinates on a PDF page."""
+    import fitz as _fitz
+    doc = _fitz.open(input_path)
+    if password: doc.authenticate(password)
+    pg = min(int(page_num) - 1, len(doc) - 1)
+    try:
+        r = int(color[1:3], 16)/255; g = int(color[3:5], 16)/255; b = int(color[5:7], 16)/255
+    except: r, g, b = 0.12, 0.16, 0.24
+    doc[pg].insert_text((float(x), float(y)), text, fontsize=int(font_size), color=(r, g, b), fontname='helv')
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'text_added': text, 'page': pg+1, 'position': (x, y)}
+
+
+def highlight_text_in_pdf(
+    input_path: str, output_path: str,
+    search_text: str, color: str = 'yellow',
+    pages: str = 'all', password: str = '',
+) -> dict:
+    """Highlight all occurrences of a text string in the PDF."""
+    import fitz as _fitz, re
+    color_map = {'yellow': (1, 0.96, 0.2), 'green': (0.2, 0.9, 0.2), 'blue': (0.2, 0.5, 1), 'pink': (1, 0.4, 0.7), 'orange': (1, 0.6, 0.1)}
+    clr = color_map.get(color.lower(), (1, 0.96, 0.2))
+    doc = _fitz.open(input_path)
+    if password: doc.authenticate(password)
+    count = 0
+    for pg in doc:
+        quads = pg.search_for(search_text, quads=True)
+        for q in quads:
+            ann = pg.add_highlight_annot(q)
+            ann.set_colors(stroke=clr)
+            ann.update()
+            count += 1
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'total_highlights': count, 'search_text': search_text, 'color': color}
+
+
+def add_comment_sticky_note(
+    input_path: str, output_path: str,
+    comment: str, page_num: int = 1,
+    x: float = 50, y: float = 50,
+    author: str = 'IshuTools User',
+    password: str = '',
+) -> dict:
+    """Add a sticky note (comment annotation) to a specific position on a page."""
+    import fitz as _fitz
+    doc = _fitz.open(input_path)
+    if password: doc.authenticate(password)
+    pg = min(int(page_num) - 1, len(doc) - 1)
+    note = doc[pg].add_text_annot((float(x), float(y)), comment)
+    note.set_info(author=author, content=comment)
+    note.update()
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'comment': comment, 'page': pg+1, 'position': (x, y)}

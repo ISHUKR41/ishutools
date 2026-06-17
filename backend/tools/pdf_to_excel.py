@@ -1335,3 +1335,66 @@ def extract_all_text_to_excel(input_path: str, output_xlsx_path: str,
         'total_words': total_words,
         'output_path': output_xlsx_path,
     }
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED PDF-TO-EXCEL FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def pdf_to_excel_smart(input_path: str, output_path: str, password: str = '') -> dict:
+    """Smart extraction: tries camelot first, falls back to tabula, then pdfplumber."""
+    engines_tried = []
+    for engine_name in ['camelot', 'tabula', 'pdfplumber']:
+        try:
+            if engine_name == 'camelot':
+                import camelot
+                tables = camelot.read_pdf(input_path, pages='all', password=password if password else None)
+                if not tables: continue
+                import openpyxl
+                wb = openpyxl.Workbook()
+                for i, tbl in enumerate(tables):
+                    ws = wb.create_sheet(title=f'Table_{i+1}')
+                    for row in tbl.df.values.tolist():
+                        ws.append([str(c) if c else '' for c in row])
+                if wb.sheetnames and wb.sheetnames[0] == 'Sheet': wb.remove(wb['Sheet'])
+                wb.save(output_path)
+                engines_tried.append('camelot')
+                return {'output_path': output_path, 'engine': 'camelot', 'tables_found': len(tables)}
+            elif engine_name == 'tabula':
+                import tabula
+                dfs = tabula.read_pdf(input_path, pages='all', multiple_tables=True)
+                if not dfs: continue
+                import openpyxl
+                wb = openpyxl.Workbook()
+                for i, df in enumerate(dfs):
+                    if df.empty: continue
+                    ws = wb.create_sheet(title=f'Table_{i+1}')
+                    ws.append(list(df.columns))
+                    for row in df.values.tolist():
+                        ws.append([str(c) if c is not None else '' for c in row])
+                if wb.sheetnames and wb.sheetnames[0] == 'Sheet': wb.remove(wb['Sheet'])
+                wb.save(output_path)
+                engines_tried.append('tabula')
+                return {'output_path': output_path, 'engine': 'tabula', 'tables_found': len(dfs)}
+            elif engine_name == 'pdfplumber':
+                return extract_tables_pdfplumber(input_path, output_path, password=password)
+        except Exception:
+            engines_tried.append(f'{engine_name}:failed')
+    return pdf_to_excel(input_path, output_path, password=password)
+
+
+def get_table_count(input_path: str, password: str = '') -> dict:
+    """Count tables found by different engines without extracting them."""
+    counts = {}
+    try:
+        import camelot
+        tables = camelot.read_pdf(input_path, pages='all', password=password if password else None)
+        counts['camelot'] = len(tables)
+    except Exception: counts['camelot'] = 'unavailable'
+    try:
+        import pdfplumber
+        with pdfplumber.open(input_path, password=password if password else None) as pdf:
+            counts['pdfplumber'] = sum(len(pg.extract_tables()) for pg in pdf.pages)
+    except Exception: counts['pdfplumber'] = 'unavailable'
+    return counts

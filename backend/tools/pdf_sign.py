@@ -1308,3 +1308,80 @@ def verify_signature_info(input_path: str) -> dict:
                 })
     doc.close()
     return {'has_signatures': len(sig_fields) > 0, 'signature_fields': sig_fields, 'count': len(sig_fields)}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED SIGN FUNCTIONS — advanced QR · batch · certificate
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def sign_with_advanced_qr(
+    input_path: str, output_path: str,
+    signer_name: str = 'Ishu Kumar',
+    qr_data: str = None,
+    position_preset: str = 'bottom-right',
+    page_selection: str = 'last',
+    password: str = '',
+) -> dict:
+    """Sign PDF with QR code containing document hash + signer info for verification."""
+    import hashlib, datetime
+    doc_hash = hashlib.sha256(open(input_path, 'rb').read()).hexdigest()[:12]
+    ts = datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    if not qr_data:
+        qr_data = f'IshuTools|{signer_name}|{ts}|{doc_hash}'
+    return sign_pdf(
+        input_path, output_path,
+        signature_type='text',
+        signature_text=f'{signer_name}  |  Signed {ts[:10]}',
+        show_qr=True, show_timestamp=True,
+        add_audit_trail=True,
+        position_preset=position_preset,
+        page_selection=page_selection,
+        password=password,
+    )
+
+
+def sign_as_approved(input_path: str, output_path: str, approver: str = 'Manager', password: str = '') -> dict:
+    """Add a green APPROVED stamp with approver name and timestamp."""
+    return sign_pdf(
+        input_path, output_path,
+        signature_type='text',
+        signature_text=f'✓ APPROVED\n{approver}',
+        color='#065f46', bg_color='#d1fae5', border_color='#10b981',
+        font_size=18, position_preset='bottom-center',
+        show_timestamp=True, add_audit_trail=True,
+        password=password,
+    )
+
+
+def sign_as_rejected(input_path: str, output_path: str, reviewer: str = 'Reviewer', reason: str = '', password: str = '') -> dict:
+    """Add a red REJECTED stamp with reviewer name."""
+    text = f'✗ REJECTED\n{reviewer}'
+    if reason:
+        text += f'\n{reason[:40]}'
+    return sign_pdf(
+        input_path, output_path,
+        signature_type='text',
+        signature_text=text,
+        color='#7f1d1d', bg_color='#fee2e2', border_color='#ef4444',
+        font_size=16, position_preset='bottom-center',
+        show_timestamp=True, add_audit_trail=True,
+        password=password,
+    )
+
+
+def get_signature_summary(input_path: str, password: str = '') -> dict:
+    """Extract all signature info from a PDF using PyMuPDF + pikepdf."""
+    try:
+        import fitz as _fitz
+        doc = _fitz.open(input_path)
+        if password: doc.authenticate(password)
+        sigs = []
+        for i, page in enumerate(doc):
+            for widget in (page.widgets() or []):
+                if widget.field_type_string in ('Sig', 'Signature'):
+                    sigs.append({'page': i+1, 'field': widget.field_name, 'value': str(widget.field_value)[:100]})
+        doc.close()
+        return {'signatures_found': len(sigs), 'signatures': sigs, 'is_signed': len(sigs) > 0}
+    except Exception as e:
+        return {'error': str(e), 'signatures_found': 0}

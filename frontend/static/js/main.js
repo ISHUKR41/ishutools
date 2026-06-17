@@ -167,6 +167,33 @@ const TOOLS = [
       {type:'select',name:'target_lang',label:'Translate To',options:[{value:'hi',label:'Hindi'},{value:'en',label:'English'},{value:'fr',label:'French'},{value:'de',label:'German'},{value:'es',label:'Spanish'},{value:'zh-CN',label:'Chinese'},{value:'ar',label:'Arabic'},{value:'ja',label:'Japanese'},{value:'ru',label:'Russian'}]},
       {type:'select',name:'source_lang',label:'Source Language',options:[{value:'auto',label:'Auto Detect'},{value:'en',label:'English'},{value:'hi',label:'Hindi'},{value:'fr',label:'French'}]},
     ]},
+
+  { id:'edit-pdf',        name:'Edit PDF',             category:'edit',         icon:'fas fa-pencil-alt',           accent:'#0EA5E9', accent2:'#0284C7', badge:'new',
+    desc:'Add text, highlights, annotations and sticky notes to PDF', endpoint:'/api/edit-pdf', multiFile:false, accept:'.pdf',
+    fields:[
+      {type:'text',name:'text',label:'Text to Add',placeholder:'Enter text to add...'},
+      {type:'number',name:'page_num',label:'Page Number',placeholder:'1'},
+      {type:'number',name:'x',label:'X Position',placeholder:'100'},
+      {type:'number',name:'y',label:'Y Position',placeholder:'100'},
+    ]},
+
+  { id:'pdf-forms',       name:'Fill PDF Forms',       category:'edit',         icon:'fas fa-wpforms',              accent:'#14B8A6', accent2:'#0D9488', badge:null,
+    desc:'Fill and flatten PDF form fields automatically', endpoint:'/api/pdf-forms', multiFile:false, accept:'.pdf',
+    fields:[
+      {type:'text',name:'field_values',label:'Field Values (JSON)',placeholder:'{"name":"John","email":"john@example.com"}'},
+      {type:'checkbox',name:'flatten',label:'Flatten form after filling'},
+    ]},
+
+  { id:'jpg-to-pdf',      name:'JPG to PDF',           category:'convert-to',   icon:'fas fa-file-image',           accent:'#EC4899', accent2:'#DB2777', badge:null,
+    desc:'Convert JPG, PNG, WebP images to PDF',  endpoint:'/api/img-to-pdf', multiFile:true, accept:'.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff',
+    },
+
+  { id:'pdf-to-jpg',      name:'PDF to JPG',           category:'convert-from', icon:'fas fa-images',               accent:'#F59E0B', accent2:'#D97706', badge:null,
+    desc:'Convert PDF pages to high-quality JPG images', endpoint:'/api/pdf-to-img', multiFile:false, accept:'.pdf',
+    fields:[
+      {type:'select',name:'format',label:'Image Format',options:[{value:'jpg',label:'JPG'},{value:'png',label:'PNG'},{value:'webp',label:'WebP'}]},
+      {type:'number',name:'dpi',label:'DPI (quality)',placeholder:'150'},
+    ]},
 ];
 
 /* ══════════════════════════════════════════════════════════════════════

@@ -10,6 +10,4 @@
 - [Marquee strip pattern](marquee-strip.md) — Duplicate marquee-row with aria-hidden="true" for seamless loop; use min-width:100% + animation-delay:-halfDuration for the duplicate
 - [Counter IntersectionObserver](counter-io.md) — initCounters uses IO with threshold:.5; counters appear mid-animation in screenshots (correct — they animate on scroll-into-view)
 - [redact-pdf accent color](redact-color.md) — redact-pdf originally used #1F2937 (near-black); changed to #64748B/#475569 for visible gradient on dark background
-- [scan_to_pdf ImageReader fix](scan-imagereader.md) — reportlab drawImage() does NOT accept BytesIO directly; must wrap with ImageReader(buf) from reportlab.lib.utils
-- [gunicorn timeout config](gunicorn-timeout.md) — created gunicorn.conf.py at project root with timeout=300, gthread worker; heavy tools (OCR, translate) fail with default 30s timeout
-- [About section redesign](about-section-redesign.md) — replaced .about-strip with .about-modern section; uses stats row (5 cards) + 4 feature cards; CSS appended to main.css
+- [TOOLS array completeness](tools-array.md) — JS TOOLS array (main.js) must have entry for EVERY tool; counter data-count in index.html set to 36; as of 2026-06-17 array has 35 entries (edit-pdf, pdf-forms, jpg-to-pdf, pdf-to-jpg added)

@@ -1099,3 +1099,75 @@ def add_running_header_footer(input_path: str, output_path: str,
     doc.save(output_path, garbage=4, deflate=True)
     doc.close()
     return {'output_path': output_path, 'total_pages': total}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED PAGE NUMBER FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def add_page_numbers_custom_style(
+    input_path: str, output_path: str,
+    style: str = 'modern',
+    start_number: int = 1,
+    password: str = '',
+) -> dict:
+    """
+    Add stylized page numbers with preset styles.
+    Styles: 'modern' | 'classic' | 'minimal' | 'boxed' | 'circle' | 'legal' | 'report'
+    """
+    style_presets = {
+        'modern':  {'format': 'arabic', 'position': 'bottom-right', 'font_size': 10, 'color': '#6366f1', 'prefix': '', 'suffix': ''},
+        'classic': {'format': 'arabic', 'position': 'bottom-center', 'font_size': 11, 'color': '#1f2937', 'prefix': '- ', 'suffix': ' -'},
+        'minimal': {'format': 'arabic', 'position': 'bottom-right', 'font_size': 9, 'color': '#9ca3af', 'prefix': '', 'suffix': ''},
+        'legal':   {'format': 'arabic', 'position': 'bottom-center', 'font_size': 10, 'color': '#374151', 'prefix': 'Page ', 'suffix': ''},
+        'report':  {'format': 'arabic', 'position': 'bottom-right', 'font_size': 10, 'color': '#1e40af', 'prefix': 'Pg. ', 'suffix': ''},
+        'roman':   {'format': 'roman_lower', 'position': 'bottom-center', 'font_size': 11, 'color': '#374151', 'prefix': '', 'suffix': ''},
+        'boxed':   {'format': 'arabic', 'position': 'bottom-center', 'font_size': 10, 'color': '#ffffff', 'prefix': '', 'suffix': ''},
+    }
+    preset = style_presets.get(style, style_presets['modern'])
+    return add_page_numbers(
+        input_path, output_path,
+        format_type=preset['format'],
+        position=preset['position'],
+        font_size=preset['font_size'],
+        color=preset['color'],
+        prefix=preset['prefix'],
+        suffix=preset['suffix'],
+        start_number=start_number,
+        password=password,
+    )
+
+
+def add_page_numbers_with_total(
+    input_path: str, output_path: str,
+    format_str: str = 'Page {n} of {total}',
+    position: str = 'bottom-center',
+    font_size: int = 10,
+    color: str = '#374151',
+    password: str = '',
+) -> dict:
+    """
+    Add page numbers in 'Page X of Y' format.
+    format_str: use {n} for page number and {total} for total pages.
+    """
+    import fitz as _fitz
+    doc = _fitz.open(input_path)
+    if password: doc.authenticate(password)
+    total = len(doc)
+    try:
+        r = int(color[1:3], 16)/255; g_c = int(color[3:5], 16)/255; b = int(color[5:7], 16)/255
+    except: r, g_c, b = 0.22, 0.25, 0.31
+    for i, page in enumerate(doc):
+        text = format_str.replace('{n}', str(i+1)).replace('{total}', str(total))
+        rect = page.rect
+        margin = 20
+        if 'bottom' in position: y = rect.height - margin
+        else: y = margin + font_size
+        if 'center' in position: x = rect.width / 2 - len(text) * font_size * 0.3
+        elif 'right' in position: x = rect.width - margin - len(text) * font_size * 0.6
+        else: x = margin
+        page.insert_text((x, y), text, fontsize=font_size, color=(r, g_c, b), fontname='helv')
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'format': format_str, 'total_pages': total}

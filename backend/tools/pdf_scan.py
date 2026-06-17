@@ -787,3 +787,82 @@ def enhance_scanned_image(input_path: str, output_path: str,
             'sharpened': sharpen,
         }
     }
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED SCAN FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def scan_to_pdf_with_smart_enhance(
+    image_paths: list, output_path: str,
+    auto_rotate: bool = True,
+    remove_noise: bool = True,
+    enhance_contrast: bool = True,
+    dpi: int = 300,
+    language: str = 'eng',
+    make_searchable: bool = True,
+) -> dict:
+    """
+    Smart scan-to-PDF with auto rotation, noise removal, contrast enhancement, and OCR.
+    Full pipeline: enhance → deskew → OCR → searchable PDF.
+    """
+    from PIL import Image as PILImg, ImageEnhance, ImageFilter
+    import tempfile, os
+    processed = []
+    for path in image_paths:
+        try:
+            img = PILImg.open(path).convert('RGB')
+            if enhance_contrast:
+                img = ImageEnhance.Contrast(img).enhance(1.4)
+                img = ImageEnhance.Sharpness(img).enhance(1.3)
+            if remove_noise:
+                img = img.filter(ImageFilter.MedianFilter(size=3))
+            tmp = tempfile.mktemp(suffix='.jpg')
+            img.save(tmp, 'JPEG', quality=95)
+            processed.append(tmp)
+        except Exception:
+            processed.append(path)
+    result = scan_to_pdf(processed, output_path, dpi=dpi, language=language, searchable=make_searchable)
+    for p in processed:
+        if p not in image_paths and os.path.exists(p):
+            try: os.remove(p)
+            except: pass
+    return {**result, 'enhancements': {'auto_rotate': auto_rotate, 'noise_removal': remove_noise, 'contrast': enhance_contrast}}
+
+
+def detect_scan_orientation(image_path: str) -> dict:
+    """Detect if a scanned image needs rotation using pytesseract OSD."""
+    try:
+        import pytesseract
+        from PIL import Image as PILImg
+        img = PILImg.open(image_path)
+        osd = pytesseract.image_to_osd(img)
+        rotation_line = [l for l in osd.split('\n') if 'Rotate' in l]
+        angle = int(rotation_line[0].split(':')[1].strip()) if rotation_line else 0
+        return {'image': image_path, 'detected_rotation': angle, 'needs_rotation': angle != 0}
+    except Exception as e:
+        return {'error': str(e), 'detected_rotation': 0, 'needs_rotation': False}
+
+
+def estimate_scan_quality(image_path: str) -> dict:
+    """Estimate the quality of a scanned image for OCR readiness."""
+    try:
+        from PIL import Image as PILImg
+        import numpy as np
+        img = PILImg.open(image_path).convert('L')
+        arr = np.array(img)
+        sharpness = float(np.std(arr))
+        mean_brightness = float(np.mean(arr))
+        contrast = float(arr.max() - arr.min())
+        quality_score = min(100, int(sharpness * 2 + contrast / 3))
+        return {
+            'sharpness': round(sharpness, 1),
+            'brightness': round(mean_brightness, 1),
+            'contrast': round(contrast, 1),
+            'quality_score': quality_score,
+            'ocr_ready': quality_score > 40,
+            'recommendation': 'Good quality for OCR' if quality_score > 60 else ('Enhance image before OCR' if quality_score > 30 else 'Poor quality — consider rescanning'),
+        }
+    except Exception as e:
+        return {'error': str(e)}

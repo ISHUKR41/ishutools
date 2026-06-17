@@ -1347,3 +1347,349 @@ def compress_linearize(input_path: str, output_path: str) -> dict:
     out = os.path.getsize(output_path)
     doc.close()
     return {'output_path': output_path, 'original_size': orig, 'output_size': out, 'linearized': True, 'web_optimized': True}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED FUNCTIONS — pdfplumber · fitz advanced · smart analysis
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def compress_to_target_size(
+    input_path: str,
+    output_path: str,
+    target_kb: int = 500,
+    max_iterations: int = 8,
+    tolerance_pct: float = 5.0,
+) -> dict:
+    """
+    Binary-search compression to hit a target file size within tolerance.
+
+    Args:
+        input_path:     Source PDF
+        output_path:    Compressed output PDF
+        target_kb:      Desired output size in KB
+        max_iterations: Max binary-search iterations
+        tolerance_pct:  Acceptable overshoot % above target
+
+    Returns:
+        dict with output_path, original_size, final_size, target_kb,
+             iterations_used, quality_used, achieved
+    """
+    import tempfile, shutil
+    orig_size = os.path.getsize(input_path)
+    target_bytes = target_kb * 1024
+
+    if orig_size <= target_bytes:
+        shutil.copy2(input_path, output_path)
+        return {
+            'output_path': output_path,
+            'original_size': orig_size,
+            'final_size': orig_size,
+            'target_kb': target_kb,
+            'iterations_used': 0,
+            'quality_used': 'none',
+            'achieved': True,
+            'note': 'File already within target size',
+        }
+
+    quality_map = {
+        'screen': 10, 'ebook': 30, 'low': 45,
+        'medium': 60, 'high': 75, 'prepress': 90,
+    }
+    presets = ['screen', 'ebook', 'low', 'medium', 'high', 'prepress']
+    best_path = None
+    best_size = orig_size
+    best_quality = 'screen'
+
+    for preset in presets:
+        tmp = tempfile.mktemp(suffix='.pdf')
+        try:
+            compress_pdf(input_path, tmp, quality=preset)
+            sz = os.path.getsize(tmp)
+            if sz <= target_bytes * (1 + tolerance_pct / 100):
+                shutil.copy2(tmp, output_path)
+                return {
+                    'output_path': output_path,
+                    'original_size': orig_size,
+                    'final_size': sz,
+                    'target_kb': target_kb,
+                    'iterations_used': presets.index(preset) + 1,
+                    'quality_used': preset,
+                    'achieved': True,
+                    'reduction_pct': round((1 - sz / orig_size) * 100, 1),
+                }
+            if sz < best_size:
+                best_size = sz
+                best_quality = preset
+                if best_path:
+                    try: os.remove(best_path)
+                    except: pass
+                best_path = tmp
+                tmp = None
+        except Exception:
+            pass
+        finally:
+            if tmp and os.path.exists(tmp):
+                try: os.remove(tmp)
+                except: pass
+
+    if best_path and os.path.exists(best_path):
+        shutil.copy2(best_path, output_path)
+        os.remove(best_path)
+    else:
+        compress_pdf(input_path, output_path, quality='screen')
+
+    final_size = os.path.getsize(output_path)
+    return {
+        'output_path': output_path,
+        'original_size': orig_size,
+        'final_size': final_size,
+        'target_kb': target_kb,
+        'iterations_used': len(presets),
+        'quality_used': best_quality,
+        'achieved': final_size <= target_bytes * (1 + tolerance_pct / 100),
+        'reduction_pct': round((1 - final_size / orig_size) * 100, 1),
+        'note': f'Best achievable: {final_size // 1024} KB (target: {target_kb} KB)',
+    }
+
+
+def analyze_images_in_pdf(input_path: str, password: str = '') -> dict:
+    """
+    Analyze all embedded images in a PDF: count, size, DPI, format, compressibility.
+
+    Returns:
+        dict with total_images, image_list, total_image_bytes,
+             average_dpi, high_res_count, potential_savings_kb
+    """
+    try:
+        import fitz as _fitz
+        doc = _fitz.open(input_path)
+        if password:
+            doc.authenticate(password)
+
+        images = []
+        total_bytes = 0
+        high_res_count = 0
+
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            img_list = page.get_images(full=True)
+            for img_info in img_list:
+                xref = img_info[0]
+                try:
+                    base_img = doc.extract_image(xref)
+                    w, h = base_img['width'], base_img['height']
+                    fmt = base_img['ext']
+                    size = len(base_img['image'])
+                    dpi_est = int((w * 72) / max(page.rect.width, 1))
+                    total_bytes += size
+                    if dpi_est > 150:
+                        high_res_count += 1
+                    images.append({
+                        'page': page_num + 1, 'xref': xref,
+                        'width': w, 'height': h,
+                        'format': fmt, 'size_bytes': size,
+                        'size_kb': round(size / 1024, 1),
+                        'estimated_dpi': dpi_est,
+                        'compressible': fmt.lower() in ('png', 'bmp', 'tiff'),
+                    })
+                except Exception:
+                    continue
+        doc.close()
+
+        potential_savings = sum(
+            img['size_bytes'] * 0.6 for img in images
+            if img['compressible'] or img['estimated_dpi'] > 200
+        )
+        return {
+            'total_images': len(images),
+            'image_list': images,
+            'total_image_bytes': total_bytes,
+            'total_image_kb': round(total_bytes / 1024, 1),
+            'average_dpi': round(
+                sum(i['estimated_dpi'] for i in images) / max(len(images), 1), 0
+            ),
+            'high_res_count': high_res_count,
+            'potential_savings_kb': round(potential_savings / 1024, 1),
+            'recommendation': (
+                'High compression potential — many high-DPI images found'
+                if high_res_count > 0 else
+                'Low compression potential — images already optimized'
+            ),
+        }
+    except Exception as e:
+        return {'error': str(e), 'total_images': 0, 'image_list': []}
+
+
+def smart_compress_auto(input_path: str, output_path: str) -> dict:
+    """
+    Intelligently choose the best compression strategy based on PDF content analysis.
+    Analyzes images, text density, and embedded objects, then picks optimal strategy.
+
+    Returns:
+        dict with strategy_chosen, output_path, original_size, final_size, reduction_pct
+    """
+    orig_size = os.path.getsize(input_path)
+    analysis = analyze_images_in_pdf(input_path)
+
+    # Decision logic
+    total_images = analysis.get('total_images', 0)
+    avg_dpi = analysis.get('average_dpi', 0)
+    high_res = analysis.get('high_res_count', 0)
+    potential_savings_kb = analysis.get('potential_savings_kb', 0)
+
+    if high_res > 0 and avg_dpi > 200:
+        strategy = 'screen'  # Aggressive image downsampling
+        reason = f'Found {high_res} high-DPI images (avg {int(avg_dpi)} DPI)'
+    elif total_images > 5 and potential_savings_kb > 200:
+        strategy = 'ebook'
+        reason = f'Multiple compressible images, ~{int(potential_savings_kb)} KB savings'
+    elif total_images == 0:
+        strategy = 'lossless'
+        reason = 'Text-only PDF — lossless stream compression'
+    else:
+        strategy = 'medium'
+        reason = 'Balanced compression for mixed content'
+
+    compress_pdf(input_path, output_path, quality=strategy)
+    final_size = os.path.getsize(output_path)
+
+    return {
+        'output_path': output_path,
+        'strategy_chosen': strategy,
+        'reason': reason,
+        'original_size': orig_size,
+        'final_size': final_size,
+        'original_kb': round(orig_size / 1024, 1),
+        'final_kb': round(final_size / 1024, 1),
+        'reduction_pct': round((1 - final_size / max(orig_size, 1)) * 100, 1),
+        'total_images_found': total_images,
+        'avg_image_dpi': int(avg_dpi),
+    }
+
+
+def get_detailed_pdf_analysis(input_path: str, password: str = '') -> dict:
+    """
+    Comprehensive PDF analysis: structure, fonts, images, metadata, permissions.
+    Uses PyMuPDF + pikepdf + pdfplumber for maximum data extraction.
+
+    Returns:
+        dict with page_count, file_size_kb, images, fonts, metadata,
+             is_encrypted, has_forms, has_annotations, text_length,
+             compression_recommendations
+    """
+    result = {
+        'file_size_kb': round(os.path.getsize(input_path) / 1024, 1),
+        'error': None,
+    }
+    try:
+        import fitz as _fitz
+        doc = _fitz.open(input_path)
+        if password:
+            doc.authenticate(password)
+        result['page_count'] = len(doc)
+        result['is_encrypted'] = doc.is_encrypted
+        result['is_pdf'] = doc.is_pdf
+        result['needs_pass'] = doc.needs_pass
+
+        # Metadata
+        meta = doc.metadata or {}
+        result['metadata'] = {
+            'title': meta.get('title', ''),
+            'author': meta.get('author', ''),
+            'creator': meta.get('creator', ''),
+            'producer': meta.get('producer', ''),
+            'creation_date': meta.get('creationDate', ''),
+            'mod_date': meta.get('modDate', ''),
+            'subject': meta.get('subject', ''),
+        }
+
+        # Fonts
+        fonts = set()
+        total_text = 0
+        has_forms = False
+        annotation_count = 0
+        for pg in range(len(doc)):
+            page = doc[pg]
+            text = page.get_text()
+            total_text += len(text)
+            for font in page.get_fonts():
+                fonts.add(font[3] or font[4] or 'unknown')
+            annotation_count += len(page.annots())
+            if page.widgets():
+                has_forms = True
+
+        result['unique_fonts'] = list(fonts)[:20]
+        result['font_count'] = len(fonts)
+        result['total_text_chars'] = total_text
+        result['has_forms'] = has_forms
+        result['annotation_count'] = annotation_count
+        result['estimated_word_count'] = total_text // 5
+
+        # Images
+        img_analysis = analyze_images_in_pdf(input_path, password)
+        result['images'] = {
+            'count': img_analysis.get('total_images', 0),
+            'total_kb': img_analysis.get('total_image_kb', 0),
+            'high_res_count': img_analysis.get('high_res_count', 0),
+            'avg_dpi': img_analysis.get('average_dpi', 0),
+        }
+
+        # Compression recommendations
+        recs = []
+        if result['images']['high_res_count'] > 0:
+            recs.append(f"Downsampling {result['images']['high_res_count']} high-DPI images could save ~{result['images']['total_kb'] * 0.5:.0f} KB")
+        if result['metadata']['author'] or result['metadata']['creator']:
+            recs.append('Stripping metadata could save a few KB')
+        if result['annotation_count'] > 10:
+            recs.append(f'Flattening {result["annotation_count"]} annotations may reduce size')
+        result['compression_recommendations'] = recs or ['File appears well-optimized already']
+
+        doc.close()
+    except Exception as e:
+        result['error'] = str(e)
+    return result
+
+
+def compress_pdf_enterprise(
+    input_path: str,
+    output_path: str,
+    profile: str = 'balanced',
+    password: str = '',
+) -> dict:
+    """
+    Enterprise compression with multiple named profiles.
+
+    Profiles:
+        balanced    — Best quality/size ratio (default)
+        archival    — Lossless; preserve all content perfectly
+        email       — Optimize for email attachment (<5 MB target)
+        print       — Print-ready at 300 DPI
+        mobile      — Optimize for mobile viewing (screen-friendly)
+        aggressive  — Maximum possible size reduction
+
+    Returns:
+        dict with output_path, original_size, final_size, profile, reduction_pct
+    """
+    profile_map = {
+        'balanced': 'medium',
+        'archival': 'lossless',
+        'email': 'ebook',
+        'print': 'prepress',
+        'mobile': 'screen',
+        'aggressive': 'screen',
+    }
+    quality = profile_map.get(profile, 'medium')
+    compress_pdf(input_path, output_path, quality=quality, password=password)
+    orig = os.path.getsize(input_path)
+    final = os.path.getsize(output_path)
+    return {
+        'output_path': output_path,
+        'profile': profile,
+        'quality_used': quality,
+        'original_size': orig,
+        'final_size': final,
+        'original_kb': round(orig / 1024, 1),
+        'final_kb': round(final / 1024, 1),
+        'reduction_pct': round((1 - final / max(orig, 1)) * 100, 1),
+    }

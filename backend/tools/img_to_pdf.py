@@ -1275,3 +1275,116 @@ def image_to_pdf_preserve_quality(image_path: str, output_path: str,
             'method': 'pillow',
             'file_size': os.path.getsize(output_path),
         }
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED IMAGE-TO-PDF FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def images_to_pdf_with_metadata(
+    image_paths: list, output_path: str,
+    title: str = 'Image Collection',
+    author: str = 'IshuTools.fun',
+    keywords: str = 'images, pdf, ishutools',
+    page_size: str = 'A4',
+) -> dict:
+    """Convert images to PDF with rich PDF metadata (title, author, subject)."""
+    import pikepdf, tempfile
+    tmp = tempfile.mktemp(suffix='.pdf')
+    result = images_to_pdf(image_paths, tmp, page_size=page_size)
+    with pikepdf.open(tmp) as pdf:
+        with pdf.open_metadata() as meta:
+            meta['dc:title'] = title
+            meta['dc:creator'] = [author]
+            meta['dc:subject'] = keywords
+            meta['pdf:Producer'] = 'IshuTools.fun — Free PDF Tools by Ishu Kumar'
+        pdf.save(output_path)
+    import os; os.remove(tmp)
+    return {**result, 'title': title, 'author': author, 'output_path': output_path}
+
+
+def images_to_pdf_passport_size(
+    image_paths: list, output_path: str,
+    cols: int = 4, rows: int = 6,
+    photo_width_mm: float = 35, photo_height_mm: float = 45,
+) -> dict:
+    """
+    Arrange photos in passport-size grid layout (4x6 default = 24 photos per A4 page).
+    """
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.lib.utils import ImageReader
+    from PIL import Image as PILImg
+    import io, math
+
+    W, H = A4
+    pw = photo_width_mm * mm
+    ph = photo_height_mm * mm
+    margin_x = (W - cols * pw) / (cols + 1)
+    margin_y = (H - rows * ph) / (rows + 1)
+
+    buf = io.BytesIO()
+    c = rl_canvas.Canvas(buf, pagesize=A4)
+
+    per_page = cols * rows
+    total_pages = math.ceil(len(image_paths) / per_page)
+
+    for page_num in range(total_pages):
+        c.setFillColorRGB(1, 1, 1)
+        c.rect(0, 0, W, H, fill=1, stroke=0)
+        for i in range(per_page):
+            idx = page_num * per_page + i
+            if idx >= len(image_paths):
+                break
+            col = i % cols
+            row = i // cols
+            x = margin_x + col * (pw + margin_x)
+            y = H - margin_y - (row + 1) * ph - row * margin_y
+            try:
+                img = PILImg.open(image_paths[idx]).convert('RGB')
+                ib = io.BytesIO(); img.save(ib, 'JPEG', quality=95); ib.seek(0)
+                c.drawImage(ImageReader(ib), x, y, pw, ph, preserveAspectRatio=True)
+            except Exception:
+                pass
+        if page_num < total_pages - 1:
+            c.showPage()
+
+    c.save()
+    buf.seek(0)
+    with open(output_path, 'wb') as f:
+        f.write(buf.read())
+
+    return {'output_path': output_path, 'photos_per_page': per_page, 'total_pages': total_pages, 'total_photos': len(image_paths)}
+
+
+def convert_image_formats_then_pdf(
+    image_paths: list, output_path: str,
+    enhance_brightness: float = 1.0,
+    enhance_contrast: float = 1.0,
+    enhance_sharpness: float = 1.0,
+    grayscale: bool = False,
+) -> dict:
+    """Convert images to PDF with enhancement preprocessing (brightness/contrast/sharpness/grayscale)."""
+    from PIL import Image as PILImg, ImageEnhance
+    import tempfile, os
+    processed = []
+    for path in image_paths:
+        try:
+            img = PILImg.open(path).convert('RGB')
+            if enhance_brightness != 1.0: img = ImageEnhance.Brightness(img).enhance(enhance_brightness)
+            if enhance_contrast != 1.0: img = ImageEnhance.Contrast(img).enhance(enhance_contrast)
+            if enhance_sharpness != 1.0: img = ImageEnhance.Sharpness(img).enhance(enhance_sharpness)
+            if grayscale: img = img.convert('L').convert('RGB')
+            tmp = tempfile.mktemp(suffix='.jpg')
+            img.save(tmp, 'JPEG', quality=92)
+            processed.append(tmp)
+        except Exception:
+            processed.append(path)
+    result = images_to_pdf(processed, output_path)
+    for p in processed:
+        if p not in image_paths and os.path.exists(p):
+            try: os.remove(p)
+            except: pass
+    return {**result, 'enhancements_applied': {'brightness': enhance_brightness, 'contrast': enhance_contrast, 'sharpness': enhance_sharpness, 'grayscale': grayscale}}

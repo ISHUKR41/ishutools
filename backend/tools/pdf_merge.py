@@ -1343,3 +1343,308 @@ def remove_duplicate_pages(input_path: str, output_path: str, threshold: float =
     removed = len(doc) - len(keep_pages)
     out.close(); doc.close()
     return {'output_path': output_path, 'original_pages': len(doc) if not doc.is_closed else -1, 'kept_pages': len(keep_pages), 'removed_duplicates': removed}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED MERGE FUNCTIONS — qrcode · continuous numbering · smart
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def merge_with_continuous_page_numbers(
+    input_paths: list,
+    output_path: str,
+    start_number: int = 1,
+    position: str = 'bottom-center',
+    font_size: int = 10,
+    color: str = '#555555',
+) -> dict:
+    """
+    Merge PDFs and add continuous page numbers across all merged pages.
+
+    Args:
+        input_paths:   List of PDF paths to merge
+        output_path:   Output merged PDF
+        start_number:  Starting page number (default 1)
+        position:      'bottom-center' | 'bottom-right' | 'bottom-left' | 'top-right'
+        font_size:     Page number font size
+        color:         Hex color for page numbers
+
+    Returns:
+        dict with output_path, total_pages, files_merged
+    """
+    import fitz as _fitz
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.units import mm
+    import io, tempfile
+
+    # Step 1: merge
+    merged_tmp = tempfile.mktemp(suffix='.pdf')
+    merge_pdfs(input_paths, merged_tmp)
+
+    # Step 2: overlay page numbers
+    doc = _fitz.open(merged_tmp)
+    total = len(doc)
+
+    # Parse color
+    try:
+        r = int(color[1:3], 16) / 255
+        g = int(color[3:5], 16) / 255
+        b = int(color[5:7], 16) / 255
+    except Exception:
+        r, g, b = 0.3, 0.3, 0.3
+
+    for i, page in enumerate(doc):
+        num = start_number + i
+        rect = page.rect
+        margin = 15
+
+        if 'bottom' in position:
+            y = rect.height - margin
+        else:
+            y = margin + font_size
+
+        if 'center' in position:
+            x = rect.width / 2
+        elif 'right' in position:
+            x = rect.width - margin - 20
+        else:
+            x = margin
+
+        page.insert_text(
+            (x, y), str(num),
+            fontsize=font_size, color=(r, g, b),
+            fontname='helv',
+        )
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    try: os.remove(merged_tmp)
+    except: pass
+
+    return {
+        'output_path': output_path,
+        'total_pages': total,
+        'files_merged': len(input_paths),
+        'start_number': start_number,
+        'end_number': start_number + total - 1,
+    }
+
+
+def merge_pdfs_chunked(
+    input_paths: list,
+    output_dir: str,
+    max_size_mb: float = 10.0,
+) -> dict:
+    """
+    Merge PDFs into size-limited chunks (useful for large batch merges).
+
+    Args:
+        input_paths:  PDFs to merge
+        output_dir:   Directory for chunk output files
+        max_size_mb:  Maximum size per output chunk (MB)
+
+    Returns:
+        dict with chunks, total_files, total_pages
+    """
+    import fitz as _fitz
+    import tempfile
+
+    os.makedirs(output_dir, exist_ok=True)
+    max_bytes = int(max_size_mb * 1024 * 1024)
+    chunks = []
+    current_batch = []
+    current_size = 0
+    chunk_num = 1
+
+    for path in input_paths:
+        size = os.path.getsize(path)
+        if current_batch and current_size + size > max_bytes:
+            out_path = os.path.join(output_dir, f'merged_chunk_{chunk_num:03d}.pdf')
+            merge_pdfs(current_batch, out_path)
+            chunks.append({'file': out_path, 'sources': len(current_batch), 'size_mb': round(os.path.getsize(out_path) / 1024 / 1024, 2)})
+            current_batch = []
+            current_size = 0
+            chunk_num += 1
+        current_batch.append(path)
+        current_size += size
+
+    if current_batch:
+        out_path = os.path.join(output_dir, f'merged_chunk_{chunk_num:03d}.pdf')
+        merge_pdfs(current_batch, out_path)
+        chunks.append({'file': out_path, 'sources': len(current_batch), 'size_mb': round(os.path.getsize(out_path) / 1024 / 1024, 2)})
+
+    return {
+        'chunks': chunks,
+        'total_chunks': len(chunks),
+        'total_files': len(input_paths),
+        'max_chunk_size_mb': max_size_mb,
+    }
+
+
+def merge_with_qr_cover(
+    input_paths: list,
+    output_path: str,
+    title: str = 'Merged Document',
+    qr_url: str = 'https://ishutools.fun',
+    author: str = 'IshuTools.fun',
+) -> dict:
+    """
+    Merge PDFs and prepend a cover page with QR code, title, file list, and timestamp.
+
+    Args:
+        input_paths:  PDFs to merge
+        output_path:  Output PDF
+        title:        Cover page title
+        qr_url:       URL to encode in QR code
+        author:       Author shown on cover
+
+    Returns:
+        dict with output_path, total_pages, qr_url
+    """
+    import io, tempfile
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+
+    try:
+        import qrcode as qrc
+        from PIL import Image as PILImg
+        HAS_QR = True
+    except ImportError:
+        HAS_QR = False
+
+    # Build cover page
+    cover_buf = io.BytesIO()
+    c = rl_canvas.Canvas(cover_buf, pagesize=A4)
+    W, H = A4
+
+    # Background gradient effect
+    c.setFillColorRGB(0.39, 0.40, 0.95)
+    c.rect(0, H - 120 * mm, W, 120 * mm, fill=1, stroke=0)
+
+    # Title
+    c.setFillColorRGB(1, 1, 1)
+    c.setFont('Helvetica-Bold', 28)
+    c.drawCentredString(W / 2, H - 40 * mm, title)
+
+    c.setFont('Helvetica', 14)
+    c.drawCentredString(W / 2, H - 55 * mm, f'Created with IshuTools.fun — by {author}')
+
+    from datetime import datetime
+    c.setFont('Helvetica', 11)
+    c.drawCentredString(W / 2, H - 67 * mm, datetime.utcnow().strftime('%B %d, %Y at %H:%M UTC'))
+
+    # File list
+    c.setFillColorRGB(0.1, 0.1, 0.1)
+    c.setFont('Helvetica-Bold', 13)
+    c.drawString(20 * mm, H - 140 * mm, 'Files Merged:')
+    c.setFont('Helvetica', 11)
+    for i, p in enumerate(input_paths[:20]):
+        c.drawString(22 * mm, H - (150 + i * 8) * mm,
+                     f'  {i + 1}. {os.path.basename(p)}')
+
+    # QR code
+    if HAS_QR:
+        try:
+            qr_img = qrc.make(qr_url)
+            qr_buf = io.BytesIO()
+            qr_img.save(qr_buf, format='PNG')
+            qr_buf.seek(0)
+            from reportlab.lib.utils import ImageReader
+            c.drawImage(ImageReader(qr_buf), W - 55 * mm, 15 * mm, 40 * mm, 40 * mm)
+            c.setFont('Helvetica', 8)
+            c.setFillColorRGB(0.5, 0.5, 0.5)
+            c.drawCentredString(W - 35 * mm, 12 * mm, 'Scan to open IshuTools')
+        except Exception:
+            pass
+
+    c.save()
+    cover_buf.seek(0)
+
+    # Save cover as temp PDF
+    cover_tmp = tempfile.mktemp(suffix='.pdf')
+    with open(cover_tmp, 'wb') as f:
+        f.write(cover_buf.read())
+
+    # Merge cover + all files
+    all_paths = [cover_tmp] + list(input_paths)
+    merge_pdfs(all_paths, output_path)
+    try: os.remove(cover_tmp)
+    except: pass
+
+    return {
+        'output_path': output_path,
+        'total_files': len(input_paths),
+        'qr_url': qr_url,
+        'title': title,
+    }
+
+
+def extract_page_range_from_each(
+    input_paths: list,
+    page_range: str,
+    output_path: str,
+) -> dict:
+    """
+    Extract same page range from each PDF and merge results.
+    Useful for extracting 'page 1' from 50 PDFs into one document.
+
+    Args:
+        input_paths:  List of PDFs
+        page_range:   Pages to extract, e.g. '1', '1-3', '1,3,5'
+        output_path:  Output merged PDF
+
+    Returns:
+        dict with output_path, total_extracted, files_processed
+    """
+    import fitz as _fitz
+    import tempfile, re
+
+    def parse_range(spec: str, total: int) -> list:
+        pages = []
+        for part in re.split(r'[,;]', spec):
+            part = part.strip()
+            if '-' in part:
+                a, b = part.split('-', 1)
+                pages += list(range(int(a) - 1, min(int(b), total)))
+            elif part.isdigit():
+                p = int(part) - 1
+                if 0 <= p < total:
+                    pages.append(p)
+        return pages
+
+    extracted_pdfs = []
+    total_extracted = 0
+    errors = 0
+
+    for path in input_paths:
+        try:
+            doc = _fitz.open(path)
+            pages = parse_range(page_range, len(doc))
+            if not pages:
+                doc.close()
+                continue
+            out_tmp = _fitz.open()
+            out_tmp.insert_pdf(doc, from_page=min(pages), to_page=max(pages))
+            tmp_path = tempfile.mktemp(suffix='.pdf')
+            out_tmp.save(tmp_path)
+            out_tmp.close()
+            doc.close()
+            extracted_pdfs.append(tmp_path)
+            total_extracted += len(pages)
+        except Exception:
+            errors += 1
+
+    if extracted_pdfs:
+        merge_pdfs(extracted_pdfs, output_path)
+        for p in extracted_pdfs:
+            try: os.remove(p)
+            except: pass
+
+    return {
+        'output_path': output_path,
+        'total_extracted': total_extracted,
+        'files_processed': len(input_paths) - errors,
+        'errors': errors,
+        'page_range': page_range,
+    }

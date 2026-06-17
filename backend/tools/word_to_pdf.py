@@ -1110,3 +1110,55 @@ def extract_docx_text_structured(input_path: str) -> dict:
         'tables': tables_data,
         'total_sections': len(sections),
     }
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED WORD-TO-PDF FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def word_to_pdf_with_bookmarks(input_path: str, output_path: str) -> dict:
+    """Convert Word to PDF and add bookmarks for each heading level."""
+    import tempfile
+    tmp = tempfile.mktemp(suffix='.pdf')
+    result = word_to_pdf(input_path, tmp)
+    try:
+        import fitz as _fitz
+        from docx import Document
+        doc_x = Document(input_path)
+        headings = [(p.style.name, p.text) for p in doc_x.paragraphs if p.style.name.startswith('Heading') and p.text.strip()]
+        pdf = _fitz.open(tmp)
+        toc = []
+        for i, (style, text) in enumerate(headings[:50]):
+            level = int(style[-1]) if style[-1].isdigit() else 1
+            # Approximate page (can't know exactly without more parsing)
+            toc.append([level, text[:80], max(1, i+1)])
+        if toc: pdf.set_toc(toc)
+        pdf.save(output_path, garbage=4, deflate=True)
+        pdf.close()
+    except Exception:
+        import shutil; shutil.copy2(tmp, output_path)
+    import os;
+    try: os.remove(tmp)
+    except: pass
+    return {**result, 'output_path': output_path, 'bookmarks_attempted': True}
+
+
+def get_docx_info(input_path: str) -> dict:
+    """Get detailed info about a Word document before conversion."""
+    try:
+        from docx import Document
+        doc = Document(input_path)
+        props = doc.core_properties
+        styles = set(p.style.name for p in doc.paragraphs)
+        return {
+            'title': props.title or '',
+            'author': props.author or '',
+            'paragraph_count': len(doc.paragraphs),
+            'table_count': len(doc.tables),
+            'section_count': len(doc.sections),
+            'styles_used': list(styles)[:20],
+            'word_count': sum(len(p.text.split()) for p in doc.paragraphs),
+        }
+    except Exception as e:
+        return {'error': str(e)}

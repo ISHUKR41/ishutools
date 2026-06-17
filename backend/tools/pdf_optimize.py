@@ -610,3 +610,47 @@ def optimize_for_screen(input_path: str, output_path: str) -> dict:
         'optimized_for': 'screen',
         'fast_web_view': True,
     }
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED OPTIMIZE FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def optimize_with_analysis_report(input_path: str, output_path: str, target: str = 'web', password: str = '') -> dict:
+    """Optimize PDF and return a detailed before/after analysis report."""
+    before_size = os.path.getsize(input_path)
+    opt_result = optimize_pdf(input_path, output_path, target=target, password=password)
+    after_size = os.path.getsize(output_path) if os.path.exists(output_path) else before_size
+    import fitz as _fitz
+    report = {'before_size_kb': round(before_size/1024, 1), 'after_size_kb': round(after_size/1024, 1), 'reduction_pct': round((1-after_size/max(before_size,1))*100, 1), 'optimization_target': target}
+    try:
+        doc = _fitz.open(output_path)
+        report['page_count'] = len(doc)
+        report['is_linearized'] = doc.is_pdf and doc.is_fast_webview
+        doc.close()
+    except Exception: pass
+    return {**opt_result, **report, 'output_path': output_path}
+
+
+def optimize_for_mobile(input_path: str, output_path: str, password: str = '') -> dict:
+    """Optimize PDF specifically for mobile devices: reduce DPI, compress images, strip metadata."""
+    return optimize_pdf(input_path, output_path, target='mobile', password=password)
+
+
+def batch_optimize_directory(input_dir: str, output_dir: str, target: str = 'web') -> dict:
+    """Optimize all PDFs in a directory. Returns per-file stats."""
+    import os
+    os.makedirs(output_dir, exist_ok=True)
+    results = []
+    for fname in os.listdir(input_dir):
+        if not fname.lower().endswith('.pdf'): continue
+        inp = os.path.join(input_dir, fname)
+        out = os.path.join(output_dir, fname)
+        try:
+            r = optimize_pdf(inp, out)
+            results.append({'file': fname, 'status': 'ok', **r})
+        except Exception as e:
+            results.append({'file': fname, 'status': 'error', 'error': str(e)})
+    total_saved = sum(r.get('bytes_saved', 0) for r in results if r['status'] == 'ok')
+    return {'results': results, 'files_processed': len(results), 'total_bytes_saved': total_saved}

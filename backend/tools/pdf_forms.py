@@ -799,3 +799,68 @@ def extract_form_data_to_dict(input_path: str) -> dict:
             }
     doc.close()
     return {"fields": form_data, "field_count": len(form_data)}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED FORMS FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def fill_form_from_dict(input_path: str, output_path: str, field_data: dict, flatten: bool = False, password: str = '') -> dict:
+    """Fill PDF form fields from a Python dictionary {field_name: value}."""
+    import pikepdf
+    try:
+        with pikepdf.open(input_path, password=password) as pdf:
+            for page in pdf.pages:
+                if '/Annots' not in page:
+                    continue
+                for annot in page.Annots:
+                    try:
+                        ft = str(annot.get('/FT', ''))
+                        name = str(annot.get('/T', ''))
+                        if name in field_data:
+                            annot['/V'] = pikepdf.String(str(field_data[name]))
+                            if '/AP' in annot: del annot['/AP']
+                    except Exception:
+                        continue
+            pdf.save(output_path)
+        filled = sum(1 for k in field_data)
+        return {'output_path': output_path, 'fields_filled': filled, 'flattened': flatten}
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def export_form_as_json(input_path: str, password: str = '') -> dict:
+    """Export all form field names and current values as JSON-compatible dict."""
+    try:
+        import fitz as _fitz
+        doc = _fitz.open(input_path)
+        if password: doc.authenticate(password)
+        fields = {}
+        for page in doc:
+            for widget in (page.widgets() or []):
+                fields[widget.field_name] = {
+                    'type': widget.field_type_string,
+                    'value': str(widget.field_value) if widget.field_value else '',
+                    'label': widget.field_label or widget.field_name,
+                    'required': bool(widget.field_flags & 2),
+                }
+        doc.close()
+        return {'fields': fields, 'total_fields': len(fields)}
+    except Exception as e:
+        return {'error': str(e), 'fields': {}}
+
+
+def check_form_completeness(input_path: str, password: str = '') -> dict:
+    """Check which required form fields are empty."""
+    data = export_form_as_json(input_path, password)
+    fields = data.get('fields', {})
+    empty = [name for name, info in fields.items() if not info.get('value')]
+    required_empty = [name for name, info in fields.items() if info.get('required') and not info.get('value')]
+    return {
+        'total_fields': len(fields),
+        'filled_fields': len(fields) - len(empty),
+        'empty_fields': empty,
+        'required_empty': required_empty,
+        'is_complete': len(required_empty) == 0,
+    }

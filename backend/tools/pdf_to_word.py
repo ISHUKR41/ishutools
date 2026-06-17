@@ -950,3 +950,56 @@ def pdf_to_word_pdfplumber(input_path: str, output_path: str) -> dict:
                         doc.add_paragraph(line)
     doc.save(output_path)
     return {'output_path': output_path, 'engine': 'pdfplumber+python-docx'}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED PDF-TO-WORD FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def pdf_to_word_with_pdfplumber_tables(input_path: str, output_path: str, password: str = '') -> dict:
+    """Extract PDF with pdfplumber for better table handling, then save as DOCX."""
+    try:
+        import pdfplumber
+        from docx import Document
+        from docx.shared import Pt
+        doc = Document()
+        with pdfplumber.open(input_path, password=password if password else None) as pdf:
+            for pg_num, pg in enumerate(pdf.pages):
+                text = pg.extract_text() or ''
+                if text:
+                    for line in text.split('\n'):
+                        if line.strip():
+                            doc.add_paragraph(line.strip())
+                # Handle tables
+                for tbl in pg.extract_tables():
+                    if not tbl: continue
+                    dtbl = doc.add_table(rows=len(tbl), cols=max(len(r) for r in tbl))
+                    dtbl.style = 'Table Grid'
+                    for i, row in enumerate(tbl):
+                        for j, cell in enumerate(row or []):
+                            if j < len(dtbl.rows[i].cells):
+                                dtbl.rows[i].cells[j].text = str(cell or '')
+                if pg_num < len(pdf.pages) - 1:
+                    doc.add_page_break()
+        doc.save(output_path)
+        return {'output_path': output_path, 'engine': 'pdfplumber+docx', 'tables_extracted': True}
+    except Exception as e:
+        return pdf_to_word(input_path, output_path, password=password)
+
+
+def get_pdf_text_stats(input_path: str, password: str = '') -> dict:
+    """Get detailed text statistics from a PDF before conversion."""
+    try:
+        import pdfplumber
+        stats = {'pages': 0, 'total_words': 0, 'total_chars': 0, 'tables': 0, 'images_per_page': []}
+        with pdfplumber.open(input_path, password=password if password else None) as pdf:
+            stats['pages'] = len(pdf.pages)
+            for pg in pdf.pages:
+                text = pg.extract_text() or ''
+                stats['total_words'] += len(text.split())
+                stats['total_chars'] += len(text)
+                stats['tables'] += len(pg.extract_tables())
+        return stats
+    except Exception as e:
+        return {'error': str(e)}

@@ -894,3 +894,298 @@ def pdf_page_to_base64(input_path: str, page_num: int = 1,
         'height': img.height,
         'page': page_num,
     }
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED IMAGE CONVERSION — WebP · TIFF · thumbnails · extraction
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def pdf_to_webp(
+    input_path: str,
+    output_dir: str,
+    result_zip: str,
+    quality: int = 85,
+    dpi: int = 150,
+    pages: str = 'all',
+    password: str = '',
+) -> dict:
+    """
+    Convert PDF pages to WebP format (30-50% smaller than JPEG at same quality).
+
+    Args:
+        input_path:  Source PDF
+        output_dir:  Directory for WebP images
+        result_zip:  ZIP archive output path
+        quality:     WebP quality 1-100
+        dpi:         Resolution (dots per inch)
+        pages:       'all' or page range '1,3,5-8'
+        password:    PDF password
+
+    Returns:
+        dict with result_zip, file_count, total_size_kb
+    """
+    return pdf_to_images(
+        input_path, output_dir, result_zip,
+        format_type='webp', dpi=dpi, pages=pages,
+        password=password,
+    )
+
+
+def pdf_to_tiff(
+    input_path: str,
+    output_dir: str,
+    result_zip: str,
+    dpi: int = 300,
+    pages: str = 'all',
+    compression: str = 'lzw',
+    password: str = '',
+) -> dict:
+    """
+    Convert PDF pages to TIFF (best for archival, print-ready, and document imaging).
+
+    Args:
+        input_path:   Source PDF
+        output_dir:   Directory for TIFF images
+        result_zip:   ZIP archive output path
+        dpi:          Resolution in DPI (300 recommended for print)
+        pages:        'all' or page range
+        compression:  'lzw' | 'deflate' | 'none' | 'jpeg'
+        password:     PDF password
+
+    Returns:
+        dict with result_zip, file_count, total_size_kb
+    """
+    import fitz as _fitz
+    import zipfile
+    from PIL import Image as PILImg
+
+    os.makedirs(output_dir, exist_ok=True)
+    doc = _fitz.open(input_path)
+    if password:
+        doc.authenticate(password)
+
+    # Parse page range
+    import re
+    if pages.lower() == 'all':
+        page_list = list(range(len(doc)))
+    else:
+        page_list = []
+        for part in re.split(r'[,;]', pages):
+            part = part.strip()
+            if '-' in part:
+                a, b = part.split('-', 1)
+                page_list += list(range(int(a) - 1, min(int(b), len(doc))))
+            elif part.isdigit():
+                p = int(part) - 1
+                if 0 <= p < len(doc):
+                    page_list.append(p)
+
+    mat = _fitz.Matrix(dpi / 72, dpi / 72)
+    output_files = []
+
+    for i, pg_num in enumerate(page_list):
+        page = doc[pg_num]
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        img = PILImg.frombytes('RGB', [pix.width, pix.height], pix.samples)
+        fname = f'page_{pg_num+1:04d}.tiff'
+        fpath = os.path.join(output_dir, fname)
+        compress_map = {'lzw': 'tiff_lzw', 'deflate': 'tiff_deflate', 'jpeg': 'jpeg', 'none': None}
+        comp = compress_map.get(compression, 'tiff_lzw')
+        if comp:
+            img.save(fpath, format='TIFF', compression=comp, dpi=(dpi, dpi))
+        else:
+            img.save(fpath, format='TIFF', dpi=(dpi, dpi))
+        output_files.append(fpath)
+
+    doc.close()
+
+    with zipfile.ZipFile(result_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for f in output_files:
+            zf.write(f, os.path.basename(f))
+
+    total_kb = sum(os.path.getsize(f) for f in output_files) // 1024
+    return {
+        'result_zip': result_zip,
+        'file_count': len(output_files),
+        'total_size_kb': total_kb,
+        'dpi': dpi,
+        'format': 'TIFF',
+        'compression': compression,
+    }
+
+
+def generate_pdf_thumbnails(
+    input_path: str,
+    output_dir: str,
+    thumb_width: int = 200,
+    password: str = '',
+) -> dict:
+    """
+    Generate small thumbnail previews of each PDF page.
+    Useful for page pickers and document previews.
+
+    Args:
+        input_path:   Source PDF
+        output_dir:   Directory for thumbnail images
+        thumb_width:  Thumbnail width in pixels (height auto-calculated)
+        password:     PDF password
+
+    Returns:
+        dict with thumbnails list with file paths, page numbers, dimensions
+    """
+    import fitz as _fitz
+    from PIL import Image as PILImg
+
+    os.makedirs(output_dir, exist_ok=True)
+    doc = _fitz.open(input_path)
+    if password:
+        doc.authenticate(password)
+
+    thumbnails = []
+    for i, page in enumerate(doc):
+        # Calculate scale to reach target width
+        scale = thumb_width / max(page.rect.width, 1)
+        mat = _fitz.Matrix(scale, scale)
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        img = PILImg.frombytes('RGB', [pix.width, pix.height], pix.samples)
+        fname = f'thumb_page_{i+1:04d}.jpg'
+        fpath = os.path.join(output_dir, fname)
+        img.save(fpath, 'JPEG', quality=75, optimize=True)
+        thumbnails.append({
+            'page': i + 1,
+            'file': fpath,
+            'width': pix.width,
+            'height': pix.height,
+            'size_kb': round(os.path.getsize(fpath) / 1024, 1),
+        })
+
+    doc.close()
+    return {
+        'thumbnails': thumbnails,
+        'total_pages': len(thumbnails),
+        'thumb_width': thumb_width,
+        'output_dir': output_dir,
+    }
+
+
+def extract_embedded_images(
+    input_path: str,
+    output_dir: str,
+    result_zip: str,
+    min_size_px: int = 50,
+    formats: list = None,
+    password: str = '',
+) -> dict:
+    """
+    Extract all embedded images directly from PDF (no page rasterization).
+    Preserves original image quality and format.
+
+    Args:
+        input_path:   Source PDF
+        output_dir:   Directory for extracted images
+        result_zip:   ZIP archive output path
+        min_size_px:  Minimum image dimension to extract (skip tiny icons)
+        formats:      Only extract these formats e.g. ['jpg', 'png']
+        password:     PDF password
+
+    Returns:
+        dict with result_zip, file_count, formats_found
+    """
+    import fitz as _fitz
+    import zipfile
+
+    os.makedirs(output_dir, exist_ok=True)
+    doc = _fitz.open(input_path)
+    if password:
+        doc.authenticate(password)
+
+    extracted = []
+    formats_found = {}
+
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        img_list = page.get_images(full=True)
+        for img_info in img_list:
+            xref = img_info[0]
+            try:
+                base = doc.extract_image(xref)
+                w, h = base['width'], base['height']
+                if w < min_size_px or h < min_size_px:
+                    continue
+                ext = base['ext']
+                if formats and ext.lower() not in [f.lower() for f in formats]:
+                    continue
+                fname = f'image_p{page_num+1:04d}_x{xref}.{ext}'
+                fpath = os.path.join(output_dir, fname)
+                with open(fpath, 'wb') as f:
+                    f.write(base['image'])
+                extracted.append({'file': fname, 'page': page_num + 1, 'width': w, 'height': h, 'format': ext})
+                formats_found[ext] = formats_found.get(ext, 0) + 1
+            except Exception:
+                continue
+
+    doc.close()
+
+    with zipfile.ZipFile(result_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for item in extracted:
+            full_path = os.path.join(output_dir, item['file'])
+            if os.path.exists(full_path):
+                zf.write(full_path, item['file'])
+
+    return {
+        'result_zip': result_zip,
+        'file_count': len(extracted),
+        'images': extracted[:50],  # Return first 50 for API response
+        'formats_found': formats_found,
+        'output_dir': output_dir,
+    }
+
+
+def pdf_first_page_preview(
+    input_path: str,
+    output_path: str,
+    width: int = 800,
+    password: str = '',
+) -> dict:
+    """
+    Generate a high-quality preview image of the first page of a PDF.
+    Useful for document thumbnails and previews in UIs.
+
+    Args:
+        input_path:   Source PDF
+        output_path:  Output image path (.jpg or .png)
+        width:        Preview width in pixels
+        password:     PDF password
+
+    Returns:
+        dict with output_path, width, height, format, size_kb
+    """
+    import fitz as _fitz
+    from PIL import Image as PILImg
+
+    doc = _fitz.open(input_path)
+    if password:
+        doc.authenticate(password)
+
+    page = doc[0]
+    scale = width / max(page.rect.width, 1)
+    mat = _fitz.Matrix(scale, scale)
+    pix = page.get_pixmap(matrix=mat, alpha=False)
+    img = PILImg.frombytes('RGB', [pix.width, pix.height], pix.samples)
+
+    ext = os.path.splitext(output_path)[1].lower().strip('.')
+    fmt = 'PNG' if ext == 'png' else 'JPEG'
+    if fmt == 'JPEG':
+        img.save(output_path, 'JPEG', quality=90, optimize=True, progressive=True)
+    else:
+        img.save(output_path, 'PNG', optimize=True)
+
+    doc.close()
+    return {
+        'output_path': output_path,
+        'width': pix.width,
+        'height': pix.height,
+        'format': fmt,
+        'size_kb': round(os.path.getsize(output_path) / 1024, 1),
+    }

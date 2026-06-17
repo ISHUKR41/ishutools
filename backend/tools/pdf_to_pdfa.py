@@ -807,3 +807,48 @@ def add_pdfa_metadata(input_path: str, output_path: str,
         pdf.save(output_path)
 
     return {'output_path': output_path, 'metadata_injected': True}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED PDF/A FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def convert_to_pdfa_with_report(input_path: str, output_path: str, level: str = '2b', password: str = '') -> dict:
+    """Convert to PDF/A and generate compliance report."""
+    result = pdf_to_pdfa(input_path, output_path, level=level, password=password)
+    compliance = validate_pdfa_compliance(output_path) if os.path.exists(output_path) else {}
+    return {**result, 'compliance_check': compliance, 'pdfa_level': level}
+
+
+def batch_convert_to_pdfa(input_paths: list, output_dir: str, level: str = '2b') -> dict:
+    """Convert multiple PDFs to PDF/A format in batch."""
+    import os
+    os.makedirs(output_dir, exist_ok=True)
+    results = []
+    for path in input_paths:
+        fname = os.path.basename(path)
+        out = os.path.join(output_dir, fname.replace('.pdf', f'_pdfa{level}.pdf'))
+        try:
+            r = pdf_to_pdfa(path, out, level=level)
+            results.append({'file': fname, 'status': 'ok', 'output': out})
+        except Exception as e:
+            results.append({'file': fname, 'status': 'error', 'error': str(e)})
+    return {'results': results, 'total': len(results), 'successful': sum(1 for r in results if r['status'] == 'ok'), 'pdfa_level': level}
+
+
+def get_pdfa_info() -> dict:
+    """Return information about PDF/A standards and their use cases."""
+    return {
+        'standards': {
+            '1a': {'name': 'PDF/A-1a', 'description': 'Full compliance, tagged PDF, best for accessibility', 'year': 2005, 'use_case': 'Government documents, long-term archiving'},
+            '1b': {'name': 'PDF/A-1b', 'description': 'Basic compliance, visual preservation only', 'year': 2005, 'use_case': 'Scanned documents, visual archiving'},
+            '2a': {'name': 'PDF/A-2a', 'description': 'PDF 1.7 features, transparency, tagged', 'year': 2011, 'use_case': 'Modern documents with graphics'},
+            '2b': {'name': 'PDF/A-2b', 'description': 'PDF 1.7 features, visual preservation (recommended)', 'year': 2011, 'use_case': 'General archiving, most common choice'},
+            '2u': {'name': 'PDF/A-2u', 'description': 'PDF 1.7 with Unicode mapping required', 'year': 2011, 'use_case': 'Documents requiring text search'},
+            '3a': {'name': 'PDF/A-3a', 'description': 'Allows embedded files (e.g. XML, CSV) in the PDF', 'year': 2012, 'use_case': 'eInvoicing, ZUGFeRD, Factur-X'},
+            '3b': {'name': 'PDF/A-3b', 'description': 'Like 3a but basic compliance only', 'year': 2012, 'use_case': 'eInvoicing with visual preservation'},
+        },
+        'recommended': '2b',
+        'note': 'PDF/A files are self-contained and suitable for legal/archival storage for 100+ years',
+    }

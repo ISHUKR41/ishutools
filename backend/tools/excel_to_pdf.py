@@ -1069,3 +1069,60 @@ def excel_to_csv(input_path: str, output_dir: str) -> dict:
                 writer.writerow([str(c) if c is not None else "" for c in row])
         csv_files.append(csv_path)
     return {"csv_files": csv_files, "sheets_converted": len(csv_files)}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED EXCEL-TO-PDF FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def excel_to_pdf_selected_sheets(input_path: str, output_path: str, sheet_names: list = None) -> dict:
+    """Convert only specific named sheets from an Excel workbook to PDF."""
+    import tempfile, os
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(input_path, data_only=True)
+        sheets_to_convert = sheet_names if sheet_names else wb.sheetnames
+        pdfs = []
+        for sheet_name in sheets_to_convert:
+            if sheet_name not in wb.sheetnames: continue
+            tmp_xlsx = os.path.join(tmp_dir, f'{sheet_name}.xlsx')
+            new_wb = openpyxl.Workbook()
+            new_wb.active.title = sheet_name
+            ws_src = wb[sheet_name]
+            ws_dst = new_wb.active
+            for row in ws_src.iter_rows(values_only=True):
+                ws_dst.append(list(row))
+            new_wb.save(tmp_xlsx)
+            tmp_pdf = os.path.join(tmp_dir, f'{sheet_name}.pdf')
+            excel_to_pdf(tmp_xlsx, tmp_pdf)
+            if os.path.exists(tmp_pdf):
+                pdfs.append(tmp_pdf)
+        if pdfs:
+            import fitz as _fitz
+            merged = _fitz.open()
+            for p in pdfs:
+                merged.insert_pdf(_fitz.open(p))
+            merged.save(output_path, garbage=4, deflate=True)
+            merged.close()
+        return {'output_path': output_path, 'sheets_converted': len(pdfs), 'sheets_requested': sheets_to_convert}
+    except Exception as e:
+        return {'error': str(e)}
+    finally:
+        import shutil; shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def get_excel_info(input_path: str) -> dict:
+    """Get info about Excel workbook: sheets, row/col counts, named ranges."""
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(input_path, data_only=True, read_only=True)
+        sheets = []
+        for name in wb.sheetnames:
+            ws = wb[name]
+            sheets.append({'name': name, 'max_row': ws.max_row, 'max_column': ws.max_column})
+        wb.close()
+        return {'sheet_count': len(sheets), 'sheets': sheets, 'file_size_kb': round(os.path.getsize(input_path)/1024, 1)}
+    except Exception as e:
+        return {'error': str(e)}

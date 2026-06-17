@@ -1080,3 +1080,52 @@ def remove_print_restrictions(input_path: str, output_path: str,
         return {'error': 'Incorrect password or file is user-password protected'}
     except Exception as e:
         return {'error': str(e)}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED UNLOCK FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def unlock_and_flatten(input_path: str, output_path: str, password: str = '') -> dict:
+    """Unlock PDF and flatten all form fields and annotations for maximum compatibility."""
+    import tempfile, shutil
+    tmp = tempfile.mktemp(suffix='.pdf')
+    result = unlock_pdf(input_path, tmp, password=password)
+    try:
+        import fitz as _fitz
+        doc = _fitz.open(tmp)
+        for page in doc:
+            page.clean_contents()
+        doc.save(output_path, garbage=4, deflate=True, clean=True)
+        doc.close()
+    except Exception:
+        shutil.copy2(tmp, output_path)
+    try: import os; os.remove(tmp)
+    except: pass
+    return {**result, 'output_path': output_path, 'flattened': True}
+
+
+def check_if_password_required(input_path: str) -> dict:
+    """Check if a PDF requires a password without attempting to open it."""
+    try:
+        import pikepdf
+        with pikepdf.open(input_path) as pdf:
+            return {'password_required': False, 'is_encrypted': pdf.is_encrypted, 'can_open_without_password': True}
+    except pikepdf.PasswordError:
+        return {'password_required': True, 'is_encrypted': True, 'can_open_without_password': False}
+    except Exception as e:
+        return {'password_required': False, 'error': str(e)}
+
+
+def unlock_owner_restrictions_only(input_path: str, output_path: str, owner_password: str) -> dict:
+    """
+    Remove owner-level restrictions (print/copy/edit restrictions) while keeping content accessible.
+    Use when you know the owner password but want to remove permission restrictions.
+    """
+    import pikepdf
+    with pikepdf.open(input_path, password=owner_password) as pdf:
+        pdf.save(output_path)
+    orig = os.path.getsize(input_path)
+    final = os.path.getsize(output_path)
+    return {'output_path': output_path, 'restrictions_removed': True, 'original_size': orig, 'output_size': final}

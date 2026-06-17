@@ -869,3 +869,65 @@ def crop_to_selection(input_path: str, output_path: str,
     doc.save(output_path, garbage=4, deflate=True)
     doc.close()
     return {'output_path': output_path, 'pages_cropped': len(page_list)}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED CROP FUNCTIONS — smart auto-crop · content detection
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def smart_autocrop(input_path: str, output_path: str, padding_mm: float = 5.0, password: str = '') -> dict:
+    """
+    Auto-detect content boundaries on each page and crop to content + padding.
+    Removes excessive white margins automatically.
+    """
+    import fitz as _fitz
+    doc = _fitz.open(input_path)
+    if password: doc.authenticate(password)
+    pages_cropped = 0
+    for page in doc:
+        blocks = page.get_text('blocks')
+        if not blocks:
+            continue
+        xs = [min(b[0], b[2]) for b in blocks] + [max(b[0], b[2]) for b in blocks]
+        ys = [min(b[1], b[3]) for b in blocks] + [max(b[1], b[3]) for b in blocks]
+        if not xs: continue
+        pad = padding_mm * 2.835
+        x0 = max(0, min(xs) - pad)
+        y0 = max(0, min(ys) - pad)
+        x1 = min(page.rect.width, max(xs) + pad)
+        y1 = min(page.rect.height, max(ys) + pad)
+        if x1 > x0 and y1 > y0:
+            page.set_cropbox(_fitz.Rect(x0, y0, x1, y1))
+            pages_cropped += 1
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'pages_cropped': pages_cropped, 'padding_mm': padding_mm}
+
+
+def crop_to_selection(input_path: str, output_path: str, x_pct: float = 10, y_pct: float = 10, width_pct: float = 80, height_pct: float = 80, pages: str = 'all', password: str = '') -> dict:
+    """Crop pages to a percentage-based selection rectangle."""
+    import fitz as _fitz, re
+    doc = _fitz.open(input_path)
+    if password: doc.authenticate(password)
+    if pages.lower() == 'all':
+        page_list = list(range(len(doc)))
+    else:
+        page_list = []
+        for part in re.split(r'[,;]', pages):
+            part = part.strip()
+            if '-' in part:
+                a, b = part.split('-', 1)
+                page_list += list(range(int(a)-1, min(int(b), len(doc))))
+            elif part.isdigit():
+                p = int(part) - 1
+                if 0 <= p < len(doc): page_list.append(p)
+    for pg_num in page_list:
+        page = doc[pg_num]
+        W, H = page.rect.width, page.rect.height
+        x0 = W * x_pct / 100; y0 = H * y_pct / 100
+        x1 = x0 + W * width_pct / 100; y1 = y0 + H * height_pct / 100
+        page.set_cropbox(_fitz.Rect(x0, y0, min(x1, W), min(y1, H)))
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'pages_cropped': len(page_list), 'selection': {'x_pct': x_pct, 'y_pct': y_pct, 'width_pct': width_pct, 'height_pct': height_pct}}

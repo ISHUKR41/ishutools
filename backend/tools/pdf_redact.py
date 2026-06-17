@@ -1188,3 +1188,94 @@ def redact_highlight_preview(input_path: str, output_path: str, search_text: str
     doc.save(output_path, garbage=4, deflate=True)
     doc.close()
     return {'output_path': output_path, 'highlighted_instances': highlighted, 'search_text': search_text, 'mode': 'preview'}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED REDACT FUNCTIONS — smart PII · bulk patterns
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def redact_all_pii(
+    input_path: str, output_path: str,
+    include_emails: bool = True,
+    include_phones: bool = True,
+    include_ssn: bool = True,
+    include_credit_cards: bool = True,
+    include_aadhaar: bool = True,
+    include_pan: bool = True,
+    password: str = '',
+) -> dict:
+    """
+    Smart PII redactor — automatically finds and redacts all personal information.
+    Covers: emails, phone numbers, SSN, credit cards, Indian Aadhaar, PAN numbers.
+    """
+    import re, tempfile, shutil
+    import fitz as _fitz
+
+    patterns = []
+    if include_emails: patterns.append(r'\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b')
+    if include_phones: patterns.append(r'\b(\+?91[\s\-]?)?[789]\d{9}\b|\b(\+?1[\s\-]?)?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}\b')
+    if include_ssn: patterns.append(r'\b\d{3}[\s\-]?\d{2}[\s\-]?\d{4}\b')
+    if include_credit_cards: patterns.append(r'\b4\d{15}\b|\b5[1-5]\d{14}\b|\b3[47]\d{13}\b|\b6011\d{12}\b')
+    if include_aadhaar: patterns.append(r'\b[2-9]\d{3}[\s\-]?\d{4}[\s\-]?\d{4}\b')
+    if include_pan: patterns.append(r'\b[A-Z]{5}\d{4}[A-Z]\b')
+
+    if not patterns:
+        shutil.copy2(input_path, output_path)
+        return {'output_path': output_path, 'total_redactions': 0, 'note': 'No pattern types selected'}
+
+    doc = _fitz.open(input_path)
+    if password: doc.authenticate(password)
+    total_redacted = 0
+    combined_pattern = '|'.join(f'({p})' for p in patterns)
+
+    for page in doc:
+        text = page.get_text()
+        matches = re.finditer(combined_pattern, text)
+        unique_texts = set(m.group(0) for m in matches)
+        for pii_text in unique_texts:
+            rects = page.search_for(pii_text)
+            for rect in rects:
+                page.add_redact_annot(rect, fill=(0, 0, 0))
+                total_redacted += 1
+        if page.annots():
+            page.apply_redactions()
+
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {
+        'output_path': output_path,
+        'total_redactions': total_redacted,
+        'patterns_applied': {
+            'emails': include_emails, 'phones': include_phones, 'ssn': include_ssn,
+            'credit_cards': include_credit_cards, 'aadhaar': include_aadhaar, 'pan': include_pan,
+        },
+    }
+
+
+def preview_pii_found(input_path: str, password: str = '') -> dict:
+    """
+    Scan PDF for PII without redacting — returns what would be redacted.
+    Preview mode: safe to call before actual redaction.
+    """
+    import re
+    try:
+        import pdfplumber
+        with pdfplumber.open(input_path, password=password if password else None) as pdf:
+            text = ' '.join((pg.extract_text() or '') for pg in pdf.pages[:20])
+    except Exception:
+        text = ''
+    patterns = {
+        'emails': r'\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b',
+        'phones': r'\b(\+?91[\s\-]?)?[789]\d{9}\b',
+        'credit_cards': r'\b4\d{15}\b|\b5[1-5]\d{14}\b|\b3[47]\d{13}\b',
+        'aadhaar': r'\b[2-9]\d{3}[\s\-]?\d{4}[\s\-]?\d{4}\b',
+        'pan': r'\b[A-Z]{5}\d{4}[A-Z]\b',
+    }
+    found = {}
+    total = 0
+    for key, pat in patterns.items():
+        matches = list(set(re.findall(pat, text)))
+        found[key] = {'count': len(matches), 'examples': [str(m)[:20] for m in matches[:3]]}
+        total += len(matches)
+    return {'pii_found': found, 'total_items': total, 'safe_to_redact': total > 0}

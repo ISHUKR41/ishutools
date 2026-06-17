@@ -1279,3 +1279,84 @@ def ocr_enhance_and_process(input_path: str, output_path: str, language: str = '
     out_doc.save(output_path, garbage=4, deflate=True)
     out_doc.close(); doc.close()
     return {'output_path': output_path, 'page_count': page_num+1, 'total_words': total_words, 'enhanced': enhance}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED OCR FUNCTIONS — multi-language · confidence · structured
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def ocr_multilanguage(
+    input_path: str, output_path: str,
+    languages: list = None,
+    dpi: int = 300, password: str = '',
+) -> dict:
+    """
+    OCR with multiple language support simultaneously.
+    languages: list of tesseract lang codes e.g. ['eng', 'hin', 'fra', 'deu']
+    Supported: eng, hin, ara, fra, deu, spa, chi_sim, chi_tra, jpn, kor, por, ita, rus, tam, tel, ben, mal, kan, guj, mar, pan, urd
+    """
+    if not languages:
+        languages = ['eng']
+    lang_str = '+'.join(languages)
+    return ocr_pdf(input_path, output_path, language=lang_str, dpi=dpi, password=password)
+
+
+def ocr_extract_to_markdown(
+    input_path: str, output_path: str,
+    language: str = 'eng', dpi: int = 300, password: str = '',
+) -> dict:
+    """
+    OCR PDF and save as Markdown file with headings, paragraphs, and page breaks.
+    """
+    import tempfile, os
+    txt_tmp = tempfile.mktemp(suffix='.txt')
+    result = ocr_pdf_to_txt(input_path, txt_tmp, language=language)
+    text = open(txt_tmp, 'r', errors='ignore').read() if os.path.exists(txt_tmp) else result.get('text', '')
+    os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else '.', exist_ok=True)
+    lines = text.split('\n')
+    md_lines = ['# OCR Output\n', f'_Extracted by IshuTools.fun — IshuTools OCR — {language}_\n\n---\n']
+    page_num = 0
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            md_lines.append('')
+        elif len(stripped) < 60 and stripped.isupper():
+            md_lines.append(f'## {stripped}')
+        elif '---' in stripped or '===' in stripped:
+            page_num += 1
+            md_lines.append(f'\n---\n*Page {page_num}*\n')
+        else:
+            md_lines.append(stripped)
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(md_lines))
+    try: os.remove(txt_tmp)
+    except: pass
+    return {'output_path': output_path, 'language': language, 'word_count': len(text.split())}
+
+
+def get_supported_ocr_languages() -> dict:
+    """Return all OCR languages supported by Tesseract with human-readable names."""
+    return {
+        'languages': {
+            'eng': 'English', 'hin': 'Hindi', 'ara': 'Arabic',
+            'fra': 'French', 'deu': 'German', 'spa': 'Spanish',
+            'chi_sim': 'Chinese (Simplified)', 'chi_tra': 'Chinese (Traditional)',
+            'jpn': 'Japanese', 'kor': 'Korean', 'por': 'Portuguese',
+            'ita': 'Italian', 'rus': 'Russian', 'tam': 'Tamil',
+            'tel': 'Telugu', 'ben': 'Bengali', 'mal': 'Malayalam',
+            'kan': 'Kannada', 'guj': 'Gujarati', 'mar': 'Marathi',
+            'pan': 'Punjabi', 'urd': 'Urdu', 'nep': 'Nepali',
+            'sin': 'Sinhala', 'tha': 'Thai', 'vie': 'Vietnamese',
+            'pol': 'Polish', 'ukr': 'Ukrainian', 'nld': 'Dutch',
+            'swe': 'Swedish', 'nor': 'Norwegian', 'dan': 'Danish',
+            'fin': 'Finnish', 'ces': 'Czech', 'slk': 'Slovak',
+            'hun': 'Hungarian', 'ron': 'Romanian', 'bul': 'Bulgarian',
+            'hrv': 'Croatian', 'srp': 'Serbian', 'cat': 'Catalan',
+            'heb': 'Hebrew', 'fas': 'Persian', 'tur': 'Turkish',
+            'ind': 'Indonesian', 'msa': 'Malay', 'afr': 'Afrikaans',
+        },
+        'total': 47,
+        'indian_languages': ['hin', 'tam', 'tel', 'ben', 'mal', 'kan', 'guj', 'mar', 'pan', 'urd', 'nep'],
+        'default': 'eng',
+    }

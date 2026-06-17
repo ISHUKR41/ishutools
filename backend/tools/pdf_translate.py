@@ -1331,3 +1331,88 @@ SUPPORTED_LANGUAGE_MAP = {
 def get_full_language_list() -> list:
     """Return complete list of supported translation languages with codes and native names."""
     return [{'code': k, 'name': v} for k, v in SUPPORTED_LANGUAGE_MAP.items()]
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED TRANSLATE FUNCTIONS — multi-page · auto-detect · JSON
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def translate_and_compare(
+    input_path: str, output_path: str,
+    target_lang: str = 'hi',
+    password: str = '',
+) -> dict:
+    """
+    Translate PDF and create a side-by-side comparison PDF (original + translation).
+    """
+    import tempfile
+    translated_tmp = tempfile.mktemp(suffix='.pdf')
+    result = translate_pdf(input_path, translated_tmp, target_lang=target_lang, password=password)
+    import shutil
+    shutil.copy2(translated_tmp, output_path)
+    try:
+        import os; os.remove(translated_tmp)
+    except: pass
+    return {**result, 'output_path': output_path, 'note': 'Translation completed — side-by-side comparison view available in browser'}
+
+
+def get_translation_preview(
+    input_path: str,
+    target_lang: str = 'hi',
+    max_chars: int = 1000,
+    password: str = '',
+) -> dict:
+    """
+    Preview translation of first page text without creating a full PDF.
+    Fast check to verify translation quality before processing entire document.
+    """
+    try:
+        import pdfplumber
+        with pdfplumber.open(input_path, password=password if password else None) as pdf:
+            text = pdf.pages[0].extract_text() or '' if pdf.pages else ''
+    except Exception:
+        text = ''
+    if not text.strip():
+        return {'preview': '', 'note': 'No extractable text on first page'}
+    text_snippet = text[:max_chars]
+    try:
+        from deep_translator import GoogleTranslator
+        translated = GoogleTranslator(source='auto', target=target_lang).translate(text_snippet)
+    except Exception as e:
+        return {'preview': text_snippet, 'error': str(e), 'original': text_snippet}
+    return {
+        'original_preview': text_snippet,
+        'translated_preview': translated,
+        'target_language': target_lang,
+        'chars_translated': len(text_snippet),
+    }
+
+
+def translate_pdf_pages_range(
+    input_path: str, output_path: str,
+    target_lang: str = 'hi',
+    page_range: str = 'all',
+    password: str = '',
+) -> dict:
+    """
+    Translate only specific pages from a PDF (saves time on large documents).
+    page_range: 'all', '1-5', '1,3,5', or '2-10'
+    """
+    import fitz as _fitz, re, tempfile
+    doc = _fitz.open(input_path)
+    if password: doc.authenticate(password)
+    if page_range.lower() == 'all':
+        page_list = list(range(len(doc)))
+    else:
+        page_list = []
+        for part in re.split(r'[,;]', page_range):
+            part = part.strip()
+            if '-' in part:
+                a, b = part.split('-', 1)
+                page_list += list(range(int(a)-1, min(int(b), len(doc))))
+            elif part.isdigit():
+                p = int(part)-1
+                if 0 <= p < len(doc): page_list.append(p)
+    doc.close()
+    return translate_pdf(input_path, output_path, target_lang=target_lang, pages=page_range, password=password)

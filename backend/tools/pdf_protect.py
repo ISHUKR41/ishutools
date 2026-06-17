@@ -1329,3 +1329,56 @@ def protect_add_certificate_metadata(input_path: str, output_path: str, author: 
             meta['xmp:CreatorTool'] = 'IshuTools PDF Suite v3.0 - ishutools.fun'
         pdf.save(output_path)
     return {'output_path': output_path, 'author': author, 'has_certificate_metadata': True}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED PROTECT FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def protect_with_aes256(input_path: str, output_path: str, user_password: str, owner_password: str = '') -> dict:
+    """Protect PDF with AES-256 encryption (strongest standard encryption)."""
+    import pikepdf
+    owner_pwd = owner_password or user_password + '_owner'
+    encryption = pikepdf.Encryption(user=user_password, owner=owner_pwd, aes=True, R=6)
+    with pikepdf.open(input_path, allow_overwriting_input=True) as pdf:
+        pdf.save(output_path, encryption=encryption)
+    return {'output_path': output_path, 'encryption': 'AES-256', 'R': 6, 'user_password_set': True, 'owner_password_set': True}
+
+
+def protect_read_only_print_only(input_path: str, output_path: str, owner_password: str = 'ishutools2026_owner') -> dict:
+    """Protect PDF: allow printing only, disallow copy/edit/extract."""
+    import pikepdf
+    enc = pikepdf.Encryption(
+        owner=owner_password, aes=True, R=4,
+        allow=pikepdf.Permissions(
+            print_highres=True, print_lowres=True,
+            extract=False, modify_annotation=False,
+            modify_form=False, modify_other=False, modify_assembly=False,
+            accessibility=True,
+        )
+    )
+    with pikepdf.open(input_path) as pdf:
+        pdf.save(output_path, encryption=enc)
+    return {'output_path': output_path, 'permissions': 'print_only', 'encryption': 'AES-128'}
+
+
+def get_pdf_permissions(input_path: str, password: str = '') -> dict:
+    """Inspect all permissions and encryption settings of a PDF."""
+    try:
+        import pikepdf
+        with pikepdf.open(input_path, password=password) as pdf:
+            enc = pdf.encryption
+            perms = pdf.allow
+            return {
+                'is_encrypted': pdf.is_encrypted,
+                'encryption_method': enc.method if enc else 'none',
+                'encryption_key_length': getattr(enc, 'key_length', 0),
+                'can_print': bool(perms.print_highres or perms.print_lowres),
+                'can_copy': bool(perms.extract),
+                'can_modify': bool(perms.modify_annotation or perms.modify_other),
+                'can_fill_forms': bool(perms.modify_form),
+                'can_extract': bool(perms.extract),
+            }
+    except Exception as e:
+        return {'error': str(e), 'is_encrypted': True}

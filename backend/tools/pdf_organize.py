@@ -1222,3 +1222,74 @@ def insert_blank_pages(input_path: str, output_path: str,
     with open(output_path, 'wb') as f:
         writer.write(f)
     return {'output_path': output_path, 'blank_pages_inserted': blanks_added}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED ORGANIZE FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def reorder_by_index_list(input_path: str, output_path: str, page_order: list, password: str = '') -> dict:
+    """Reorder pages by providing a list of 1-indexed page numbers in desired order."""
+    import fitz as _fitz
+    doc = _fitz.open(input_path)
+    if password: doc.authenticate(password)
+    total = len(doc)
+    order_0 = [int(p) - 1 for p in page_order if 0 < int(p) <= total]
+    new_doc = _fitz.open()
+    for pg in order_0:
+        new_doc.insert_pdf(doc, from_page=pg, to_page=pg)
+    new_doc.save(output_path, garbage=4, deflate=True)
+    new_doc.close(); doc.close()
+    return {'output_path': output_path, 'original_pages': total, 'reordered_pages': len(order_0), 'order': page_order}
+
+
+def create_nup_booklet(input_path: str, output_path: str, rows: int = 2, cols: int = 2, password: str = '') -> dict:
+    """Create N-up booklet: 4 pages per sheet, 2x2 grid layout for printing."""
+    import fitz as _fitz
+    doc = _fitz.open(input_path)
+    if password: doc.authenticate(password)
+    new_doc = _fitz.open()
+    per_sheet = rows * cols
+    w_src = doc[0].rect.width; h_src = doc[0].rect.height
+    sheet_w = w_src * cols; sheet_h = h_src * rows
+    i = 0
+    while i < len(doc):
+        new_page = new_doc.new_page(width=sheet_w, height=sheet_h)
+        for r in range(rows):
+            for c in range(cols):
+                pg = i + r * cols + c
+                if pg < len(doc):
+                    src_rect = doc[pg].rect
+                    dest_rect = _fitz.Rect(c * w_src, r * h_src, (c+1) * w_src, (r+1) * h_src)
+                    new_page.show_pdf_page(dest_rect, doc, pg)
+        i += per_sheet
+    new_doc.save(output_path, garbage=4, deflate=True)
+    new_doc.close(); doc.close()
+    return {'output_path': output_path, 'pages_per_sheet': per_sheet, 'original_pages': len(doc) if not doc.is_closed else -1, 'sheet_count': len(new_doc) if not new_doc.is_closed else -1}
+
+
+def get_page_thumbnails_grid(input_path: str, output_path: str, cols: int = 4, thumb_px: int = 150, password: str = '') -> dict:
+    """Create a single-page thumbnail grid of all pages for visual page organization."""
+    import fitz as _fitz, math
+    from PIL import Image as PILImg, ImageDraw, ImageFont
+    import io
+    doc = _fitz.open(input_path)
+    if password: doc.authenticate(password)
+    total = len(doc)
+    rows = math.ceil(total / cols)
+    pad = 10
+    grid_w = cols * (thumb_px + pad) + pad
+    grid_h = rows * (thumb_px + pad) + pad
+    grid = PILImg.new('RGB', (grid_w, grid_h), (248, 249, 250))
+    for i in range(total):
+        scale = thumb_px / max(doc[i].rect.width, 1)
+        mat = _fitz.Matrix(scale, scale)
+        pix = doc[i].get_pixmap(matrix=mat, alpha=False)
+        img = PILImg.frombytes('RGB', [pix.width, pix.height], pix.samples)
+        col = i % cols; row = i // cols
+        x = pad + col * (thumb_px + pad); y = pad + row * (thumb_px + pad)
+        grid.paste(img, (x, y))
+    doc.close()
+    grid.save(output_path, 'PNG', optimize=True)
+    return {'output_path': output_path, 'total_pages': total, 'cols': cols, 'rows': rows}

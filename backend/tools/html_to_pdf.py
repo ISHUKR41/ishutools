@@ -1322,3 +1322,102 @@ def markdown_to_pdf(md_content: str, output_path: str) -> dict:
                 pdf.set_font('Helvetica', '', 11); pdf.multi_cell(0, 5, line or ' ')
         pdf.output(output_path)
         return {'output_path': output_path, 'engine': 'fpdf2_fallback'}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED HTML-TO-PDF FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def html_template_to_pdf(
+    template_name: str, data: dict,
+    output_path: str,
+) -> dict:
+    """
+    Convert a named HTML template with dynamic data injection to PDF.
+    Built-in templates: 'invoice', 'report', 'certificate', 'letter', 'resume'
+    """
+    templates = {
+        'invoice': '''<!DOCTYPE html><html><head><style>
+body{{font-family:Arial;padding:40px;}} h1{{color:#6366f1;}} table{{width:100%;border-collapse:collapse;}}
+td,th{{border:1px solid #ddd;padding:8px;}} th{{background:#6366f1;color:white;}}
+.total{{font-size:20px;color:#6366f1;font-weight:bold;}} .footer{{color:#888;font-size:12px;margin-top:30px;}}
+</style></head><body>
+<h1>INVOICE</h1><p><strong>To:</strong> {to}</p><p><strong>From:</strong> {from_}</p>
+<p><strong>Date:</strong> {date}</p><p><strong>Invoice #:</strong> {invoice_num}</p>
+<table><tr><th>Description</th><th>Amount</th></tr><tr><td>{description}</td><td>{amount}</td></tr></table>
+<p class="total">Total: {total}</p><p class="footer">Created with IshuTools.fun — Free PDF Tools by Ishu Kumar</p>
+</body></html>''',
+        'certificate': '''<!DOCTYPE html><html><head><style>
+body{{font-family:Georgia;text-align:center;padding:60px;background:#fef3c7;}}
+h1{{color:#92400e;font-size:36px;}} h2{{color:#b45309;font-size:28px;}}
+p{{font-size:16px;color:#78350f;}} .footer{{margin-top:60px;color:#aaa;font-size:12px;}}
+.border{{border:8px double #d97706;padding:40px;}}
+</style></head><body><div class="border">
+<h1>CERTIFICATE OF ACHIEVEMENT</h1>
+<p>This is to certify that</p><h2>{name}</h2>
+<p>has successfully completed</p><h3>{course}</h3>
+<p>on {date}</p><p>Issued by: {issuer}</p>
+<p class="footer">Created with IshuTools.fun | Free PDF Tools by Ishu Kumar (ISHUKR41)</p>
+</div></body></html>''',
+        'report': '''<!DOCTYPE html><html><head><style>
+body{{font-family:Arial;padding:40px;max-width:800px;margin:0 auto;}}
+h1{{color:#1e40af;border-bottom:3px solid #1e40af;padding-bottom:10px;}}
+h2{{color:#1e40af;}} .meta{{color:#6b7280;font-size:13px;}}
+p{{line-height:1.6;}} .footer{{border-top:1px solid #ddd;margin-top:30px;padding-top:10px;color:#aaa;font-size:12px;}}
+</style></head><body>
+<h1>{title}</h1><p class="meta">Author: {author} | Date: {date}</p>
+<h2>Summary</h2><p>{summary}</p><h2>Details</h2><p>{details}</p>
+<p class="footer">Created with IshuTools.fun — Free PDF Tools by Ishu Kumar (ISHUKR41 / ISHUKR75)</p>
+</body></html>''',
+    }
+    template_html = templates.get(template_name, templates['report'])
+    # Fill in the data
+    for key, val in data.items():
+        template_html = template_html.replace('{' + key + '}', str(val))
+    # Fill any remaining placeholders
+    import re
+    template_html = re.sub(r'\{[^}]+\}', '', template_html)
+    return html_to_pdf(template_html, output_path, is_url=False)
+
+
+def html_to_pdf_with_header_footer(
+    html_content: str, output_path: str,
+    header_html: str = '',
+    footer_html: str = '',
+) -> dict:
+    """Convert HTML to PDF with custom header and footer on every page."""
+    full_html = f'''<!DOCTYPE html><html><head><style>
+@page {{ margin: 70px 40px; }}
+header {{ position: fixed; top: -60px; left: 0; right: 0; height: 50px; text-align: center; font-size: 11px; color: #888; border-bottom: 1px solid #ddd; padding-bottom: 5px; }}
+footer {{ position: fixed; bottom: -60px; left: 0; right: 0; height: 50px; text-align: center; font-size: 11px; color: #888; border-top: 1px solid #ddd; padding-top: 5px; }}
+</style></head><body>
+<header>{header_html or 'IshuTools.fun — Free PDF Tools'}</header>
+<footer>{footer_html or 'Created with IshuTools.fun by Ishu Kumar | Page <span class="page"></span>'}</footer>
+{html_content}
+</body></html>'''
+    return html_to_pdf(full_html, output_path, is_url=False)
+
+
+def markdown_to_pdf(md_content: str, output_path: str) -> dict:
+    """Convert Markdown text to styled PDF."""
+    try:
+        import markdown
+        html = markdown.markdown(md_content, extensions=['tables', 'fenced_code'])
+    except ImportError:
+        import re
+        html = md_content
+        html = re.sub(r'^# (.+)$', r'<h1>\1</h1>', html, flags=re.M)
+        html = re.sub(r'^## (.+)$', r'<h2>\1</h2>', html, flags=re.M)
+        html = re.sub(r'^### (.+)$', r'<h3>\1</h3>', html, flags=re.M)
+        html = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', html)
+        html = re.sub(r'\*(.+?)\*', r'<em>\1</em>', html)
+        html = html.replace('\n\n', '</p><p>')
+    full_html = f'''<!DOCTYPE html><html><head><style>
+body{{font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:40px;line-height:1.6;}}
+h1,h2,h3{{color:#1e40af;}} code{{background:#f3f4f6;padding:2px 6px;border-radius:4px;font-family:monospace;}}
+pre{{background:#f3f4f6;padding:16px;border-radius:8px;overflow-x:auto;}}
+table{{border-collapse:collapse;width:100%;}} td,th{{border:1px solid #ddd;padding:8px;}}
+th{{background:#1e40af;color:white;}} blockquote{{border-left:4px solid #6366f1;margin:0;padding-left:16px;color:#555;}}
+</style></head><body><p>{html}</p></body></html>'''
+    return html_to_pdf(full_html, output_path, is_url=False)

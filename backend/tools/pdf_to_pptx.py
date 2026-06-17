@@ -888,3 +888,53 @@ def pdf_to_pptx_visual(input_path: str, output_path: str, dpi: int = 150) -> dic
         'slide_width_emu': prs.slide_width,
         'method': 'visual_image_slides',
     }
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED PDF-TO-PPTX FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def pdf_to_pptx_with_text_extraction(input_path: str, output_path: str, password: str = '') -> dict:
+    """Convert PDF to PPTX with both slide image AND extracted text as speaker notes."""
+    try:
+        import pdfplumber
+        from pptx import Presentation
+        from pptx.util import Inches, Pt
+        from PIL import Image as PILImg
+        import fitz as _fitz, io, tempfile
+        prs = Presentation()
+        prs.slide_width = Inches(13.33); prs.slide_height = Inches(7.5)
+        doc = _fitz.open(input_path)
+        if password: doc.authenticate(password)
+        with pdfplumber.open(input_path, password=password if password else None) as pdf_pl:
+            for pg_num in range(len(doc)):
+                mat = _fitz.Matrix(2.0, 2.0)
+                pix = doc[pg_num].get_pixmap(matrix=mat, alpha=False)
+                img = PILImg.frombytes('RGB', [pix.width, pix.height], pix.samples)
+                ib = io.BytesIO(); img.save(ib, 'JPEG', quality=85); ib.seek(0)
+                blank_layout = prs.slide_layouts[6]
+                slide = prs.slides.add_slide(blank_layout)
+                slide.shapes.add_picture(ib, Inches(0), Inches(0), prs.slide_width, prs.slide_height)
+                # Add text as speaker notes
+                text = pdf_pl.pages[pg_num].extract_text() or '' if pg_num < len(pdf_pl.pages) else ''
+                if text and slide.has_notes_slide:
+                    slide.notes_slide.notes_text_frame.text = text[:2000]
+        doc.close()
+        prs.save(output_path)
+        return {'output_path': output_path, 'slides': len(prs.slides), 'text_as_notes': True}
+    except Exception as e:
+        return pdf_to_pptx(input_path, output_path, password=password)
+
+
+def get_pdf_slide_count(input_path: str, password: str = '') -> dict:
+    """Get page count, dimensions, and aspect ratio of PDF (useful before pptx conversion)."""
+    import fitz as _fitz
+    doc = _fitz.open(input_path)
+    if password: doc.authenticate(password)
+    pages = []
+    for i, page in enumerate(doc):
+        r = page.rect
+        pages.append({'page': i+1, 'width_pt': round(r.width, 1), 'height_pt': round(r.height, 1), 'aspect': round(r.width/max(r.height, 1), 3)})
+    doc.close()
+    return {'page_count': len(pages), 'pages': pages[:10], 'most_common_size': pages[0] if pages else {}}

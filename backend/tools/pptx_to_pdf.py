@@ -1144,3 +1144,75 @@ def pptx_to_image_gallery(input_path: str, output_dir: str,
 
     return {'slides': len(created_files), 'files': created_files,
             'dpi': dpi, 'format': format_type}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED PPTX-TO-PDF FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def pptx_to_pdf_notes_included(input_path: str, output_path: str) -> dict:
+    """Convert PPTX to PDF with presenter notes appended after each slide."""
+    from pptx import Presentation
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.pagesizes import A4, LANDSCAPE
+    from reportlab.lib.units import mm
+    import io, tempfile
+    prs = Presentation(input_path)
+    buf = io.BytesIO()
+    W, H = A4
+    c = rl_canvas.Canvas(buf, pagesize=A4)
+    for i, slide in enumerate(prs.slides):
+        # Slide title
+        title = ''
+        for shape in slide.shapes:
+            if shape.has_text_frame and shape.shape_type == 13:
+                continue
+            if hasattr(shape, 'text') and shape.text.strip():
+                title = shape.text.strip()[:60]
+                break
+        c.setFillColorRGB(0.24, 0.25, 0.59)
+        c.rect(0, H-20*mm, W, 20*mm, fill=1, stroke=0)
+        c.setFillColorRGB(1, 1, 1)
+        c.setFont('Helvetica-Bold', 13)
+        c.drawString(10*mm, H-14*mm, f'Slide {i+1}: {title or "(No title)"}')
+        # Notes
+        notes = ''
+        if slide.has_notes_slide:
+            notes = slide.notes_slide.notes_text_frame.text.strip() if slide.notes_slide.notes_text_frame else ''
+        c.setFillColorRGB(0.1, 0.1, 0.1)
+        c.setFont('Helvetica', 10)
+        y = H - 30*mm
+        for line in (notes or '(No presenter notes)').split('\n')[:20]:
+            c.drawString(10*mm, y, line[:90])
+            y -= 6*mm
+            if y < 15*mm: break
+        c.showPage()
+    c.save()
+    buf.seek(0)
+    with open(output_path, 'wb') as f:
+        f.write(buf.read())
+    return {'output_path': output_path, 'slides': len(prs.slides), 'notes_included': True}
+
+
+def extract_slide_titles(input_path: str) -> list:
+    """Extract all slide titles from a PPTX file."""
+    try:
+        from pptx import Presentation
+        prs = Presentation(input_path)
+        titles = []
+        for i, slide in enumerate(prs.slides):
+            title = ''
+            for shape in slide.shapes:
+                if shape.has_text_frame and hasattr(shape, 'name') and 'title' in shape.name.lower():
+                    title = shape.text.strip()
+                    break
+            if not title:
+                for shape in slide.shapes:
+                    if hasattr(shape, 'text') and shape.text.strip():
+                        title = shape.text.strip()[:80]
+                        break
+            titles.append({'slide': i+1, 'title': title or f'Slide {i+1}'})
+        return titles
+    except Exception as e:
+        return [{'error': str(e)}]

@@ -1220,3 +1220,69 @@ def repair_recover_metadata(input_path: str) -> dict:
     except Exception as e2:
         result['pikepdf_error'] = str(e2)
     return result
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED REPAIR FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def diagnose_pdf(input_path: str, password: str = '') -> dict:
+    """
+    Run a comprehensive diagnostic on a PDF to identify issues before repair.
+    Returns error types, affected pages, and recommended repair actions.
+    """
+    issues = []
+    try:
+        import fitz as _fitz
+        doc = _fitz.open(input_path)
+        if password: doc.authenticate(password)
+        if doc.needs_pass and not doc.is_authenticated: issues.append({'type': 'ENCRYPTED', 'severity': 'HIGH', 'detail': 'Password required'})
+        for i in range(len(doc)):
+            page = doc[i]
+            try:
+                page.get_text()
+            except Exception as e:
+                issues.append({'type': 'PAGE_TEXT_ERROR', 'severity': 'MEDIUM', 'page': i+1, 'detail': str(e)[:80]})
+            try:
+                page.get_images()
+            except Exception as e:
+                issues.append({'type': 'PAGE_IMAGE_ERROR', 'severity': 'MEDIUM', 'page': i+1, 'detail': str(e)[:80]})
+        doc.close()
+    except Exception as e:
+        issues.append({'type': 'OPEN_FAILED', 'severity': 'CRITICAL', 'detail': str(e)[:120]})
+    try:
+        import pikepdf
+        with pikepdf.open(input_path, password=password, suppress_warnings=False) as pdf:
+            pdf.check()
+    except pikepdf.PdfError as e:
+        issues.append({'type': 'PIKEPDF_STRUCTURE_ERROR', 'severity': 'HIGH', 'detail': str(e)[:120]})
+    except Exception:
+        pass
+    return {
+        'issues_found': len(issues),
+        'issues': issues,
+        'severity': 'CRITICAL' if any(i['severity']=='CRITICAL' for i in issues) else ('HIGH' if any(i['severity']=='HIGH' for i in issues) else 'LOW'),
+        'repairable': not any(i['type']=='ENCRYPTED' for i in issues),
+        'recommendation': 'Use repair_pdf() to attempt automatic repair' if issues else 'PDF appears healthy',
+    }
+
+
+def repair_and_flatten(input_path: str, output_path: str, password: str = '') -> dict:
+    """Repair PDF and flatten all interactive elements (forms, annotations) for maximum compatibility."""
+    import tempfile
+    tmp = tempfile.mktemp(suffix='.pdf')
+    repair_result = repair_pdf(input_path, tmp, password=password)
+    try:
+        import fitz as _fitz
+        doc = _fitz.open(tmp)
+        for page in doc:
+            page.clean_contents()
+        doc.save(output_path, garbage=4, deflate=True, clean=True)
+        doc.close()
+    except Exception:
+        import shutil; shutil.copy2(tmp, output_path)
+    import os; 
+    try: os.remove(tmp)
+    except: pass
+    return {**repair_result, 'output_path': output_path, 'flattened': True}

@@ -985,3 +985,72 @@ def rotate_flip_vertical(input_path: str, output_path: str) -> dict:
     count = len(out)
     out.close(); doc.close()
     return {'output_path': output_path, 'page_count': count, 'flip': 'vertical'}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED ROTATION FUNCTIONS
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def auto_rotate_all_pages(input_path: str, output_path: str, password: str = '') -> dict:
+    """
+    Auto-detect and correct page orientation for all pages using text analysis.
+    Pages where most text runs vertically are rotated to make text horizontal.
+    """
+    import fitz as _fitz
+    doc = _fitz.open(input_path)
+    if password:
+        doc.authenticate(password)
+    rotations_applied = 0
+    for page in doc:
+        blocks = page.get_text('dict').get('blocks', [])
+        angle_votes = {0: 0, 90: 0, 180: 0, 270: 0}
+        for blk in blocks:
+            for line in blk.get('lines', []):
+                for span in line.get('spans', []):
+                    angle = round(span.get('dir', (1, 0))[0]) * 90 % 360
+                    if angle in angle_votes:
+                        angle_votes[angle] += len(span.get('text', ''))
+        dominant = max(angle_votes, key=angle_votes.get)
+        if dominant != 0 and angle_votes[dominant] > 50:
+            page.set_rotation((page.rotation - dominant) % 360)
+            rotations_applied += 1
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'rotations_applied': rotations_applied}
+
+
+def rotate_page_map(input_path: str, output_path: str, page_angle_map: dict, password: str = '') -> dict:
+    """
+    Rotate specific pages by different angles.
+    page_angle_map: {1: 90, 3: 180, 5: 270} (1-indexed)
+    """
+    import fitz as _fitz
+    doc = _fitz.open(input_path)
+    if password:
+        doc.authenticate(password)
+    applied = []
+    for page_num_1, angle in page_angle_map.items():
+        pg = int(page_num_1) - 1
+        if 0 <= pg < len(doc):
+            doc[pg].set_rotation((doc[pg].rotation + int(angle)) % 360)
+            applied.append({'page': pg + 1, 'angle': angle})
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'rotations_applied': applied}
+
+
+def get_page_orientations(input_path: str, password: str = '') -> dict:
+    """
+    Inspect all pages and return their current rotation angles.
+    Useful for auditing a PDF before rotation.
+    """
+    import fitz as _fitz
+    doc = _fitz.open(input_path)
+    if password:
+        doc.authenticate(password)
+    orientations = []
+    for i, page in enumerate(doc):
+        orientations.append({'page': i + 1, 'rotation': page.rotation, 'width': round(page.rect.width), 'height': round(page.rect.height)})
+    doc.close()
+    return {'page_count': len(orientations), 'orientations': orientations}

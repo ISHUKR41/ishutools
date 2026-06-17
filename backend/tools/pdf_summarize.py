@@ -1301,3 +1301,96 @@ def count_pdf_stats(input_path: str) -> dict:
         'reading_time_minutes': round(len(words)/238, 1),
         'speaking_time_minutes': round(len(words)/130, 1),
     }
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED SUMMARIZE FUNCTIONS — langdetect · readability · keywords
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def summarize_with_auto_language(
+    input_path: str, output_path: str,
+    sentences: int = 5,
+    password: str = '',
+) -> dict:
+    """
+    Detect the PDF language automatically using langdetect, then summarize.
+    Returns summary, detected language, and confidence.
+    """
+    result = summarize_pdf(input_path, output_path, sentences=sentences, password=password)
+    lang_info = {'language': 'unknown', 'confidence': 0.0}
+    try:
+        from langdetect import detect, detect_langs
+        text = result.get('extracted_text', '') or result.get('summary', '')
+        if text and len(text) > 50:
+            lang_info['language'] = detect(text[:2000])
+            dets = detect_langs(text[:2000])
+            lang_info['confidence'] = round(max((d.prob for d in dets), default=0), 3)
+            lang_info['all_detected'] = [{'lang': str(d).split(':')[0], 'prob': round(float(str(d).split(':')[1]), 3)} for d in dets[:5]]
+    except Exception:
+        pass
+    return {**result, 'language_detection': lang_info}
+
+
+def get_document_readability(input_path: str, password: str = '') -> dict:
+    """
+    Analyze document readability: average sentence length, word length, complexity.
+    Returns Flesch Reading Ease approximation and grade level estimate.
+    """
+    import re
+    try:
+        import pdfplumber
+        with pdfplumber.open(input_path, password=password if password else None) as pdf:
+            text = ' '.join((pg.extract_text() or '') for pg in pdf.pages[:20])
+    except Exception:
+        text = ''
+    if not text.strip():
+        return {'error': 'No extractable text found'}
+    sentences = [s.strip() for s in re.split(r'[.!?]+', text) if len(s.strip()) > 10]
+    words = text.split()
+    syllable_count = sum(max(1, len(re.findall(r'[aeiouAEIOU]', w))) for w in words[:1000])
+    if not sentences or not words:
+        return {'error': 'Insufficient text for analysis'}
+    avg_sentence_len = len(words) / max(len(sentences), 1)
+    avg_syllables_per_word = syllable_count / max(min(len(words), 1000), 1)
+    flesch = 206.835 - 1.015 * avg_sentence_len - 84.6 * avg_syllables_per_word
+    flesch = max(0, min(100, flesch))
+    if flesch >= 90: grade = 'Very Easy (5th Grade)'; level = 'elementary'
+    elif flesch >= 70: grade = 'Easy (6th Grade)'; level = 'middle_school'
+    elif flesch >= 60: grade = 'Standard (8th Grade)'; level = 'high_school'
+    elif flesch >= 30: grade = 'Difficult (College)'; level = 'college'
+    else: grade = 'Very Difficult (Professional)'; level = 'professional'
+    return {
+        'flesch_reading_ease': round(flesch, 1),
+        'grade_level': grade,
+        'level': level,
+        'total_words': len(words),
+        'total_sentences': len(sentences),
+        'avg_sentence_length_words': round(avg_sentence_len, 1),
+        'avg_syllables_per_word': round(avg_syllables_per_word, 2),
+    }
+
+
+def extract_action_items(input_path: str, password: str = '') -> dict:
+    """
+    Extract action items, tasks, and to-do items from PDF using keyword detection.
+    Finds sentences with action verbs, deadlines, and assignment language.
+    """
+    import re
+    try:
+        import pdfplumber
+        with pdfplumber.open(input_path, password=password if password else None) as pdf:
+            text = ' '.join((pg.extract_text() or '') for pg in pdf.pages[:30])
+    except Exception:
+        text = ''
+    sentences = re.split(r'[.!?\n]+', text)
+    action_keywords = r'\b(must|should|will|shall|need to|have to|required to|action|task|todo|to-do|deadline|due|assign|please|ensure|complete|submit|review|approve|send|update|schedule|contact|follow up|implement|create|prepare|deliver|coordinate)\b'
+    action_items = []
+    for s in sentences:
+        if re.search(action_keywords, s, re.I) and len(s.strip()) > 20:
+            action_items.append(s.strip()[:200])
+    return {
+        'action_items': action_items[:30],
+        'total_found': len(action_items),
+        'note': 'AI-extracted using keyword analysis',
+    }

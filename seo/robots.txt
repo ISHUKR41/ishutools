@@ -1,81 +1,41 @@
+# IshuTools.fun - robots.txt
+# Free PDF Tools Suite by Ishu Kumar (ISHUKR41 / ISHUKR75)
+# https://ishutools.fun
+
 User-agent: *
 Allow: /
+Allow: /tools/
+Allow: /static/
 Disallow: /api/
+Disallow: /uploads/
 Disallow: /tmp/
-Disallow: /_internal/
-Disallow: /static/uploads/
 
-# Allow all major search engines — no crawl delay for fast indexing
+# Sitemap location
+Sitemap: https://ishutools.fun/sitemap.xml
+
+# Google specific
 User-agent: Googlebot
 Allow: /
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /tmp/
 Crawl-delay: 0
 
-User-agent: Googlebot-Image
-Allow: /static/icons/
-
+# Bing
 User-agent: Bingbot
 Allow: /
-Crawl-delay: 1
+Disallow: /api/
+Disallow: /uploads/
 
+# Allow all major search engines
 User-agent: Slurp
 Allow: /
-Crawl-delay: 2
 
 User-agent: DuckDuckBot
 Allow: /
 
-User-agent: Twitterbot
+User-agent: Baiduspider
 Allow: /
 
-User-agent: facebot
-Allow: /
-
-User-agent: LinkedInBot
-Allow: /
-
-# Block aggressive scrapers
-User-agent: AhrefsBot
-Disallow: /
-
-User-agent: SemrushBot
-Disallow: /
-
-User-agent: MJ12bot
-Disallow: /
-
-User-agent: dotbot
-Disallow: /
-
-User-agent: Exabot
-Disallow: /
-
-# Sitemap locations
-Sitemap: https://ishutools.fun/sitemap.xml
-Sitemap: https://ishutools.fun/sitemap-tools.xml
-
-# Preferred crawl frequency
-# Crawl-delay for all: 0 (as fast as possible)
 User-agent: YandexBot
 Allow: /
-Crawl-delay: 2
-
-User-agent: Sogou Spider
-Allow: /
-
-User-agent: Bytespider
-Disallow: /api/
-
-User-agent: GPTBot
-Allow: /
-
-User-agent: Google-Extended  
-Allow: /
-
-User-agent: PerplexityBot
-Allow: /
-
-User-agent: ClaudeBot
-Allow: /
-
-# Canonical host
-Host: https://ishutools.fun

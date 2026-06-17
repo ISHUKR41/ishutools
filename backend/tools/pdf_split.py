@@ -1078,3 +1078,277 @@ def split_remove_blank_pages(input_path: str, output_path: str, threshold: int =
     total = len(out)
     out.close(); doc.close()
     return {'output_path': output_path, 'original_pages': len(doc) if not doc.is_closed else -1, 'remaining_pages': total, 'blank_pages_removed': removed}
+
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED SPLIT FUNCTIONS — camelot · heading detection · smart split
+# IshuTools.fun | Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════
+
+def split_and_extract_tables_csv(
+    input_path: str,
+    output_dir: str,
+    pages: str = 'all',
+    flavor: str = 'lattice',
+    password: str = '',
+) -> dict:
+    """
+    Extract all tables from a PDF and save each as a separate CSV file.
+    Uses camelot (lattice/stream) with tabula fallback.
+
+    Args:
+        input_path:  Source PDF
+        output_dir:  Directory for CSV output files
+        pages:       Pages to process ('all' or '1,3,5-8')
+        flavor:      'lattice' (bordered tables) or 'stream' (borderless)
+        password:    PDF password if protected
+
+    Returns:
+        dict with csv_files, total_tables, tables_per_page
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    csv_files = []
+    tables_per_page = {}
+    errors = []
+
+    # Try camelot first
+    try:
+        import camelot
+        tables = camelot.read_pdf(
+            input_path, pages=pages, flavor=flavor,
+            password=password if password else None,
+        )
+        for i, tbl in enumerate(tables):
+            out_csv = os.path.join(output_dir, f'table_{i+1:03d}_page{tbl.page}.csv')
+            tbl.to_csv(out_csv)
+            csv_files.append(out_csv)
+            pg = str(tbl.page)
+            tables_per_page[pg] = tables_per_page.get(pg, 0) + 1
+        return {
+            'csv_files': csv_files,
+            'total_tables': len(csv_files),
+            'tables_per_page': tables_per_page,
+            'engine': 'camelot',
+            'output_dir': output_dir,
+        }
+    except Exception as e_cam:
+        errors.append(f'camelot: {e_cam}')
+
+    # Tabula fallback
+    try:
+        import tabula
+        dfs = tabula.read_pdf(input_path, pages=pages, multiple_tables=True)
+        for i, df in enumerate(dfs):
+            if df.empty:
+                continue
+            out_csv = os.path.join(output_dir, f'table_{i+1:03d}.csv')
+            df.to_csv(out_csv, index=False)
+            csv_files.append(out_csv)
+        return {
+            'csv_files': csv_files,
+            'total_tables': len(csv_files),
+            'tables_per_page': {},
+            'engine': 'tabula',
+            'output_dir': output_dir,
+        }
+    except Exception as e_tab:
+        errors.append(f'tabula: {e_tab}')
+
+    # pdfplumber fallback
+    try:
+        import pdfplumber
+        import csv
+        with pdfplumber.open(input_path, password=password if password else None) as pdf:
+            tbl_num = 0
+            for pg_num, pg in enumerate(pdf.pages):
+                tbls = pg.extract_tables()
+                for tbl in tbls:
+                    if not tbl:
+                        continue
+                    tbl_num += 1
+                    out_csv = os.path.join(output_dir, f'table_{tbl_num:03d}_page{pg_num+1}.csv')
+                    with open(out_csv, 'w', newline='', encoding='utf-8') as f:
+                        writer = csv.writer(f)
+                        writer.writerows(tbl)
+                    csv_files.append(out_csv)
+                    pg_key = str(pg_num + 1)
+                    tables_per_page[pg_key] = tables_per_page.get(pg_key, 0) + 1
+        return {
+            'csv_files': csv_files,
+            'total_tables': len(csv_files),
+            'tables_per_page': tables_per_page,
+            'engine': 'pdfplumber',
+            'output_dir': output_dir,
+        }
+    except Exception as e_plumb:
+        errors.append(f'pdfplumber: {e_plumb}')
+
+    return {'csv_files': [], 'total_tables': 0, 'errors': errors}
+
+
+def split_smart_by_heading(
+    input_path: str,
+    output_dir: str,
+    result_zip: str,
+    min_heading_size: float = 14.0,
+    password: str = '',
+) -> dict:
+    """
+    Smart split: detect large-font headings and split at each chapter/section.
+    Uses PyMuPDF text block analysis.
+
+    Args:
+        input_path:        Source PDF
+        output_dir:        Directory for split files
+        result_zip:        Path for ZIP archive of results
+        min_heading_size:  Minimum font size to consider as heading
+        password:          PDF password if protected
+
+    Returns:
+        dict with result_zip, file_count, sections
+    """
+    import fitz as _fitz, zipfile, shutil
+
+    os.makedirs(output_dir, exist_ok=True)
+    doc = _fitz.open(input_path)
+    if password:
+        doc.authenticate(password)
+
+    # Detect heading pages
+    heading_pages = []
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        blocks = page.get_text('dict').get('blocks', [])
+        for blk in blocks:
+            for line in blk.get('lines', []):
+                for span in line.get('spans', []):
+                    if span.get('size', 0) >= min_heading_size and span.get('text', '').strip():
+                        heading_pages.append((page_num, span['text'].strip()[:50]))
+                        break
+                else:
+                    continue
+                break
+
+    if not heading_pages:
+        # No headings found — fall back to split every 10 pages
+        heading_pages = [(i * 10, f'Section_{i+1}') for i in range(len(doc) // 10 + 1)]
+
+    # Deduplicate: keep first heading per page
+    seen = {}
+    dedup = []
+    for pnum, title in heading_pages:
+        if pnum not in seen:
+            seen[pnum] = True
+            dedup.append((pnum, title))
+
+    # Build sections
+    sections = []
+    for i, (start_pg, title) in enumerate(dedup):
+        end_pg = dedup[i + 1][0] - 1 if i + 1 < len(dedup) else len(doc) - 1
+        sections.append({'start': start_pg, 'end': end_pg, 'title': title})
+
+    # Extract each section
+    output_files = []
+    for i, sec in enumerate(sections):
+        safe_title = ''.join(c for c in sec['title'] if c.isalnum() or c in ' _-')[:30].strip()
+        out_name = f'{i+1:03d}_{safe_title or "section"}.pdf'
+        out_path = os.path.join(output_dir, out_name)
+        new_doc = _fitz.open()
+        new_doc.insert_pdf(doc, from_page=sec['start'], to_page=sec['end'])
+        new_doc.save(out_path, garbage=4, deflate=True)
+        new_doc.close()
+        output_files.append(out_path)
+        sec['output_file'] = out_name
+
+    doc.close()
+
+    # Zip results
+    with zipfile.ZipFile(result_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for f in output_files:
+            zf.write(f, os.path.basename(f))
+
+    return {
+        'result_zip': result_zip,
+        'file_count': len(output_files),
+        'sections': sections,
+        'heading_threshold_pt': min_heading_size,
+    }
+
+
+def split_by_pdfplumber_text_change(
+    input_path: str,
+    output_dir: str,
+    result_zip: str,
+    similarity_threshold: float = 0.3,
+    password: str = '',
+) -> dict:
+    """
+    Split PDF at content-change boundaries detected by text similarity analysis.
+    Consecutive pages with very different content trigger a new section.
+
+    Args:
+        input_path:            Source PDF
+        output_dir:            Directory for output files
+        result_zip:            ZIP archive path
+        similarity_threshold:  Jaccard similarity below this = new section
+        password:              PDF password
+
+    Returns:
+        dict with result_zip, file_count, split_points
+    """
+    import zipfile
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    try:
+        import pdfplumber
+    except ImportError:
+        return split_pdf(input_path, output_dir, result_zip, mode='every_n', every_n=5, password=password)
+
+    def jaccard(a: str, b: str) -> float:
+        wa = set(a.lower().split())
+        wb = set(b.lower().split())
+        if not wa or not wb:
+            return 0.0
+        return len(wa & wb) / len(wa | wb)
+
+    with pdfplumber.open(input_path, password=password if password else None) as pdf:
+        page_texts = [pg.extract_text() or '' for pg in pdf.pages]
+
+    n = len(page_texts)
+    split_points = [0]
+    for i in range(1, n):
+        sim = jaccard(page_texts[i - 1], page_texts[i])
+        if sim < similarity_threshold:
+            split_points.append(i)
+    split_points.append(n)
+
+    import fitz as _fitz
+    doc = _fitz.open(input_path)
+    if password:
+        doc.authenticate(password)
+
+    output_files = []
+    for i in range(len(split_points) - 1):
+        start = split_points[i]
+        end = split_points[i + 1] - 1
+        out_path = os.path.join(output_dir, f'section_{i+1:03d}_pages{start+1}-{end+1}.pdf')
+        new_doc = _fitz.open()
+        new_doc.insert_pdf(doc, from_page=start, to_page=end)
+        new_doc.save(out_path, garbage=4, deflate=True)
+        new_doc.close()
+        output_files.append(out_path)
+
+    doc.close()
+
+    with zipfile.ZipFile(result_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for f in output_files:
+            zf.write(f, os.path.basename(f))
+
+    return {
+        'result_zip': result_zip,
+        'file_count': len(output_files),
+        'split_points': split_points[1:-1],
+        'total_pages': n,
+        'sections': len(output_files),
+    }
