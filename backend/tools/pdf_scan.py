@@ -41,6 +41,7 @@ from PIL import (Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps,
                  ImageChops)
 from pypdf import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import A4, letter
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas as rl_canvas
@@ -268,11 +269,13 @@ def _build_searchable_page(c: rl_canvas.Canvas, img: Image.Image,
     buf = io.BytesIO()
     img.save(buf, format='JPEG', quality=92, optimize=True, progressive=True)
     buf.seek(0)
-    c.drawImage(buf, 0, 0, width=page_w, height=page_h,
+    c.drawImage(ImageReader(buf), 0, 0, width=page_w, height=page_h,
                 preserveAspectRatio=True, anchor='c')
 
-    # Invisible text layer
-    c.setFillColorRGB(0, 0, 0, alpha=0)
+    # Invisible text layer (rendering mode 3 = invisible, for searchability)
+    c.saveState()
+    c.setFillColorRGB(0, 0, 0)
+    c.setFillAlpha(0.002)
     c.setFont('Helvetica', 6)
 
     img_w, img_h = img.size
@@ -299,6 +302,7 @@ def _build_searchable_page(c: rl_canvas.Canvas, img: Image.Image,
             c.drawString(px, py, word)
         except Exception:
             pass
+    c.restoreState()
 
 
 def _image_to_page_size(img: Image.Image, target_dpi: int = 150) -> tuple[float, float]:
@@ -504,7 +508,7 @@ def images_to_pdf_lossless(input_paths: list, output_path: str) -> dict:
                 img.save(buf, 'PNG')
                 buf.seek(0)
                 pw, ph = A4
-                c.drawImage(buf, 0, 0, pw, ph, preserveAspectRatio=True, anchor='c')
+                c.drawImage(ImageReader(buf), 0, 0, pw, ph, preserveAspectRatio=True, anchor='c')
                 if i < len(valid_paths) - 1:
                     c.showPage()
             except Exception:

@@ -2021,3 +2021,269 @@ img { max-width: 100%; display: block; }
 .seo-faq { margin: 0.6rem 0; }
 .faq-item { margin: 0.4rem 0; }
 .seo-tagline { margin-top: 0.8rem; font-size: 0.78rem; opacity: 0.7; }
+
+/* ═══════════════════════════════════════════════════════════════
+   ABOUT MODERN SECTION — IshuTools by Ishu Kumar
+═══════════════════════════════════════════════════════════════ */
+.about-modern {
+  padding: 80px 0 72px;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+.about-modern::before {
+  content: '';
+  position: absolute;
+  top: -120px; right: -120px;
+  width: 380px; height: 380px;
+  background: radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+.about-modern::after {
+  content: '';
+  position: absolute;
+  bottom: -80px; left: -80px;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.about-modern-header {
+  text-align: center;
+  margin-bottom: 52px;
+}
+.section-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(99,102,241,0.1);
+  border: 1px solid rgba(99,102,241,0.25);
+  color: #818cf8;
+  padding: 6px 18px;
+  border-radius: 100px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  margin-bottom: 18px;
+}
+.about-modern-title {
+  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 14px;
+  line-height: 1.25;
+}
+.about-modern-subtitle {
+  font-size: 1.02rem;
+  color: var(--text-muted);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+.about-modern-subtitle a {
+  color: #6366f1;
+  text-decoration: none;
+  font-weight: 600;
+}
+.about-modern-subtitle a:hover { text-decoration: underline; }
+
+/* Stats Row */
+.about-stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 52px;
+}
+.about-stat-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 24px 28px;
+  text-align: center;
+  min-width: 120px;
+  flex: 1;
+  max-width: 180px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.about-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.about-stat-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(99,102,241,0.15);
+  border-color: rgba(99,102,241,0.35);
+}
+.about-stat-card:hover::before { opacity: 1; }
+.about-stat-icon-wrap {
+  font-size: 1.4rem;
+  color: #6366f1;
+  margin-bottom: 10px;
+  opacity: 0.85;
+}
+.about-stat-num {
+  font-size: 2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+.about-stat-lbl {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* Feature Cards Grid */
+.about-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+.about-feat-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px 28px 28px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  position: relative;
+}
+.about-feat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 50px rgba(99,102,241,0.12);
+  border-color: rgba(99,102,241,0.3);
+}
+.about-feat-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  color: #fff;
+  margin-bottom: 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+}
+.about-feat-card h3 {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+.about-feat-card p {
+  font-size: 0.91rem;
+  color: var(--text-muted);
+  line-height: 1.75;
+  margin: 0;
+}
+.about-feat-card p a {
+  color: #6366f1;
+  text-decoration: none;
+  font-weight: 600;
+}
+.about-feat-card p a:hover { text-decoration: underline; }
+.creator-github-links {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.creator-gh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(99,102,241,0.12);
+  border: 1px solid rgba(99,102,241,0.3);
+  color: #818cf8;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.creator-gh-btn:hover {
+  background: rgba(99,102,241,0.22);
+  border-color: #6366f1;
+  color: #a5b4fc;
+  text-decoration: none !important;
+}
+
+/* Responsive About */
+@media (max-width: 900px) {
+  .about-cards-grid { grid-template-columns: 1fr; }
+  .about-stats-row { gap: 12px; }
+  .about-stat-card { min-width: 90px; padding: 18px 16px; }
+  .about-stat-num { font-size: 1.6rem; }
+}
+@media (max-width: 600px) {
+  .about-modern { padding: 50px 0 44px; }
+  .about-stats-row { gap: 8px; }
+  .about-stat-card { max-width: 140px; min-width: 80px; padding: 14px 12px; }
+  .about-feat-card { padding: 24px 20px 20px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FAQ SECTION — Enhanced Styling
+═══════════════════════════════════════════════════════════════ */
+.faq-section .section-title { text-align: center; }
+.faq-section .section-subtitle { text-align: center; }
+.faq-item p { animation: faqOpen 0.25s ease; }
+@keyframes faqOpen {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.faq-item[open] {
+  box-shadow: 0 4px 20px rgba(99,102,241,0.1);
+}
+.faq-item summary {
+  transition: color 0.2s;
+}
+.faq-item[open] summary {
+  color: #818cf8;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SEO KEYWORDS SECTION — Professional Styling Enhancement
+═══════════════════════════════════════════════════════════════ */
+.seo-keywords-section {
+  background: var(--card-bg);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.seo-keywords-inner h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.seo-tools-col h3 {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.seo-tools-col ul li a {
+  transition: color 0.2s, padding-left 0.2s;
+}
+.seo-tools-col ul li a:hover {
+  color: #a5b4fc;
+  padding-left: 4px;
+}
