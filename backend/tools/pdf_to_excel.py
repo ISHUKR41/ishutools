@@ -3,7 +3,7 @@ pdf_to_excel.py — Extract tables and data from PDF to Excel (Enterprise Editio
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
-Engines: openpyxl · pdfminer · fitz (PyMuPDF) · tabula-py · pypdf · pikepdf · Ghostscript CLI
+Engines: openpyxl · pdfminer · fitz (PyMuPDF) · tabula-py · pdfplumber · pypdf · pikepdf · Ghostscript CLI
 Features:
   - tabula-py: lattice mode (bordered tables) + stream mode (borderless)
   - pdfminer layout analysis for structural table detection (LTTextBox rows)
@@ -48,6 +48,12 @@ import pikepdf
 from pypdf import PdfReader
 from pdfminer.high_level import extract_text, extract_pages
 from pdfminer.layout import LTTextBox, LTChar, LTLine, LTRect
+
+try:
+    import pdfplumber
+    HAS_PDFPLUMBER = True
+except ImportError:
+    HAS_PDFPLUMBER = False
 
 # ── CLI binary detection ─────────────────────────────────────────────────────
 GS_BIN = shutil.which('gs') or shutil.which('ghostscript')
@@ -279,6 +285,40 @@ def _extract_tables_fitz_bbox(page_data: dict) -> list:
     if len(table_rows) >= 2:
         return [table_rows]
     return []
+
+
+def _extract_tables_pdfplumber(input_path: str) -> list:
+    """
+    pdfplumber-based table extraction with auto detection.
+    Returns list of row-lists (each row is a list of cell strings).
+    """
+    if not HAS_PDFPLUMBER:
+        return []
+    tables = []
+    try:
+        with pdfplumber.open(input_path) as pdf:
+            for page in pdf.pages:
+                try:
+                    page_tables = page.extract_tables({
+                        'vertical_strategy': 'lines',
+                        'horizontal_strategy': 'lines',
+                        'snap_tolerance': 3,
+                    })
+                    if not page_tables:
+                        page_tables = page.extract_tables({
+                            'vertical_strategy': 'text',
+                            'horizontal_strategy': 'text',
+                            'snap_tolerance': 5,
+                        })
+                    for tbl in (page_tables or []):
+                        if tbl and len(tbl) >= 2:
+                            clean = [[str(c or '').strip() for c in row] for row in tbl]
+                            tables.append(clean)
+                except Exception:
+                    continue
+    except Exception:
+        pass
+    return tables
 
 
 def _extract_tables_heuristic(text: str) -> list:
@@ -683,6 +723,14 @@ def pdf_to_excel(
                 method_used = 'pdfminer_layout'
         except Exception:
             pass
+
+    # pdfplumber extraction (after tabula/fitz/pdfminer)
+    if not tabula_success and HAS_PDFPLUMBER and tables_found == 0:
+        pp_tables = _extract_tables_pdfplumber(work_path)
+        if pp_tables:
+            _add_heuristic_table_sheet(wb, pp_tables[:20], 'pdfplumber Tables')
+            tables_found = len(pp_tables)
+            method_used = 'pdfplumber'
 
     # Final fallback: whitespace heuristic
     if not tabula_success and use_heuristic and tables_found == 0:

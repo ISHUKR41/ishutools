@@ -50,6 +50,48 @@
   C.related        = C.related        || [];
   C.acceptedLabel  = C.acceptedLabel  || C.acceptedTypes || 'PDF';
 
+  /* ─── SEO: Auto-inject BreadcrumbList JSON-LD for every tool page ─── */
+  (function injectSeoSchemas() {
+    try {
+      const breadcrumb = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://ishutools.fun/" },
+          { "@type": "ListItem", "position": 2, "name": "PDF Tools", "item": "https://ishutools.fun/#tools" },
+          { "@type": "ListItem", "position": 3, "name": C.name, "item": "https://ishutools.fun/tools/" + C.id + "/" }
+        ]
+      };
+      const s1 = document.createElement('script');
+      s1.type = 'application/ld+json';
+      s1.textContent = JSON.stringify(breadcrumb);
+      document.head.appendChild(s1);
+
+      /* Page title SEO boost */
+      const existingTitle = document.title || '';
+      if (!existingTitle.toLowerCase().includes('ishutools')) {
+        document.title = C.name + ' Free Online — IshuTools by Ishu Kumar';
+      }
+
+      /* Meta description update if missing */
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        metaDesc.name = 'description';
+        metaDesc.content = C.name + ' free online — no signup, no watermark. Professional PDF tool by Ishu Kumar at ishutools.fun.';
+        document.head.appendChild(metaDesc);
+      }
+
+      /* Canonical URL */
+      if (!document.querySelector('link[rel="canonical"]')) {
+        const can = document.createElement('link');
+        can.rel = 'canonical';
+        can.href = 'https://ishutools.fun/tools/' + C.id + '/';
+        document.head.appendChild(can);
+      }
+    } catch (e) { /* silent fallback */ }
+  })();
+
   /* ═══════════════════════════════════════════════════════════════════════════
      UTILS
   ═══════════════════════════════════════════════════════════════════════════ */
@@ -1076,16 +1118,34 @@
 
     /* Compare PDF result */
     } else if (data.differences !== undefined) {
-      const diff = data.differences;
-      const text = typeof diff === 'string' ? diff : JSON.stringify(diff, null, 2);
+      const diff = data.differences || {};
+      const simPct   = diff.text_similarity ?? diff.similarity_pct ?? diff.similarity ?? null;
+      const identical = simPct !== null ? simPct >= 99.0 : diff.are_identical;
+      const simLabel  = simPct !== null ? simPct.toFixed(1) + '% similar' : (identical ? '100% identical' : 'Differences found');
+      const added     = diff.lines_added   ?? 0;
+      const removed   = diff.lines_removed ?? 0;
+      const pages1    = diff.doc1_pages    ?? '—';
+      const pages2    = diff.doc2_pages    ?? '—';
+      const change    = diff.change_classification || (identical ? 'Identical' : 'Changed');
+
+      const summaryText = diff.diff_preview
+        ? diff.diff_preview.slice(0, 2000)
+        : 'See statistics above for comparison details.';
+
       html += `<div class="result-compare">
-        <div class="compare-stat ${data.are_identical ? 'identical' : 'different'}">
-          <i class="fas ${data.are_identical ? 'fa-equals' : 'fa-not-equal'}"></i>
-          ${data.are_identical ? 'Files are identical' : 'Files have differences'}
+        <div class="compare-stat ${identical ? 'identical' : 'different'}">
+          <i class="fas ${identical ? 'fa-equals' : 'fa-not-equal'}"></i>
+          ${identical ? '✅ Files are identical' : '⚠️ Files have differences'}
         </div>
-        <pre class="result-diff">${esc(text)}</pre>
+        <div class="compare-stats-grid">
+          <div class="cmp-stat"><span class="cmp-val">${simLabel}</span><span class="cmp-key">Text Similarity</span></div>
+          <div class="cmp-stat"><span class="cmp-val">${change}</span><span class="cmp-key">Change Level</span></div>
+          <div class="cmp-stat"><span class="cmp-val">+${added} / -${removed}</span><span class="cmp-key">Lines Added / Removed</span></div>
+          <div class="cmp-stat"><span class="cmp-val">${pages1} vs ${pages2}</span><span class="cmp-key">Pages</span></div>
+        </div>
+        <pre class="result-diff">${esc(summaryText)}</pre>
       </div>`;
-      window._resultText = text;
+      window._resultText = `Similarity: ${simLabel}\nChange: ${change}\nAdded: +${added} lines\nRemoved: -${removed} lines\nDoc1 pages: ${pages1}\nDoc2 pages: ${pages2}\n\n${summaryText}`;
 
     /* Generic JSON */
     } else {
