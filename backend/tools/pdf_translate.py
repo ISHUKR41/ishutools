@@ -318,7 +318,7 @@ def _translate_page_texts(page_texts: List[str], translator: GoogleTranslator,
         chunks = chunk_text(page_text, max_chars=4000)
         translated_chunks: List[str] = []
 
-        for chunk in chunks:
+        for chunk_idx, chunk in enumerate(chunks):
             trans = _translate_chunk(translator, chunk)
             if bilingual:
                 translated_chunks.append(
@@ -326,9 +326,15 @@ def _translate_page_texts(page_texts: List[str], translator: GoogleTranslator,
                 )
             else:
                 translated_chunks.append(trans)
+            # Rate-limit guard: small delay between chunks
+            if chunk_idx < len(chunks) - 1:
+                time.sleep(0.4)
 
         translated_pages.append('\n\n'.join(translated_chunks))
         logger.debug(f'Page {page_idx + 1}: {len(chunks)} chunks translated')
+        # Small delay between pages to avoid API rate-limiting
+        if page_idx < len(page_texts) - 1:
+            time.sleep(0.6)
 
     return translated_pages
 
@@ -684,21 +690,32 @@ def translate_pdf(
     detected_lang = detect_language(full_text)
     effective_source = source_lang if source_lang != 'auto' else detected_lang
 
-    # Validate target language
-    target_lang_normalized = target_lang.lower().replace('_', '-')
-    # Map zh-cn / zh-tw variants
-    if target_lang_normalized in ('zh-cn', 'zh_cn', 'zh'):
+    # Validate and normalize target language code
+    target_lang_normalized = target_lang.strip().lower().replace('_', '-')
+    # Map zh-cn / zh-tw variants → correct Google codes
+    if target_lang_normalized in ('zh-cn', 'zh_cn', 'zh', 'chinese', 'chinese-simplified'):
         target_lang_normalized = 'zh-CN'
-    elif target_lang_normalized in ('zh-tw', 'zh_tw'):
+    elif target_lang_normalized in ('zh-tw', 'zh_tw', 'chinese-traditional'):
         target_lang_normalized = 'zh-TW'
-    else:
-        target_lang_normalized = target_lang
+    # All other codes stay lowercased (hi, fr, ar, de, es, etc.)
+    # deep_translator GoogleTranslator accepts lowercase ISO codes
 
-    # Build translator
-    translator = GoogleTranslator(
-        source='auto' if source_lang == 'auto' else effective_source,
-        target=target_lang_normalized,
-    )
+    # Build translator — always use 'auto' source for best detection
+    try:
+        translator = GoogleTranslator(
+            source='auto',
+            target=target_lang_normalized,
+        )
+    except Exception:
+        # Fallback: try with original code (some deep_translator versions need it)
+        try:
+            translator = GoogleTranslator(source='auto', target=target_lang)
+            target_lang_normalized = target_lang
+        except Exception as lang_err:
+            raise ValueError(
+                f'Unsupported target language: {target_lang!r}. '
+                f'Please use a valid language code like "hi", "fr", "es", "de", "ar".'
+            ) from lang_err
 
     # Translate page by page
     translated_pages = _translate_page_texts(

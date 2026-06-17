@@ -1047,11 +1047,19 @@
         if (resultBlobURL) URL.revokeObjectURL(resultBlobURL);
         resultBlobURL = URL.createObjectURL(blob);
 
+        /* ── Extract server-set filename from Content-Disposition header ── */
+        const disposition = resp.headers.get('Content-Disposition') || '';
+        let serverFilename = C.outputFilename;
+        const fnMatch = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';\r\n]+)["']?/i);
+        if (fnMatch && fnMatch[1]) {
+          serverFilename = decodeURIComponent(fnMatch[1].replace(/["']/g, '').trim());
+        }
+
         const dlBtn = q('#downloadBtn');
-        if (dlBtn) { dlBtn.href = resultBlobURL; dlBtn.download = C.outputFilename; }
+        if (dlBtn) { dlBtn.href = resultBlobURL; dlBtn.download = serverFilename; }
 
         const fnEl = q('#resultFilename');
-        if (fnEl) fnEl.textContent = C.outputFilename;
+        if (fnEl) fnEl.textContent = serverFilename;
 
         /* Size info */
         const origSize = uploadedFiles[0] ? fmtSize(uploadedFiles[0].size) : '';
