@@ -27,7 +27,7 @@
     "description": "Remove password protection from PDF files online free. Supports AES-256, AES-128, and RC4 encryption. Removes user and owner passwords. Powered by pikepdf.",
     "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
     "creator": {"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},
-    "featureList": "Remove PDF password, unlock encrypted PDF, AES-256 decryption, RC4 decryption, owner password removal"
+    "featureList": "Remove PDF password, unlock encrypted PDF, AES-256 decryption, RC4 decryption, owner password removal, brute-force common password dictionary 500+ passwords, 4-digit PIN brute force, auto-unlock"
   }
   </script>
   <script type="application/ld+json">
@@ -38,7 +38,7 @@
       {
         "@type": "Question",
         "name": "Can I unlock a PDF without knowing the password?",
-        "acceptedAnswer": {"@type":"Answer","text":"No. To unlock a PDF, you need to know the correct password. IshuTools uses the password you provide to decrypt and unlock the file. If you don't know the password, it cannot be removed."}
+        "acceptedAnswer": {"@type":"Answer","text":"Sometimes yes! IshuTools Unlock PDF includes an auto-unlock dictionary with 500+ common passwords, common PINs, year-based passwords, and date patterns. Many PDFs set with simple or common passwords can be unlocked automatically — just leave the password field blank and choose 'Deep Auto-unlock'. For unknown custom passwords, you must provide the correct password."}
       },
       {
         "@type": "Question",
@@ -57,21 +57,33 @@
     acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
     resultType:'file', outputFilename:'unlocked.pdf', outputMime:'application/pdf',
     options:[
-      { type:'password', id:'password', label:'PDF Password',
-        placeholder:'Enter the PDF password (required to unlock)' }
+      { type:'password', id:'password', label:'PDF Password (optional)',
+        placeholder:'Leave blank to try auto-unlock dictionary' },
+      { type:'select', id:'brute_force_level', label:'Auto-Unlock Strength',
+        choices:[
+          { v:'quick',  l:'Quick — 50 most-common passwords' },
+          { v:'medium', l:'Medium — 500+ dictionary (recommended)' },
+          { v:'deep',   l:'Deep — 500+ dictionary + all 4-digit PINs (0000–9999)' },
+          { v:'max',    l:'Max — Deep + 6-digit PINs + date patterns (~12 000 attempts)' },
+        ],
+        default:'medium'
+      }
     ],
     steps:[
-      'Upload your password-protected PDF file.',
-      'Enter the PDF password in the field below.',
-      'Click "Unlock PDF" and download the unlocked file.'
+      'Upload your password-protected PDF.',
+      'Enter the password if you know it — or leave blank for auto-unlock.',
+      'Choose an Auto-Unlock Strength (Medium is recommended for most PDFs).',
+      'Click "Unlock PDF" and download the fully unlocked file.'
     ],
     features:[
-      'pikepdf-powered AES-256 decryption',
-      'Removes user password (open) and owner password (edit)',
-      'Supports AES-256, AES-128, and RC4 (40/128-bit)',
-      'Multi-engine fallback for maximum compatibility',
-      'No data stored — files deleted after processing',
-      '100% free — no signup, no watermark'
+      '5-engine fallback: pikepdf → PyMuPDF → pypdf → qpdf → Ghostscript',
+      'AES-256, AES-128, RC4-128, RC4-40 decryption — all standards',
+      'Removes user password (open) and owner password (edit restrictions)',
+      'Auto-unlock dictionary: 500+ passwords, years, PINs, dates, patterns',
+      'Deep mode: brute-forces all 4-digit PINs (0000–9999, 10 000 attempts)',
+      'Max mode: 12 000+ candidates including 6-digit PINs and date formats',
+      'No data stored — files deleted immediately after processing',
+      '100% free — no signup, no watermark, no limits'
     ],
     related:[
       {name:'Protect PDF',url:'/tools/protect-pdf/',emoji:'🔒',c1:'#ef4444',c2:'#f97316',desc:'Add password'},

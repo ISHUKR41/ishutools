@@ -685,8 +685,12 @@ def api_unlock_pdf():
             return error_response('No file uploaded.')
         password = request.form.get('password', '')
         path     = save_uploaded_file(file)
-        out      = output_path('unlocked.pdf')
-        unlock_pdf(path, out, password=password)
+        out          = output_path('unlocked.pdf')
+        try_common   = request.form.get('try_common_passwords', 'true').lower() != 'false'
+        brute_lvl    = request.form.get('brute_force_level', 'medium')
+        unlock_pdf(path, out, password=password,
+                   try_common_passwords=try_common,
+                   brute_force_level=brute_lvl)
         return send_result(out, 'unlocked.pdf')
     except Exception as e:
         logger.exception("unlock-pdf error")

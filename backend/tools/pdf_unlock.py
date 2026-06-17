@@ -47,41 +47,246 @@ QPDF_BIN = shutil.which('qpdf')
 
 # ── Extended password dictionary ─────────────────────────────────────────────
 COMMON_PASSWORDS = [
-    # Blank / trivial
-    '', ' ',
-    # Generic
-    'password', 'Password', 'PASSWORD', 'pass', 'Pass',
+    # ── Blank / empty (try first — owner-password-only PDFs open without user pw)
+    '', ' ', '  ',
+
+    # ── Most common worldwide passwords ──────────────────────────────────────
+    'password', 'Password', 'PASSWORD',
+    'pass', 'Pass', 'PASS',
     '123456', '1234', '12345', '123456789', '12345678',
-    '0000', '00000', '000000', '111111', '222222',
-    '888888', '999999', '123123', '321321',
-    # Admin / tech
-    'admin', 'Admin', 'ADMIN', 'administrator', 'root',
-    'test', 'Test', 'demo', 'Demo', 'user', 'User',
-    # PDF-specific
-    'pdf', 'PDF', 'document', 'Document', 'file', 'File',
-    'open', 'Open', 'adobe', 'Adobe', 'acrobat', 'Acrobat',
-    'reader', 'Reader',
-    # Common phrases
-    'qwerty', 'letmein', 'welcome', 'secret', 'Secret',
-    'abc123', 'login', 'master', 'Master', 'changeme',
-    'default', 'Default', 'passw0rd', 'p@ssword', 'p@ssw0rd',
-    # Blank variants
-    'owner', 'Owner', 'locked', 'Locked', 'protected',
-    # Numbers
-    '1111', '2222', '4321', '9876', '1234567890',
-    # Indian common
-    'india', 'India', 'ishu', 'Ishu',
-    '1234abcd', 'abcd1234', 'pass1234',
-    # Office / enterprise
-    'confidential', 'Confidential', 'internal', 'Internal',
-    'private', 'Private', 'secure', 'Secure',
-    # Year-based
-    '2023', '2024', '2025', '2022', '2021',
-    # Name-like
-    'john', 'John', 'jane', 'Jane', 'mike', 'Mike',
-    # Symbols
-    'pass!', 'pass@', 'pass#',
+    'qwerty', 'qwerty123', 'Qwerty', 'QWERTY',
+    'abc123', 'Abc123', 'ABC123',
+    'letmein', 'dragon', 'master', 'Master', 'MASTER',
+    'welcome', 'Welcome', 'WELCOME',
+    'monkey', 'shadow', 'sunshine', 'princess', 'iloveyou',
+    'football', 'baseball', 'trustno1', 'superman', 'batman',
+    'hello', 'Hello', 'HELLO',
+    'secret', 'Secret', 'SECRET',
+    'admin', 'Admin', 'ADMIN',
+    'administrator', 'root', 'ROOT',
+    'test', 'Test', 'TEST',
+    'demo', 'Demo', 'DEMO',
+    'user', 'User', 'USER',
+    'guest', 'Guest', 'GUEST',
+    'login', 'Login', 'LOGIN',
+
+    # ── Digit-only sequences ──────────────────────────────────────────────────
+    '0000', '00000', '000000',
+    '1111', '11111', '111111',
+    '2222', '22222', '222222',
+    '3333', '33333', '333333',
+    '4444', '44444', '444444',
+    '5555', '55555', '555555',
+    '6666', '66666', '666666',
+    '7777', '77777', '777777',
+    '8888', '88888', '888888',
+    '9999', '99999', '999999',
+    '123123', '321321', '112233', '123321',
+    '1234567', '12345678', '123456789', '1234567890',
+    '0987', '9876', '8765', '7654', '6543', '5432', '4321',
+    '2580', '1470', '3690', '7410', '8520', '9630',
+    '1212', '2121', '1313', '3131', '1414', '4141',
+    '1122', '2211', '1221', '2112',
+    '1357', '2468', '1379', '2460',
+    '159753', '123789', '147258', '357159', '951753',
+    '1001', '2002', '3003', '4004', '5005',
+    '1010', '0101', '2020', '3030',
+    '1969', '1984', '2000', '2001', '2010',
+
+    # ── Years: 1980-2026 (very common PDF passwords) ──────────────────────────
+    '1980', '1981', '1982', '1983', '1984', '1985', '1986', '1987',
+    '1988', '1989', '1990', '1991', '1992', '1993', '1994', '1995',
+    '1996', '1997', '1998', '1999', '2000', '2001', '2002', '2003',
+    '2004', '2005', '2006', '2007', '2008', '2009', '2010', '2011',
+    '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019',
+    '2020', '2021', '2022', '2023', '2024', '2025', '2026',
+
+    # ── Date-based passwords (DDMMYYYY, MMDDYYYY, YYYYMMDD patterns) ──────────
+    '01012000', '01011990', '01012024', '31122023', '01012023',
+    '01011980', '01011970', '01012010', '01012015', '01012020',
+    '1jan2000', '1jan2024', 'jan2024', 'Jan2024', 'jan2023',
+
+    # ── PDF and document specific ─────────────────────────────────────────────
+    'pdf', 'PDF', 'Pdf',
+    'document', 'Document', 'DOCUMENT',
+    'doc', 'Doc', 'DOC',
+    'file', 'File', 'FILE',
+    'open', 'Open', 'OPEN',
+    'adobe', 'Adobe', 'ADOBE',
+    'acrobat', 'Acrobat', 'ACROBAT',
+    'reader', 'Reader', 'READER',
+    'pdf123', 'PDF123', 'doc123', 'file123',
+    'mypdf', 'myfile', 'mydoc',
+
+    # ── Security / access words ───────────────────────────────────────────────
+    'owner', 'Owner', 'OWNER',
+    'locked', 'Locked', 'LOCKED',
+    'protected', 'Protected', 'PROTECTED',
+    'confidential', 'Confidential', 'CONFIDENTIAL',
+    'private', 'Private', 'PRIVATE',
+    'secure', 'Secure', 'SECURE',
+    'internal', 'Internal', 'INTERNAL',
+    'restricted', 'Restricted',
+    'classified', 'Classified',
+    'encrypt', 'Encrypt', 'encrypted',
+
+    # ── Office / enterprise ───────────────────────────────────────────────────
+    'company', 'Company', 'COMPANY',
+    'office', 'Office', 'OFFICE',
+    'work', 'Work', 'WORK',
+    'business', 'Business', 'BUSINESS',
+    'project', 'Project', 'PROJECT',
+    'report', 'Report', 'REPORT',
+    'invoice', 'Invoice', 'INVOICE',
+    'contract', 'Contract', 'CONTRACT',
+    'proposal', 'Proposal',
+    'finance', 'Finance', 'financial',
+    'hr', 'HR', 'legal', 'Legal',
+    'sales', 'Sales', 'marketing', 'Marketing',
+
+    # ── Common password variations ────────────────────────────────────────────
+    'passw0rd', 'Passw0rd', 'PASSW0RD',
+    'p@ssword', 'P@ssword', 'P@SSWORD',
+    'p@ssw0rd', 'P@ssw0rd',
+    'pa$$word', 'Pa$$word',
+    'password1', 'Password1', 'password12', 'password123',
+    'password!', 'password@', 'password#',
+    'pass123', 'Pass123', 'PASS123',
+    'pass1234', 'Pass1234',
+    'pass@123', 'Pass@123', 'pass@1234',
+    'admin123', 'Admin123', 'ADMIN123',
+    'admin@123', 'Admin@123', 'admin@1234',
+    'login123', 'Login123',
+    'test123', 'Test123', 'TEST123',
+    'user123', 'User123',
+    'guest123', 'Guest123',
+    'welcome1', 'welcome123', 'Welcome1', 'Welcome123',
+    'welcome@123', 'Welcome@123',
+    'changeme', 'changeme1', 'changeme123',
+    'default', 'Default', 'DEFAULT',
+    'temp', 'Temp', 'TEMP', 'temp123', 'Temp123',
+    'abc', 'ABC', 'Abc', 'abcd', 'ABCD',
+    '1234abcd', 'abcd1234', 'abcde12345',
+    'qwer1234', '1234qwer', 'asdf1234',
+
+    # ── Keyboard walk patterns ────────────────────────────────────────────────
+    'qwertyui', 'qwertyuiop',
+    'asdfgh', 'asdfghjk', 'asdfghjkl',
+    'zxcvbn', 'zxcvbnm',
+    '1qaz2wsx', '1q2w3e4r', '1q2w3e', 'q1w2e3r4',
+    '!qaz@wsx', 'qazwsx', 'qazwsxedc',
+    'zaq12wsx', '!QAZ2wsx',
+
+    # ── Indian / South Asian common passwords ────────────────────────────────
+    'india', 'India', 'INDIA',
+    'bharat', 'Bharat', 'BHARAT',
+    'india123', 'India123', 'India@123', 'india@123', 'india@1234',
+    'bharat123', 'Bharat@123',
+    'ishu', 'Ishu', 'ISHU',
+    'ishu123', 'Ishu123', 'ishu@123',
+    'ram', 'Ram', 'ravi', 'Ravi',
+    'raj', 'Raj', 'kumar', 'Kumar',
+    'sharma', 'Sharma', 'gupta', 'Gupta',
+    'singh', 'Singh', 'patel', 'Patel',
+    'shah', 'Shah', 'mehta', 'Mehta',
+    'delhi', 'Delhi', 'mumbai', 'Mumbai',
+    'chennai', 'Chennai', 'kolkata', 'Kolkata',
+    'bengaluru', 'Bengaluru', 'hyderabad', 'Hyderabad',
+    'namaste', 'Namaste', 'namaskar',
+    'ganesh', 'Ganesh', 'shiva', 'Shiva', 'krishna', 'Krishna',
+
+    # ── Common first names (global) ───────────────────────────────────────────
+    'john', 'John', 'JOHN',
+    'jane', 'Jane', 'JANE',
+    'mike', 'Mike', 'MIKE',
+    'james', 'James', 'JAMES',
+    'david', 'David', 'DAVID',
+    'alex', 'Alex', 'ALEX',
+    'sarah', 'Sarah', 'SARAH',
+    'anna', 'Anna', 'ANNA',
+    'emma', 'Emma', 'EMMA',
+    'michael', 'Michael', 'MICHAEL',
+    'peter', 'Peter', 'PETER',
+    'robert', 'Robert', 'ROBERT',
+    'lisa', 'Lisa', 'LISA',
+    'mary', 'Mary', 'MARY',
+    'chris', 'Chris', 'CHRIS',
+    'daniel', 'Daniel', 'DANIEL',
+
+    # ── Symbol variants (short) ───────────────────────────────────────────────
+    'pass!', 'pass@', 'pass#', 'pass$',
+    'admin!', 'admin@', 'admin#',
+    '123!', '1234!', '12345!', '123456!',
+    '123@', '1234@', '12345@',
+
+    # ── Leet-speak variants ───────────────────────────────────────────────────
+    's3cr3t', 'p4ssw0rd', '4dm1n', 'p@$$w0rd',
+    'l3tm31n', 'h3ll0', 'w3lc0me',
+
+    # ── Short brute patterns ──────────────────────────────────────────────────
+    'aaa', 'bbb', 'ccc', 'zzz', 'aaaaaa', 'bbbbbb',
+    '111', '222', '333', '444', '555', '666', '777', '888', '999',
+    'aa', 'bb', 'cc', 'ab', 'xy', 'ok', 'no',
+    'a', 'b', '1', '0',
 ]
+
+
+# ── PIN brute-force generator ─────────────────────────────────────────────────
+
+def _generate_4digit_pins() -> list:
+    """Generate all 4-digit numeric PINs: 0000-9999 (10 000 candidates)."""
+    return [f'{i:04d}' for i in range(10000)]
+
+
+def _generate_common_6digit_pins() -> list:
+    """Generate the most common 6-digit PINs (sequential, repeating, etc.)."""
+    pins = []
+    # Sequential
+    for start in range(10):
+        pins.append(''.join(str((start + i) % 10) for i in range(6)))
+    # Repeating pairs
+    for d in range(10):
+        pins.append(str(d) * 6)
+        pins.append(str(d) * 3 + str(d) * 3)
+    # Common phone/DOB formats
+    for y in range(1980, 2027):
+        pins.append(f'01{str(y)[2:]}')    # 0124 etc.
+        pins.append(str(y)[2:] + '00')
+    # Top 50 most-used 6-digit PINs
+    top_6 = [
+        '123456', '000000', '111111', '121212', '654321', '123123',
+        '159753', '123789', '147258', '357159', '951753', '456789',
+        '321654', '987654', '246810', '135790', '112233', '998877',
+        '223344', '334455', '445566', '556677', '667788', '778899',
+        '889900', '100000', '200000', '300000', '400000', '500000',
+        '600000', '700000', '800000', '900000', '010101', '020202',
+        '030303', '040404', '050505', '060606', '070707', '080808',
+        '090909', '001100', '110011', '010010', '100100', '001001',
+        '012345', '543210',
+    ]
+    pins.extend(top_6)
+    return list(dict.fromkeys(pins))
+
+
+def _generate_year_date_passwords() -> list:
+    """Generate date-based password candidates (DDMMYYYY, MMDDYYYY, etc.)."""
+    passwords = []
+    for year in range(1970, 2027):
+        ys = str(year)
+        passwords.extend([
+            ys,                        # 2024
+            f'01{ys}',                  # 012024
+            f'0101{ys}',               # 01012024
+            f'{ys}01',                 # 202401
+            f'{ys}0101',               # 20240101
+            ys[2:],                    # 24
+            f'1{ys[2:]}',              # 124
+            f'pass{ys}',               # pass2024
+            f'Pass{ys}',               # Pass2024
+            f'admin{ys}',              # admin2024
+            f'pdf{ys}',                # pdf2024
+        ])
+    return list(dict.fromkeys(passwords))
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -320,9 +525,10 @@ def unlock_pdf(
     input_path: str,
     output_path: str,
     password: str = '',
-    try_common_passwords: bool = False,
+    try_common_passwords: bool = True,
     optimize: bool = True,
     repair: bool = False,
+    brute_force_level: str = 'medium',
 ) -> dict:
     """
     Remove password encryption from a PDF using 5 cascading engines.
@@ -331,9 +537,13 @@ def unlock_pdf(
         input_path:            Password-protected PDF
         output_path:           Unlocked output PDF
         password:              Known password (user or owner)
-        try_common_passwords:  Brute-force with extended common-password dictionary
+        try_common_passwords:  Brute-force with common-password dictionary
         optimize:              Apply deflate + object-stream optimization after unlock
         repair:                Attempt structural repair (pikepdf attempt_recovery)
+        brute_force_level:     'quick' (50 passwords) | 'medium' (full dictionary,
+                               500+ passwords) | 'deep' (medium + all 4-digit PINs,
+                               ~10 500 candidates) | 'max' (deep + 6-digit PINs +
+                               date patterns, ~12 000+ candidates)
     Returns:
         dict with output_path, method, password_used, page_count, sizes, log
     Raises:
@@ -381,23 +591,57 @@ def unlock_pdf(
         pass
 
     # ── Build password list ───────────────────────────────────────────────────
+    seen_pw = set()
     passwords_to_try = []
 
-    # Always try provided password and its variants first
+    def _add_pw(p):
+        if p not in seen_pw:
+            seen_pw.add(p)
+            passwords_to_try.append(p)
+
+    # Priority 1: user-supplied password and its variants (always first)
     if password:
-        passwords_to_try.extend(_password_variants(password))
+        for v in _password_variants(password):
+            _add_pw(v)
 
-    # Add common passwords
-    if try_common_passwords:
-        passwords_to_try.extend(p for p in COMMON_PASSWORDS
-                                if p not in passwords_to_try)
+    # Priority 2: dictionary / brute-force
+    level = brute_force_level.lower() if brute_force_level else 'medium'
+
+    if level == 'quick':
+        # First 50 most-common entries
+        for p in COMMON_PASSWORDS[:50]:
+            _add_pw(p)
+
+    elif level == 'medium' or try_common_passwords:
+        # Full common-password dictionary (500+ entries)
+        for p in COMMON_PASSWORDS:
+            _add_pw(p)
+
+    elif level == 'none':
+        # Only user-supplied password + empty string
+        _add_pw('')
+
     else:
-        # Always try empty + a few basics even without brute-force flag
-        for p in COMMON_PASSWORDS[:8]:
-            if p not in passwords_to_try:
-                passwords_to_try.append(p)
+        # If not quick/medium/none, still do the full dictionary
+        for p in COMMON_PASSWORDS:
+            _add_pw(p)
 
-    log.append(f'Trying {len(passwords_to_try)} password candidates')
+    # Priority 3: ALL 4-digit PINs (level=deep or max)
+    if level in ('deep', 'max'):
+        for p in _generate_4digit_pins():
+            _add_pw(p)
+
+    # Priority 4: 6-digit PINs + date patterns (level=max only)
+    if level == 'max':
+        for p in _generate_common_6digit_pins():
+            _add_pw(p)
+        for p in _generate_year_date_passwords():
+            _add_pw(p)
+
+    # Always ensure empty string is in the list (owner-only PDFs open without pw)
+    _add_pw('')
+
+    log.append(f'Trying {len(passwords_to_try)} password candidates (level={level})')
 
     # ── Try each password ─────────────────────────────────────────────────────
     for pwd in passwords_to_try:
