@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Translate PDF Free Online — PDF Translation | IshuTools</title>
+  <meta name="description" content="Translate PDF documents to any language online for free. Powered by Google Translate. By Ishu Kumar — ishutools.fun" />
+  <meta name="keywords" content="translate pdf, pdf translation, pdf to hindi, pdf to french, translate pdf online, ishu, ishutools" />
+  <link rel="canonical" href="https://ishutools.fun/tools/translate-pdf/" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2310b981'/%3E%3Ctext y='22' x='4' font-size='20'%3E🌍%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script>
+  window.TOOL_CONFIG = {
+    id:'translate-pdf', name:'Translate PDF', emoji:'🌍',
+    category:'AI Intelligence', categorySlug:'',
+    description:'Translate PDF documents to any language. Powered by Google Translate (deep-translator) — no API key required.',
+    apiEndpoint:'/api/translate-pdf', multiFile:false,
+    acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
+    resultType:'file', outputFilename:'translated.pdf', outputMime:'application/pdf',
+    options:[
+      { type:'select', id:'target_lang', label:'Translate To',
+        choices:[
+          {v:'hi',l:'🇮🇳 Hindi'},{v:'en',l:'🇺🇸 English'},{v:'fr',l:'🇫🇷 French'},
+          {v:'de',l:'🇩🇪 German'},{v:'es',l:'🇪🇸 Spanish'},{v:'pt',l:'🇧🇷 Portuguese'},
+          {v:'it',l:'🇮🇹 Italian'},{v:'ru',l:'🇷🇺 Russian'},{v:'ja',l:'🇯🇵 Japanese'},
+          {v:'ko',l:'🇰🇷 Korean'},{v:'zh-cn',l:'🇨🇳 Chinese (Simplified)'},
+          {v:'ar',l:'🇸🇦 Arabic'},{v:'nl',l:'🇳🇱 Dutch'},{v:'pl',l:'🇵🇱 Polish'},
+          {v:'tr',l:'🇹🇷 Turkish'},{v:'sv',l:'🇸🇪 Swedish'},{v:'da',l:'🇩🇰 Danish'},
+          {v:'fi',l:'🇫🇮 Finnish'},{v:'no',l:'🇳🇴 Norwegian'}
+        ], default:'hi' },
+      { type:'select', id:'source_lang', label:'Source Language',
+        choices:[{v:'auto',l:'Auto-detect'},{v:'en',l:'English'},{v:'hi',l:'Hindi'},{v:'fr',l:'French'},{v:'de',l:'German'},{v:'es',l:'Spanish'}],
+        default:'auto' }
+    ],
+    steps:['Upload your PDF file.','Select the target language.','Download the translated PDF.'],
+    features:['Supports 100+ languages via Google Translate','Auto-detect source language','Text-based PDFs work best','deep-translator library — no API key'],
+    related:[
+      {name:'AI Summarizer',url:'/tools/ai-summarizer/',emoji:'🤖',c1:'#6366f1',c2:'#8b5cf6',desc:'Summarize PDF'},
+      {name:'OCR PDF',url:'/tools/ocr-pdf/',emoji:'🔍',c1:'#8b5cf6',c2:'#6366f1',desc:'OCR scanned PDF'},
+      {name:'PDF to Word',url:'/tools/pdf-to-word/',emoji:'📄',c1:'#2563eb',c2:'#3b82f6',desc:'PDF to Word'},
+      {name:'Merge PDF',url:'/tools/merge-pdf/',emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'}
+    ]
+  };
+  </script>
+</head>
+<body>
+  <script src="/static/js/tool-base.js" defer></script>
+  <script src="script.js" defer></script>
+</body>
+</html>

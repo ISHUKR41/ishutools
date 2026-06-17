@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF to JPG Free — Convert PDF Pages to Images | IshuTools</title>
+  <meta name="description" content="Convert PDF pages to JPG or PNG images online free. High quality, customizable DPI. By Ishu Kumar — ishutools.fun" />
+  <meta name="keywords" content="pdf to jpg, pdf to image, pdf to png, convert pdf to picture, pdf page to image, ishu, ishutools" />
+  <link rel="canonical" href="https://ishutools.fun/tools/pdf-to-jpg/" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f59e0b'/%3E%3Ctext y='22' x='4' font-size='20'%3E🖼️%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script>
+  window.TOOL_CONFIG = {
+    id:'pdf-to-jpg', name:'PDF to JPG', emoji:'🖼️',
+    category:'Convert from PDF', categorySlug:'',
+    description:'Convert every PDF page to a high-quality JPG or PNG image. Download all images as a ZIP file.',
+    apiEndpoint:'/api/pdf-to-img', multiFile:false,
+    acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
+    resultType:'file', outputFilename:'pdf_images.zip', outputMime:'application/zip',
+    options:[
+      { type:'select', id:'format', label:'Image Format',
+        choices:[{v:'jpg',l:'JPG (smaller, lossy)'},{v:'png',l:'PNG (larger, lossless)'}], default:'jpg' },
+      { type:'select', id:'dpi', label:'Resolution (DPI)',
+        choices:[{v:'72',l:'72 DPI — Screen'},{v:'150',l:'150 DPI — Web (recommended)'},{v:'300',l:'300 DPI — Print quality'},{v:'600',l:'600 DPI — High resolution'}], default:'150' },
+      { type:'pages', id:'pages', label:'Pages (leave blank for all)', placeholder:'e.g. 1-3, 5 or leave empty for all' }
+    ],
+    steps:['Upload your PDF file.','Choose image format (JPG or PNG) and resolution.','Download the ZIP with all images.'],
+    features:['Up to 600 DPI for print quality','JPG and PNG output formats','Select specific pages or all','ZIP download with numbered files'],
+    related:[
+      {name:'JPG to PDF',url:'/tools/jpg-to-pdf/',emoji:'🖼️',c1:'#f59e0b',c2:'#ef4444',desc:'Images to PDF'},
+      {name:'Compress PDF',url:'/tools/compress-pdf/',emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'},
+      {name:'Scan to PDF',url:'/tools/scan-to-pdf/',emoji:'📷',c1:'#06b6d4',c2:'#3b82f6',desc:'Scan to PDF'},
+      {name:'PDF to Word',url:'/tools/pdf-to-word/',emoji:'📄',c1:'#2563eb',c2:'#3b82f6',desc:'PDF to Word'}
+    ]
+  };
+  </script>
+</head>
+<body>
+  <script src="/static/js/tool-base.js" defer></script>
+  <script src="script.js" defer></script>
+</body>
+</html>

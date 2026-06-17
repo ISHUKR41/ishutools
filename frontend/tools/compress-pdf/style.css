@@ -1,0 +1,3 @@
+/* compress-pdf/style.css */
+:root { --tool-color: #10b981; --tool-color2: #059669; }
+.process-btn { background: linear-gradient(135deg, #10b981, #059669); }

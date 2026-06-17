@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF to PowerPoint Free — Convert PDF to PPTX | IshuTools</title>
+  <meta name="description" content="Convert PDF to PowerPoint presentation (.pptx) online free. Each page becomes a slide. By Ishu Kumar — ishutools.fun" />
+  <meta name="keywords" content="pdf to pptx, pdf to powerpoint, pdf to presentation, convert pdf slides, ishu, ishutools" />
+  <link rel="canonical" href="https://ishutools.fun/tools/pdf-to-pptx/" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f97316'/%3E%3Ctext y='22' x='4' font-size='20'%3E📊%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script>
+  window.TOOL_CONFIG = {
+    id:'pdf-to-pptx', name:'PDF to PowerPoint', emoji:'📊',
+    category:'Convert from PDF', categorySlug:'',
+    description:'Convert PDF pages into a PowerPoint presentation (.pptx). Each PDF page becomes an image slide — perfect for presenting.',
+    apiEndpoint:'/api/pdf-to-pptx', multiFile:false,
+    acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
+    resultType:'file', outputFilename:'converted.pptx',
+    outputMime:'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    options:[
+      { type:'select', id:'dpi', label:'Slide Quality',
+        choices:[{v:'96',l:'96 DPI — Standard'},{v:'150',l:'150 DPI — Recommended'},{v:'300',l:'300 DPI — High quality'}], default:'150' }
+    ],
+    steps:['Upload your PDF.','Select slide quality.','Download the .pptx file.'],
+    features:['Each PDF page → one PowerPoint slide','Image-based slides for exact rendering','Adjustable resolution','python-pptx powered'],
+    related:[
+      {name:'PPT to PDF',url:'/tools/pptx-to-pdf/',emoji:'📊',c1:'#f97316',c2:'#ef4444',desc:'PowerPoint to PDF'},
+      {name:'PDF to Word',url:'/tools/pdf-to-word/',emoji:'📄',c1:'#2563eb',c2:'#3b82f6',desc:'PDF to Word'},
+      {name:'PDF to JPG',url:'/tools/pdf-to-jpg/',emoji:'🖼️',c1:'#f59e0b',c2:'#ef4444',desc:'PDF to images'},
+      {name:'Merge PDF',url:'/tools/merge-pdf/',emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'}
+    ]
+  };
+  </script>
+</head>
+<body>
+  <script src="/static/js/tool-base.js" defer></script>
+  <script src="script.js" defer></script>
+</body>
+</html>

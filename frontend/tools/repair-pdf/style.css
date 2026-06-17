@@ -1,0 +1,3 @@
+/* repair-pdf/style.css */
+:root { --tool-color: #6366f1; --tool-color2: #8b5cf6; }
+.process-btn { background: linear-gradient(135deg, #6366f1, #8b5cf6); }

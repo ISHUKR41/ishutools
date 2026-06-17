@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OCR PDF Free — Make Scanned PDF Searchable | IshuTools</title>
+  <meta name="description" content="OCR PDF online free. Make scanned PDFs searchable and selectable. Supports 10+ languages. By Ishu Kumar — ishutools.fun" />
+  <meta name="keywords" content="ocr pdf, pdf ocr online, make pdf searchable, scanned pdf text, ishu, ishutools" />
+  <link rel="canonical" href="https://ishutools.fun/tools/ocr-pdf/" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%238b5cf6'/%3E%3Ctext y='22' x='4' font-size='20'%3E🔍%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script>
+  window.TOOL_CONFIG = {
+    id:'ocr-pdf', name:'OCR PDF', emoji:'🔍',
+    category:'Organize PDF', categorySlug:'',
+    description:'Extract text from scanned PDFs and make them fully searchable using Optical Character Recognition (OCR). Supports 10+ languages.',
+    apiEndpoint:'/api/ocr-pdf', multiFile:false,
+    acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
+    resultType:'file', outputFilename:'ocr_output.pdf', outputMime:'application/pdf',
+    options:[
+      { type:'select', id:'language', label:'Document Language',
+        choices:[
+          {v:'eng',l:'English'},{v:'hin',l:'Hindi'},{v:'fra',l:'French'},
+          {v:'deu',l:'German'},{v:'spa',l:'Spanish'},{v:'por',l:'Portuguese'},
+          {v:'chi_sim',l:'Chinese (Simplified)'},{v:'jpn',l:'Japanese'},
+          {v:'kor',l:'Korean'},{v:'ara',l:'Arabic'},{v:'rus',l:'Russian'}
+        ], default:'eng' },
+      { type:'select', id:'output_format', label:'Output Format',
+        choices:[{v:'pdf',l:'PDF (searchable)'},{v:'txt',l:'Plain Text (.txt)'}], default:'pdf' }
+    ],
+    steps:['Upload your scanned PDF.','Select the document language.','Choose output format (PDF or TXT).','Download the searchable result.'],
+    features:['Powered by Tesseract OCR v5','Supports 10+ languages including Hindi','Exports searchable PDF or plain text','100% accurate for clear scans'],
+    related:[
+      {name:'Scan to PDF',url:'/tools/scan-to-pdf/',emoji:'📷',c1:'#06b6d4',c2:'#3b82f6',desc:'Images to searchable PDF'},
+      {name:'AI Summarizer',url:'/tools/ai-summarizer/',emoji:'🤖',c1:'#6366f1',c2:'#8b5cf6',desc:'Summarize PDF content'},
+      {name:'Translate PDF',url:'/tools/translate-pdf/',emoji:'🌍',c1:'#10b981',c2:'#06b6d4',desc:'Translate PDF'},
+      {name:'Compress PDF',url:'/tools/compress-pdf/',emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'}
+    ]
+  };
+  </script>
+</head>
+<body>
+  <script src="/static/js/tool-base.js" defer></script>
+  <script src="script.js" defer></script>
+</body>
+</html>

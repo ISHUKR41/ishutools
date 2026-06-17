@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Organize PDF — Reorder Pages Free Online | IshuTools</title>
+  <meta name="description" content="Reorder and rearrange PDF pages online for free. Specify new page order easily. By Ishu Kumar — ishutools.fun" />
+  <meta name="keywords" content="organize pdf, reorder pdf pages, rearrange pdf, pdf page organizer, ishu, ishutools" />
+  <link rel="canonical" href="https://ishutools.fun/tools/organize-pdf/" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%238b5cf6'/%3E%3Ctext y='22' x='4' font-size='20'%3E📋%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script>
+  window.TOOL_CONFIG = {
+    id:'organize-pdf', name:'Organize PDF', emoji:'📋',
+    category:'Organize PDF', categorySlug:'',
+    description:'Reorder pages in your PDF document. Just specify the new page order as a comma-separated list and download the rearranged PDF.',
+    apiEndpoint:'/api/organize-pdf', multiFile:false,
+    acceptedTypes:'.pdf,application/pdf', acceptedLabel:'PDF',
+    resultType:'file', outputFilename:'organized.pdf', outputMime:'application/pdf',
+    options:[
+      { type:'pages', id:'order', label:'New Page Order', placeholder:'e.g. 3, 1, 2, 4 (rearranges pages in that order)' }
+    ],
+    steps:['Upload your PDF file.','Enter the new page order (e.g. 3,1,2 to move page 3 first).','Download the reorganized PDF.'],
+    features:['Custom page ordering with simple notation','Duplicate pages (e.g. 1,1,2 repeats page 1)','Instant processing','Free forever — no limits'],
+    related:[
+      {name:'Remove Pages',url:'/tools/remove-pages/',emoji:'🗑️',c1:'#ef4444',c2:'#f97316',desc:'Delete pages'},
+      {name:'Extract Pages',url:'/tools/extract-pages/',emoji:'📤',c1:'#10b981',c2:'#06b6d4',desc:'Extract pages'},
+      {name:'Merge PDF',url:'/tools/merge-pdf/',emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'},
+      {name:'Rotate PDF',url:'/tools/rotate-pdf/',emoji:'🔄',c1:'#f59e0b',c2:'#f97316',desc:'Rotate pages'}
+    ]
+  };
+  </script>
+</head>
+<body>
+  <script src="/static/js/tool-base.js" defer></script>
+  <script src="script.js" defer></script>
+</body>
+</html>

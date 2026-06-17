@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scan to PDF Free — Images to Searchable PDF | IshuTools</title>
+  <meta name="description" content="Convert scanned images to searchable PDF online free. OCR-powered, no signup. By Ishu Kumar — ishutools.fun" />
+  <meta name="keywords" content="scan to pdf, image to searchable pdf, ocr scan, scan pdf online, ishu, ishutools" />
+  <link rel="canonical" href="https://ishutools.fun/tools/scan-to-pdf/" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2306b6d4'/%3E%3Ctext y='22' x='4' font-size='20'%3E📷%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/static/css/tool-base.css" /><link rel="stylesheet" href="style.css" />
+  <script>
+  window.TOOL_CONFIG = {
+    id:'scan-to-pdf', name:'Scan to PDF', emoji:'📷',
+    category:'Organize PDF', categorySlug:'',
+    description:'Convert scanned images (JPG, PNG, TIFF) into a searchable, OCR-processed PDF. Multiple images become a single document.',
+    apiEndpoint:'/api/scan-to-pdf', multiFile:true, minFiles:1, maxFiles:30,
+    acceptedTypes:'.jpg,.jpeg,.png,.tiff,.bmp,.webp,image/*', acceptedLabel:'JPG / PNG / TIFF / BMP / WebP',
+    resultType:'file', outputFilename:'scanned.pdf', outputMime:'application/pdf',
+    options:[
+      { type:'select', id:'language', label:'OCR Language',
+        choices:[
+          {v:'eng',l:'English'},{v:'hin',l:'Hindi'},{v:'fra',l:'French'},
+          {v:'deu',l:'German'},{v:'spa',l:'Spanish'},{v:'por',l:'Portuguese'},
+          {v:'chi_sim',l:'Chinese (Simplified)'},{v:'jpn',l:'Japanese'},
+          {v:'kor',l:'Korean'},{v:'ara',l:'Arabic'}
+        ], default:'eng' },
+      { type:'select', id:'enhance', label:'Enhance Image',
+        choices:[{v:'true',l:'Yes — improve contrast & sharpness'},{v:'false',l:'No — use original'}], default:'true' }
+    ],
+    steps:['Upload one or more scanned images.','Select the document language for OCR.','Download the searchable PDF.'],
+    features:['Tesseract OCR engine (10+ languages)','Auto image enhancement','Multiple images → single PDF','Fully searchable output text'],
+    related:[
+      {name:'OCR PDF',url:'/tools/ocr-pdf/',emoji:'🔍',c1:'#8b5cf6',c2:'#6366f1',desc:'Make PDF searchable'},
+      {name:'JPG to PDF',url:'/tools/jpg-to-pdf/',emoji:'🖼️',c1:'#f59e0b',c2:'#ef4444',desc:'Images to PDF'},
+      {name:'Compress PDF',url:'/tools/compress-pdf/',emoji:'🗜️',c1:'#10b981',c2:'#059669',desc:'Reduce size'},
+      {name:'Merge PDF',url:'/tools/merge-pdf/',emoji:'🔗',c1:'#6366f1',c2:'#8b5cf6',desc:'Combine PDFs'}
+    ]
+  };
+  </script>
+</head>
+<body>
+  <script src="/static/js/tool-base.js" defer></script>
+  <script src="script.js" defer></script>
+</body>
+</html>

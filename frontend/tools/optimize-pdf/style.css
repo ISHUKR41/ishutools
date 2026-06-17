@@ -1,0 +1,3 @@
+/* optimize-pdf/style.css */
+:root { --tool-color: #f59e0b; --tool-color2: #ef4444; }
+.process-btn { background: linear-gradient(135deg, #f59e0b, #ef4444); }

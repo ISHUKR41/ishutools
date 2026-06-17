@@ -1,0 +1,3 @@
+/* remove-pages/style.css */
+:root { --tool-color: #ef4444; --tool-color2: #f97316; }
+.process-btn { background: linear-gradient(135deg, #ef4444, #f97316); }

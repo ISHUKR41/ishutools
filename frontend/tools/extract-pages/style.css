@@ -1,0 +1,3 @@
+/* extract-pages/style.css */
+:root { --tool-color: #10b981; --tool-color2: #06b6d4; }
+.process-btn { background: linear-gradient(135deg, #10b981, #06b6d4); }

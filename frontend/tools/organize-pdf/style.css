@@ -1,0 +1,3 @@
+/* organize-pdf/style.css */
+:root { --tool-color: #8b5cf6; --tool-color2: #6366f1; }
+.process-btn { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
