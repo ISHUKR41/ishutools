@@ -1,5 +1,5 @@
 """
-pdf_page_numbers.py — Add page numbers and headers/footers (Enterprise Edition)
+pdf_page_numbers.py - Add page numbers and headers/footers (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -265,7 +265,7 @@ def _compress_output(src: str, dst: str, linearize: bool = False) -> bool:
 
 def _gs_flatten(src: str, dst: str) -> bool:
     """
-    Ghostscript flatten pass — permanently embeds overlay content into page
+    Ghostscript flatten pass - permanently embeds overlay content into page
     streams, making page numbers un-removable via annotation tools.
     """
     if not GS_BIN:
@@ -437,7 +437,7 @@ def add_page_numbers(
         else:
             meta = {}
         meta.update({
-            '/Producer': 'IshuTools.fun PDF Suite — Page Numbers',
+            '/Producer': 'IshuTools.fun PDF Suite - Page Numbers',
             '/ModDate': datetime.utcnow().strftime("D:%Y%m%d%H%M%S+00'00'"),
         })
         writer.add_metadata(meta)
@@ -646,7 +646,7 @@ def add_section_numbers(
     gs_flatten: bool = False,
 ) -> dict:
     """
-    Add page numbers with section awareness — reset counter per section.
+    Add page numbers with section awareness - reset counter per section.
 
     Args:
         input_path:  Source PDF

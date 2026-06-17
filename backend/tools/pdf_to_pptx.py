@@ -1,5 +1,5 @@
 """
-pdf_to_pptx.py — Convert PDF to PowerPoint .pptx (Enterprise Edition)
+pdf_to_pptx.py - Convert PDF to PowerPoint .pptx (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 

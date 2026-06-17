@@ -1,5 +1,5 @@
 """
-pdf_remove_pages.py — Remove pages from a PDF (Enterprise Edition)
+pdf_remove_pages.py - Remove pages from a PDF (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -400,7 +400,7 @@ def _inject_metadata(path: str, original_count: int,
                       removed_count: int) -> None:
     try:
         with pikepdf.open(path, suppress_warnings=True) as pdf:
-            pdf.docinfo['/Producer'] = 'IshuTools.fun PDF Suite — RemovePages'
+            pdf.docinfo['/Producer'] = 'IshuTools.fun PDF Suite - RemovePages'
             pdf.docinfo['/Creator'] = 'pdf_remove_pages'
             pdf.docinfo['/Keywords'] = (
                 f'original_pages={original_count}; '
@@ -433,7 +433,7 @@ def _build_preview_report(pdf_path: str,
                               textColor=colors.HexColor('#16A34A'))
 
     story = [
-        Paragraph('Remove Pages — Preview Report', title_s),
+        Paragraph('Remove Pages - Preview Report', title_s),
         HRFlowable(color=colors.HexColor('#DBEAFE'), thickness=1),
         Spacer(1, 0.3 * cm),
         Paragraph(f'Source: <b>{os.path.basename(pdf_path)}</b>', info_s),
@@ -598,10 +598,10 @@ def remove_pages(
         }
 
     if not keep_indices:
-        raise ValueError('All pages would be removed — aborting.')
+        raise ValueError('All pages would be removed - aborting.')
 
     if not remove_indices:
-        # Nothing to remove — just copy
+        # Nothing to remove - just copy
         import shutil as _sh
         _sh.copy2(input_path, output_path)
         return {
@@ -840,7 +840,7 @@ def keep_only_pages(input_path: str, output_path: str,
     """
     Keep only specified pages (inverse of remove_pages).
 
-    Simpler than extract_pages — just specify which pages to keep.
+    Simpler than extract_pages - just specify which pages to keep.
 
     Args:
         input_path:    Source PDF

@@ -1,5 +1,5 @@
 """
-pdf_unlock.py — Remove PDF password protection (Enterprise Edition)
+pdf_unlock.py - Remove PDF password protection (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -47,7 +47,7 @@ QPDF_BIN = shutil.which('qpdf')
 
 # ── Extended password dictionary ─────────────────────────────────────────────
 COMMON_PASSWORDS = [
-    # ── Blank / empty (try first — owner-password-only PDFs open without user pw)
+    # ── Blank / empty (try first - owner-password-only PDFs open without user pw)
     '', ' ', '  ',
 
     # ── Most common worldwide passwords ──────────────────────────────────────
@@ -515,7 +515,7 @@ def _try_all_engines(
                 log.append(f'Success: engine={name} password={"(empty)" if not password else "(provided)"}')
                 return name
         except Exception as e:
-            log.append(f'{name}: exception — {e}')
+            log.append(f'{name}: exception - {e}')
     return None
 
 
@@ -564,7 +564,7 @@ def unlock_pdf(
     try:
         reader = PdfReader(input_path, strict=False)
         if not reader.is_encrypted:
-            log.append('PDF is not encrypted — creating optimized copy')
+            log.append('PDF is not encrypted - creating optimized copy')
             writer = PdfWriter()
             for page in reader.pages:
                 writer.add_page(page)
@@ -667,7 +667,7 @@ def unlock_pdf(
 
     raise ValueError(
         'Incorrect password. Please provide the correct user or owner password. '
-        'Note: Some PDFs use owner-only passwords — try leaving password blank. '
+        'Note: Some PDFs use owner-only passwords - try leaving password blank. '
         f'Attempted {len(passwords_to_try)} password candidates.'
     )
 

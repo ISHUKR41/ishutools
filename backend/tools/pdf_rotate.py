@@ -753,13 +753,13 @@ def get_page_orientation_summary(input_path: str, password: str = '') -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — Content-aware auto-rotation, deskew ───────────────
+# ── ENTERPRISE ADDITIONS - Content-aware auto-rotation, deskew ───────────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def deskew_pdf_pages(input_path: str, output_path: str,
                       max_skew_degrees: float = 10.0) -> dict:
     """
-    Deskew scanned PDF pages — correct slight rotation from scanning.
+    Deskew scanned PDF pages - correct slight rotation from scanning.
     Uses PIL/numpy to detect and fix page tilt.
 
     Ideal for: scanned documents, photos of documents, OCR preprocessing.
@@ -919,3 +919,69 @@ def flip_pages_horizontal(input_path: str, output_path: str, pages: str = 'all')
     new_doc.save(output_path, garbage=4, deflate=True)
     doc.close(); new_doc.close()
     return {'output_path': output_path, 'pages_flipped': len(page_list)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENTERPRISE ADVANCED FUNCTIONS - pdf_rotate.py
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def rotate_single_page(input_path: str, output_path: str, page_num: int, angle: int = 90) -> dict:
+    """Rotate a single specific page of a PDF."""
+    import fitz
+    doc = fitz.open(input_path)
+    if 0 <= page_num - 1 < len(doc):
+        page = doc[page_num - 1]
+        page.set_rotation((page.rotation + angle) % 360)
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'page_rotated': page_num, 'angle': angle}
+
+def rotate_landscape_portrait(input_path: str, output_path: str, target: str = 'landscape') -> dict:
+    """Auto-rotate all pages to landscape or portrait orientation."""
+    import fitz
+    doc = fitz.open(input_path)
+    for page in doc:
+        w, h = page.rect.width, page.rect.height
+        is_landscape = w > h
+        if target == 'landscape' and not is_landscape:
+            page.set_rotation((page.rotation + 90) % 360)
+        elif target == 'portrait' and is_landscape:
+            page.set_rotation((page.rotation + 90) % 360)
+    doc.save(output_path, garbage=4, deflate=True)
+    count = len(doc)
+    doc.close()
+    return {'output_path': output_path, 'page_count': count, 'target_orientation': target}
+
+def rotate_pages_by_range(input_path: str, output_path: str, page_ranges: list, angle: int = 90) -> dict:
+    """Rotate specific page ranges. page_ranges = [(1,3), (5,5), (8,10)]"""
+    import fitz
+    doc = fitz.open(input_path)
+    rotated_count = 0
+    pages_to_rotate = set()
+    for start, end in page_ranges:
+        for pg in range(start, end+1):
+            pages_to_rotate.add(pg)
+    for i, page in enumerate(doc):
+        pg_num = i + 1
+        if pg_num in pages_to_rotate:
+            page.set_rotation((page.rotation + angle) % 360)
+            rotated_count += 1
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'pages_rotated': rotated_count, 'angle': angle}
+
+def rotate_flip_vertical(input_path: str, output_path: str) -> dict:
+    """Flip all PDF pages vertically (mirror)."""
+    import fitz
+    doc = fitz.open(input_path)
+    out = fitz.open()
+    for page in doc:
+        mat = fitz.Matrix(-1, 1)
+        mat = fitz.Matrix(1, 0, 0, -1, 0, page.rect.height)
+        pix = page.get_pixmap(matrix=mat)
+        img_pdf = fitz.open(stream=pix.tobytes(output='pdf'), filetype='pdf')
+        out.insert_pdf(img_pdf)
+    out.save(output_path, garbage=4, deflate=True)
+    count = len(out)
+    out.close(); doc.close()
+    return {'output_path': output_path, 'page_count': count, 'flip': 'vertical'}

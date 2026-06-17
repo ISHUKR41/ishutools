@@ -1,5 +1,5 @@
 """
-pdf_to_pdfa.py — Convert PDF to PDF/A archival format (Ultra-Mega Enhanced)
+pdf_to_pdfa.py - Convert PDF to PDF/A archival format (Ultra-Mega Enhanced)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -223,7 +223,7 @@ def _convert_pikepdf(input_path: str, output_path: str,
 
             # Remove encryption
             if pdf.is_encrypted:
-                # Already opened — pikepdf auto-decrypts
+                # Already opened - pikepdf auto-decrypts
                 pass
 
             # Inject XMP metadata
@@ -491,7 +491,7 @@ def verify_pdfa(input_path: str) -> dict:
     if not result['has_pdfa_marker']:
         result['issues'].append('No PDF/A conformance marker found in XMP metadata')
     if not result['has_output_intent']:
-        result['issues'].append('No OutputIntent (color profile) found — required for PDF/A-1')
+        result['issues'].append('No OutputIntent (color profile) found - required for PDF/A-1')
 
     result['is_likely_pdfa'] = result['has_pdfa_marker'] and result['has_output_intent']
     return result
@@ -502,7 +502,7 @@ def get_pdfa_level_info(level: str) -> dict:
     info = {
         '1b': {
             'name': 'PDF/A-1b',
-            'description': 'Basic conformance — visual reproducibility only. '
+            'description': 'Basic conformance - visual reproducibility only. '
                            'Most widely supported. No encryption, no transparency.',
             'iso': 'ISO 19005-1',
             'use_case': 'General archival, legal documents, records management.',
@@ -622,7 +622,7 @@ def get_compliance_report(input_path: str, password: str = '') -> dict:
         error_count = len([i for i in issues if i['severity'] == 'error'])
         warning_count = len(warnings)
 
-        recommendation = ('This PDF appears compliant — convert with PDF/A-2b for best results'
+        recommendation = ('This PDF appears compliant - convert with PDF/A-2b for best results'
                           if is_compliant
                           else 'Use IshuTools PDF/A converter to fix all compliance issues')
 

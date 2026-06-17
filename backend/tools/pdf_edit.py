@@ -7,38 +7,38 @@ Libraries: fitz (PyMuPDF) · pypdf · reportlab · pikepdf · Pillow
 
 Actions supported:
   Annotation layer (reversible):
-    add_text        — Free-text annotation with background fill
-    highlight       — Yellow highlight over found text
-    underline       — Underline found text
-    strikethrough   — Strikethrough found text
-    squiggly        — Squiggly underline found text
-    note            — Sticky-note popup at point
-    rectangle       — Rectangular border annotation
-    circle          — Circle / ellipse annotation
-    line            — Line between two points
-    arrow           — Arrow line (open-arrow head)
-    polygon         — Closed polygon annotation
-    ink             — Freehand ink path
-    stamp           — Named rubber stamp (20 stamp types)
-    insert_image    — Insert image at position (from file or bytes)
+    add_text        - Free-text annotation with background fill
+    highlight       - Yellow highlight over found text
+    underline       - Underline found text
+    strikethrough   - Strikethrough found text
+    squiggly        - Squiggly underline found text
+    note            - Sticky-note popup at point
+    rectangle       - Rectangular border annotation
+    circle          - Circle / ellipse annotation
+    line            - Line between two points
+    arrow           - Arrow line (open-arrow head)
+    polygon         - Closed polygon annotation
+    ink             - Freehand ink path
+    stamp           - Named rubber stamp (20 stamp types)
+    insert_image    - Insert image at position (from file or bytes)
 
   Content layer (permanent / burned-in):
-    add_label       — Burn text directly into page content
-    whiteout        — Cover area with white (redact-lite)
-    burn_text       — High-quality text insertion (ReportLab overlay)
-    page_header     — Add running header to all pages
-    page_footer     — Add running footer to all pages
+    add_label       - Burn text directly into page content
+    whiteout        - Cover area with white (redact-lite)
+    burn_text       - High-quality text insertion (ReportLab overlay)
+    page_header     - Add running header to all pages
+    page_footer     - Add running footer to all pages
 
   Utility:
-    flatten         — Bake all annotations into page content
-    remove_annots   — Delete all annotations from specified pages
+    flatten         - Bake all annotations into page content
+    remove_annots   - Delete all annotations from specified pages
 
 Extra utilities:
-  get_annotations()       — List all annotations in the PDF
-  remove_all_annotations() — Remove every annotation
-  add_text_to_all_pages() — Burn text on every page (watermark-like)
-  merge_annotation_layer() — Copy annots from one PDF to another
-  get_page_text_positions() — Get text with bounding boxes (for smart highlighting)
+  get_annotations()       - List all annotations in the PDF
+  remove_all_annotations() - Remove every annotation
+  add_text_to_all_pages() - Burn text on every page (watermark-like)
+  merge_annotation_layer() - Copy annots from one PDF to another
+  get_page_text_positions() - Get text with bounding boxes (for smart highlighting)
 """
 
 import io
@@ -196,7 +196,7 @@ def edit_pdf(
         action:      See module docstring for full list
         text:        Text content / search term
         page_num:    1-based page number (used if page_range is empty)
-        page_range:  '1,3,5-8' or 'all' — applies action to multiple pages
+        page_range:  '1,3,5-8' or 'all' - applies action to multiple pages
         x, y:        Top-left position (points from top-left corner)
         x2, y2:      Bottom-right position (for shapes/lines)
         font_size:   Font size for text actions
@@ -474,7 +474,7 @@ def edit_pdf(
         elif action == 'page_header':
             pw = page.rect.width
             ph = page.rect.height
-            header_text = text or 'IshuTools — IshuTools.fun'
+            header_text = text or 'IshuTools - IshuTools.fun'
             margin = x if x > 0 else 30
 
             def draw_header(c, w, h):
@@ -494,7 +494,7 @@ def edit_pdf(
         elif action == 'page_footer':
             pw = page.rect.width
             ph = page.rect.height
-            footer_text = text or f'Page {pg_idx + 1} — IshuTools.fun'
+            footer_text = text or f'Page {pg_idx + 1} - IshuTools.fun'
             margin = x if x > 0 else 30
 
             def draw_footer(c, w, h, pg=pg_idx, ft=footer_text, mt=margin):
@@ -728,7 +728,7 @@ def add_header_footer(input_path: str, output_path: str,
     Args:
         input_path:    Source PDF
         output_path:   Output PDF
-        header:        Header text (e.g. 'My Company — Confidential')
+        header:        Header text (e.g. 'My Company - Confidential')
         footer:        Footer text (e.g. 'Page {page} of {total}')
         header_align:  'left' | 'center' | 'right'
         footer_align:  'left' | 'center' | 'right'

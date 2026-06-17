@@ -3,10 +3,10 @@ pdf_to_word.py - Enterprise PDF to Word Converter
 IshuTools.fun | Professional PDF Suite
 
 Conversion strategies (in order of quality):
-  1. pdf2docx — best layout fidelity (tables, columns, images)
-  2. PyMuPDF (fitz) → python-docx — rich text with formatting
-  3. pdfminer → python-docx — pure text fallback
-  4. Tesseract OCR → python-docx — for scanned/image PDFs
+  1. pdf2docx - best layout fidelity (tables, columns, images)
+  2. PyMuPDF (fitz) → python-docx - rich text with formatting
+  3. pdfminer → python-docx - pure text fallback
+  4. Tesseract OCR → python-docx - for scanned/image PDFs
 
 Features:
   - Full layout reconstruction (tables, columns, lists)
@@ -85,7 +85,7 @@ def _detect_heading_level(span_size: float, body_size: float) -> int:
 def _is_list_item(text: str) -> tuple:
     """Detect bullet/numbered list items. Returns (is_list, cleaned_text)."""
     bullet_patterns = [
-        r'^[•·▪▸►\-–—]\s+(.+)',
+        r'^[•·▪▸►\-–-]\s+(.+)',
         r'^(\d+[.)]\s+)(.+)',
         r'^([a-z]\.\s+)(.+)',
         r'^([ivxlc]+\.\s+)(.+)',
@@ -373,10 +373,10 @@ def pdf_to_word(
     Convert a PDF to Microsoft Word (.docx) using multi-strategy pipeline.
 
     Strategies tried in order:
-      1. pdf2docx — best layout fidelity
-      2. fitz + python-docx — rich text with formatting
-      3. pdfminer + python-docx — pure text
-      4. Tesseract OCR + python-docx — for scanned PDFs
+      1. pdf2docx - best layout fidelity
+      2. fitz + python-docx - rich text with formatting
+      3. pdfminer + python-docx - pure text
+      4. Tesseract OCR + python-docx - for scanned PDFs
 
     Args:
         input_path:     Source PDF
@@ -758,7 +758,7 @@ def extract_hyperlinks(input_path: str, password: str = '') -> list:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — pdfplumber extraction, camelot tables ─────────────
+# ── ENTERPRISE ADDITIONS - pdfplumber extraction, camelot tables ─────────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def pdf_to_word_high_fidelity(input_path: str, output_path: str,

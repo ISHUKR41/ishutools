@@ -1,5 +1,5 @@
 """
-word_to_pdf.py — Convert Word .docx to PDF (Enterprise Edition)
+word_to_pdf.py - Convert Word .docx to PDF (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -389,7 +389,7 @@ def _inject_metadata(path: str, title='', author='', subject='',
                       keywords='') -> None:
     try:
         with pikepdf.open(path, suppress_warnings=True) as pdf:
-            pdf.docinfo['/Producer'] = 'IshuTools.fun PDF Suite — Word2PDF'
+            pdf.docinfo['/Producer'] = 'IshuTools.fun PDF Suite - Word2PDF'
             pdf.docinfo['/Creator'] = 'word_to_pdf'
             if title:
                 pdf.docinfo['/Title'] = title
@@ -613,7 +613,7 @@ def word_to_pdf(
     if add_word_count:
         story.append(PageBreak())
         wc_style = styles.get('WordCount')
-        story.append(Paragraph('— Document Statistics —',
+        story.append(Paragraph('- Document Statistics -',
                                 ParagraphStyle('StatTitle',
                                                parent=base_styles['Normal'],
                                                fontSize=12, alignment=TA_CENTER,
@@ -864,7 +864,7 @@ def docx_to_html(input_path: str, output_path: str) -> dict:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Converted Document — IshuTools.fun</title>
+<title>Converted Document - IshuTools.fun</title>
 <style>
 body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }}
 table {{ border-collapse: collapse; width: 100%; }}
@@ -960,7 +960,7 @@ def batch_docx_to_pdf_parallel(input_paths: list, output_dir: str,
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — python-docx analysis, DOCX metadata ───────────────
+# ── ENTERPRISE ADDITIONS - python-docx analysis, DOCX metadata ───────────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def docx_to_pdf_with_metadata(input_path: str, output_path: str,

@@ -1,5 +1,5 @@
 """
-pdf_to_excel.py — Extract tables and data from PDF to Excel (Enterprise Edition)
+pdf_to_excel.py - Extract tables and data from PDF to Excel (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -1148,7 +1148,7 @@ def detect_pdf_form_fields(input_path: str, password: str = '') -> list:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — camelot, tabula, pdfplumber extraction ────────────
+# ── ENTERPRISE ADDITIONS - camelot, tabula, pdfplumber extraction ────────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def extract_tables_camelot(input_path: str, output_xlsx_path: str,

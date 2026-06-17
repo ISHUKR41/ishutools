@@ -830,7 +830,7 @@ def detect_existing_watermarks(input_path: str) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — Image Watermark, QR Watermark, Tiled ─────────────
+# ── ENTERPRISE ADDITIONS - Image Watermark, QR Watermark, Tiled ─────────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def add_image_watermark(input_path: str, output_path: str,
@@ -896,7 +896,7 @@ def add_tiled_watermark(input_path: str, output_path: str,
                          tile_spacing: int = 120) -> dict:
     """
     Apply a tiled (grid) watermark covering the entire page area.
-    Repeats the watermark text in a grid pattern — common in enterprise documents.
+    Repeats the watermark text in a grid pattern - common in enterprise documents.
 
     Args:
         tile_spacing: Distance between watermark tile centers in points
@@ -1104,3 +1104,105 @@ def add_confidential_stamp(input_path: str, output_path: str,
     doc.save(output_path, garbage=4, deflate=True)
     doc.close()
     return {'output_path': output_path, 'stamp_text': stamp_text, 'pages': len(page_list)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENTERPRISE ADVANCED FUNCTIONS - pdf_watermark.py
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def add_tiled_watermark(input_path: str, output_path: str, text: str, opacity: float = 0.15, angle: int = 45) -> dict:
+    """Add a tiled (repeating grid) watermark across all pages."""
+    import fitz
+    doc = fitz.open(input_path)
+    for page in doc:
+        w, h = page.rect.width, page.rect.height
+        for y in range(0, int(h)+100, 120):
+            for x in range(0, int(w)+100, 200):
+                page.insert_text(
+                    (x, y), text,
+                    fontsize=14, color=(0.7,0.7,0.7),
+                    rotate=angle, overlay=True,
+                )
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'watermark_text': text, 'style': 'tiled'}
+
+def add_confidential_watermark(input_path: str, output_path: str) -> dict:
+    """Add a 'CONFIDENTIAL' red diagonal watermark to all pages."""
+    import fitz
+    doc = fitz.open(input_path)
+    for page in doc:
+        w, h = page.rect.width, page.rect.height
+        page.insert_text(
+            (w*0.1, h*0.55), 'CONFIDENTIAL',
+            fontsize=60, color=(0.9, 0, 0),
+            rotate=45, overlay=True,
+        )
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'watermark_type': 'confidential'}
+
+def remove_watermark_text(input_path: str, output_path: str, watermark_text: str) -> dict:
+    """Attempt to remove visible text watermarks from PDF pages."""
+    import fitz
+    doc = fitz.open(input_path)
+    removed = 0
+    for page in doc:
+        text_instances = page.search_for(watermark_text)
+        for rect in text_instances:
+            page.add_redact_annot(rect, fill=(1,1,1))
+            removed += 1
+        if text_instances:
+            page.apply_redactions()
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'instances_removed': removed, 'watermark_text': watermark_text}
+
+def add_date_stamp(input_path: str, output_path: str, position: str = 'bottom-right') -> dict:
+    """Add current date/time stamp to each page."""
+    import fitz
+    from datetime import datetime
+    stamp = datetime.now().strftime("Processed: %B %d, %Y %H:%M")
+    doc = fitz.open(input_path)
+    for page in doc:
+        w, h = page.rect.width, page.rect.height
+        if position == 'bottom-right':
+            pt = (w - 200, h - 20)
+        elif position == 'bottom-left':
+            pt = (10, h - 20)
+        elif position == 'top-right':
+            pt = (w - 200, 20)
+        else:
+            pt = (10, 20)
+        page.insert_text(pt, stamp, fontsize=8, color=(0.5,0.5,0.5), overlay=True)
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'stamp': stamp, 'position': position}
+
+def add_qr_watermark(input_path: str, output_path: str, qr_text: str = 'https://ishutools.fun') -> dict:
+    """Add a QR code watermark to each page."""
+    import fitz
+    try:
+        import qrcode
+        from PIL import Image
+        import io
+        qr = qrcode.QRCode(version=1, box_size=3, border=1)
+        qr.add_data(qr_text)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color='black', back_color='white')
+        buf = io.BytesIO()
+        qr_img.save(buf, format='PNG')
+        buf.seek(0)
+        qr_bytes = buf.read()
+        doc = fitz.open(input_path)
+        for page in doc:
+            w, h = page.rect.width, page.rect.height
+            rect = fitz.Rect(w-80, h-80, w-10, h-10)
+            page.insert_image(rect, stream=qr_bytes, overlay=True)
+        doc.save(output_path, garbage=4, deflate=True)
+        doc.close()
+        return {'output_path': output_path, 'qr_text': qr_text, 'has_qr': True}
+    except ImportError:
+        import shutil
+        shutil.copy2(input_path, output_path)
+        return {'output_path': output_path, 'has_qr': False, 'note': 'qrcode library not installed'}

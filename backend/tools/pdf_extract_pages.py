@@ -1,5 +1,5 @@
 """
-pdf_extract_pages.py — Extract pages from a PDF (Ultra-Mega Enhanced)
+pdf_extract_pages.py - Extract pages from a PDF (Ultra-Mega Enhanced)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -209,7 +209,7 @@ def _build_thumbnail_grid(thumbnails: list[bytes], output_path: str,
         page_h = rows * (THUMB_H + LABEL_H + MARGIN) + MARGIN
 
         c = rl_canvas.Canvas(output_path, pagesize=(page_w, page_h))
-        c.setTitle('Extracted Pages — Thumbnail Grid')
+        c.setTitle('Extracted Pages - Thumbnail Grid')
         c.setAuthor('IshuTools.fun')
 
         for i, (thumb_bytes, label) in enumerate(zip(thumbnails, page_labels)):
@@ -417,7 +417,7 @@ def extract_pages(
     except Exception:
         pass
     meta.update({
-        '/Producer': 'IshuTools.fun PDF Suite — Extract Pages',
+        '/Producer': 'IshuTools.fun PDF Suite - Extract Pages',
         '/Creator': 'IshuTools.fun',
         '/ModDate': datetime.utcnow().strftime("D:%Y%m%d%H%M%S+00'00'"),
         '/ExtractedPages': str([i + 1 for i in page_indices]),

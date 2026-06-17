@@ -1,5 +1,5 @@
 """
-pdf_scan.py — Scan images to searchable PDF (Ultra-Mega Enhanced)
+pdf_scan.py - Scan images to searchable PDF (Ultra-Mega Enhanced)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -344,7 +344,7 @@ def scan_to_pdf(
         oem:             Tesseract OCR engine mode (0-3)
         target_dpi:      Output DPI for page size calculation
         image_quality:   JPEG quality for background images (50-100)
-        page_size:       'auto' | 'a4' | 'letter' — fixed page size
+        page_size:       'auto' | 'a4' | 'letter' - fixed page size
         grayscale_enhance: Convert to grayscale during enhancement
         deskew/denoise/sharpen/normalize: individual enhancement steps
         contrast_factor/brightness_factor: enhancement strengths
@@ -434,7 +434,7 @@ def scan_to_pdf(
         try:
             with pikepdf.open(output_path) as pdf:
                 try:
-                    pdf.docinfo['/Producer'] = 'IshuTools.fun PDF Suite — Scan to PDF'
+                    pdf.docinfo['/Producer'] = 'IshuTools.fun PDF Suite - Scan to PDF'
                     pdf.docinfo['/Creator'] = 'IshuTools.fun'
                     pdf.docinfo['/ModDate'] = datetime.utcnow().strftime(
                         "D:%Y%m%d%H%M%S+00'00'")
@@ -472,7 +472,7 @@ def scan_to_pdf(
 def images_to_pdf_lossless(input_paths: list, output_path: str) -> dict:
     """
     Convert images to PDF losslessly using img2pdf.
-    No OCR, no enhancement — pure lossless conversion.
+    No OCR, no enhancement - pure lossless conversion.
     Fastest method for archiving images.
     """
     if not input_paths:

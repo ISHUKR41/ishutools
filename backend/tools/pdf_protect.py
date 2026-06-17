@@ -1,5 +1,5 @@
 """
-pdf_protect.py — Encrypt & restrict PDF with AES-256 (Enterprise Edition)
+pdf_protect.py - Encrypt & restrict PDF with AES-256 (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -623,14 +623,14 @@ def get_permission_report(permissions_preset: str) -> dict:
 
 def _preset_description(preset: str) -> str:
     desc = {
-        'all': 'Full access — no restrictions applied.',
+        'all': 'Full access - no restrictions applied.',
         'print_only': 'Can print at full resolution. Cannot copy, modify, or fill forms.',
         'print_lowres_only': 'Can print at low resolution only. Cannot copy or modify.',
         'read_only': 'View only. Cannot print, copy, or modify.',
         'no_copy': 'Can print and annotate but cannot copy text or images.',
         'no_print': 'Can edit and copy but cannot print.',
         'forms_only': 'Can fill forms and print. Cannot copy or modify structure.',
-        'strict': 'Maximum restriction — view only with no accessible features.',
+        'strict': 'Maximum restriction - view only with no accessible features.',
     }
     return desc.get(preset, 'Custom permissions.')
 
@@ -994,7 +994,7 @@ def add_metadata_protection(input_path: str, output_path: str,
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — AES-256, Cert-based, Metadata Encryption ─────────
+# ── ENTERPRISE ADDITIONS - AES-256, Cert-based, Metadata Encryption ─────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def protect_with_aes256(input_path: str, output_path: str,
@@ -1208,7 +1208,7 @@ def add_pdf_expiry(input_path: str, output_path: str,
                     days_valid: int = 30, message: str = '') -> dict:
     """
     Add expiry date metadata to PDF.
-    NOTE: This adds metadata — proper DRM requires a PDF DRM server.
+    NOTE: This adds metadata - proper DRM requires a PDF DRM server.
     """
     import pikepdf, os
     from datetime import datetime, timedelta
@@ -1278,3 +1278,54 @@ def verify_pdf_integrity(input_path: str) -> dict:
 
     results['is_valid'] = len(results['issues']) == 0
     return results
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENTERPRISE ADVANCED FUNCTIONS - pdf_protect.py
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def verify_pdf_security(input_path: str) -> dict:
+    """Check all security properties of a PDF."""
+    import fitz
+    doc = fitz.open(input_path)
+    result = {
+        'is_encrypted': doc.is_encrypted,
+        'needs_password': doc.needs_pass,
+        'permissions': doc.permissions,
+        'can_print': bool(doc.permissions & fitz.PDF_PERM_PRINT),
+        'can_copy': bool(doc.permissions & fitz.PDF_PERM_COPY),
+        'can_modify': bool(doc.permissions & fitz.PDF_PERM_MODIFY),
+        'can_annotate': bool(doc.permissions & fitz.PDF_PERM_ANNOTATE),
+        'page_count': len(doc),
+    }
+    doc.close()
+    return result
+
+def protect_restrict_printing(input_path: str, output_path: str, owner_password: str) -> dict:
+    """Set PDF to allow viewing but restrict printing."""
+    import pikepdf
+    perms = pikepdf.Permissions(print_lowres=False, print_highres=False, extract=True, modify_annotation=False)
+    with pikepdf.open(input_path) as pdf:
+        pdf.save(output_path, encryption=pikepdf.Encryption(owner=owner_password, user='', allow=perms))
+    return {'output_path': output_path, 'printing_restricted': True}
+
+def protect_read_only(input_path: str, output_path: str, owner_password: str = 'ishutools2026') -> dict:
+    """Make PDF completely read-only (no copy, no print, no modify)."""
+    import pikepdf
+    perms = pikepdf.Permissions(print_lowres=False, print_highres=False, extract=False, modify_annotation=False, modify_other=False, modify_form=False)
+    with pikepdf.open(input_path) as pdf:
+        pdf.save(output_path, encryption=pikepdf.Encryption(owner=owner_password, user='', allow=perms))
+    return {'output_path': output_path, 'is_read_only': True}
+
+def protect_add_certificate_metadata(input_path: str, output_path: str, author: str = 'IshuTools.fun') -> dict:
+    """Add certificate-like metadata (author, org, date) without password encryption."""
+    import pikepdf
+    from datetime import datetime
+    with pikepdf.open(input_path) as pdf:
+        with pdf.open_metadata() as meta:
+            meta['dc:creator'] = [author]
+            meta['dc:description'] = 'Processed by IshuTools.fun - Free PDF Tools by Ishu Kumar'
+            meta['xmp:CreateDate'] = datetime.now().isoformat()
+            meta['xmp:CreatorTool'] = 'IshuTools PDF Suite v3.0 - ishutools.fun'
+        pdf.save(output_path)
+    return {'output_path': output_path, 'author': author, 'has_certificate_metadata': True}

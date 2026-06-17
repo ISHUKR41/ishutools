@@ -1,5 +1,5 @@
 """
-pdf_organize.py — Reorder, organize, and restructure PDF pages (Enterprise Edition)
+pdf_organize.py - Reorder, organize, and restructure PDF pages (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -425,7 +425,7 @@ def organize_pdf(
         meta = dict(reader.metadata) if reader.metadata else {}
         meta.update({
             '/ModDate': datetime.utcnow().strftime("D:%Y%m%d%H%M%S+00'00'"),
-            '/Producer': 'IshuTools.fun PDF Suite — Organize',
+            '/Producer': 'IshuTools.fun PDF Suite - Organize',
         })
         writer.add_metadata(meta)
     except Exception:
@@ -603,7 +603,7 @@ def zip_pdfs(
             writer.add_page(reader_b.pages[i])
 
     writer.add_metadata({
-        '/Producer': 'IshuTools.fun PDF Suite — Zip Merge',
+        '/Producer': 'IshuTools.fun PDF Suite - Zip Merge',
         '/ModDate': datetime.utcnow().strftime("D:%Y%m%d%H%M%S+00'00'"),
     })
     with open(output_path, 'wb') as f:
@@ -652,7 +652,7 @@ def split_by_n(
         for i in range(start, end):
             writer.add_page(reader.pages[i])
         writer.add_metadata({
-            '/Producer': 'IshuTools.fun PDF Suite — Split',
+            '/Producer': 'IshuTools.fun PDF Suite - Split',
             '/ModDate': datetime.utcnow().strftime("D:%Y%m%d%H%M%S+00'00'"),
         })
         base = os.path.splitext(os.path.basename(input_path))[0]
@@ -865,7 +865,7 @@ def reorder_by_toc(input_path: str, output_path: str,
                 'original_order': list(range(1, total + 1)),
                 'new_order': list(range(1, total + 1)),
                 'bookmarks_used': 0,
-                'note': 'No TOC found — order unchanged',
+                'note': 'No TOC found - order unchanged',
                 'output_path': output_path,
             }
 
@@ -1035,14 +1035,14 @@ def insert_blank_pages(input_path: str, output_path: str,
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — Smart organize, duplicate detection, n-up ─────────
+# ── ENTERPRISE ADDITIONS - Smart organize, duplicate detection, n-up ─────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def create_nup_pdf(input_path: str, output_path: str,
                     n: int = 2,
                     orientation: str = 'landscape') -> dict:
     """
-    Create an N-up PDF (2-up, 4-up) — multiple pages per sheet.
+    Create an N-up PDF (2-up, 4-up) - multiple pages per sheet.
     Useful for printing handouts, booklets, and presentations.
 
     Args:
@@ -1206,7 +1206,7 @@ def insert_blank_pages(input_path: str, output_path: str,
     c = rl_canvas.Canvas(buf, pagesize=A4)
     c.setFont('Helvetica', 8)
     c.setFillColorRGB(0.8, 0.8, 0.8)
-    c.drawCentredString(A4[0]/2, 30, 'IshuTools.fun — Blank Page')
+    c.drawCentredString(A4[0]/2, 30, 'IshuTools.fun - Blank Page')
     c.save()
     buf.seek(0)
     blank_reader = PdfReader(buf)

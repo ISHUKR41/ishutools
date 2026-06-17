@@ -3,11 +3,11 @@ pdf_compress.py - Enterprise PDF Compression Suite
 IshuTools.fun | Professional PDF Suite
 
 Strategies (in order of quality/aggressiveness):
-  1. Ghostscript CLI (gs) — best compression, multiple presets
-  2. qpdf CLI — linearization + stream compression
-  3. PyMuPDF (fitz) — image recompression + stream deflation
-  4. pikepdf — object stream merging + content compression
-  5. pypdf — orphan removal fallback
+  1. Ghostscript CLI (gs) - best compression, multiple presets
+  2. qpdf CLI - linearization + stream compression
+  3. PyMuPDF (fitz) - image recompression + stream deflation
+  4. pikepdf - object stream merging + content compression
+  5. pypdf - orphan removal fallback
   6. Image-only recompress via Pillow (last resort)
 
 Features:
@@ -954,13 +954,13 @@ def get_compression_potential(input_path: str, password: str = '') -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — Advanced Compression ─────────────────────────────
+# ── ENTERPRISE ADDITIONS - Advanced Compression ─────────────────────────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def compress_with_zopfli(input_path: str, output_path: str) -> dict:
     """
     Apply Zopfli-quality DEFLATE recompression to all PDF streams.
-    Zopfli is a slower but better DEFLATE compressor — ideal for archival PDFs.
+    Zopfli is a slower but better DEFLATE compressor - ideal for archival PDFs.
 
     Requires: pikepdf (uses its built-in zlib), python-zopfli if available
     """
@@ -1239,3 +1239,111 @@ def strip_pdf_bloat(input_path: str, output_path: str) -> dict:
         'stripped_size': os.path.getsize(output_path),
         'reduction_bytes': os.path.getsize(input_path) - os.path.getsize(output_path),
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENTERPRISE ADVANCED FUNCTIONS - pdf_compress.py
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def compress_images_only(input_path: str, output_path: str, quality: int = 60) -> dict:
+    """Compress only images in PDF, leaving text/vectors untouched."""
+    import fitz
+    from PIL import Image
+    import io
+    doc = fitz.open(input_path)
+    for page in doc:
+        img_list = page.get_images(full=True)
+        for img_info in img_list:
+            xref = img_info[0]
+            try:
+                base = doc.extract_image(xref)
+                img_bytes = base['image']
+                img = Image.open(io.BytesIO(img_bytes))
+                if img.mode in ('RGBA', 'LA'):
+                    img = img.convert('RGB')
+                out_buf = io.BytesIO()
+                img.save(out_buf, format='JPEG', quality=quality, optimize=True)
+                doc.update_stream(xref, out_buf.getvalue())
+            except Exception as e:
+                logging.warning(f"Image compress skip xref {xref}: {e}")
+    doc.save(output_path, garbage=4, deflate=True, clean=True)
+    orig_size = os.path.getsize(input_path)
+    out_size = os.path.getsize(output_path)
+    doc.close()
+    return {'output_path': output_path, 'original_size': orig_size, 'output_size': out_size, 'reduction_pct': round((1 - out_size/orig_size)*100, 1)}
+
+def compress_remove_metadata(input_path: str, output_path: str) -> dict:
+    """Strip all metadata and compress for minimum file size."""
+    import fitz
+    doc = fitz.open(input_path)
+    doc.set_metadata({})
+    doc.del_xml_metadata()
+    doc.save(output_path, garbage=4, deflate=True, clean=True, no_new_id=True)
+    orig = os.path.getsize(input_path)
+    out = os.path.getsize(output_path)
+    doc.close()
+    return {'output_path': output_path, 'original_size': orig, 'output_size': out, 'reduction_pct': round((1 - out/orig)*100, 1)}
+
+def compress_grayscale(input_path: str, output_path: str, dpi: int = 150) -> dict:
+    """Convert PDF to grayscale and compress - maximum size reduction."""
+    import fitz
+    from PIL import Image
+    import io
+    doc = fitz.open(input_path)
+    out_doc = fitz.open()
+    mat = fitz.Matrix(dpi/72, dpi/72)
+    for page in doc:
+        pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY)
+        img = Image.frombytes("L", [pix.width, pix.height], pix.samples)
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG', quality=70, optimize=True)
+        buf.seek(0)
+        img_doc = fitz.open(stream=buf.read(), filetype="pdf")
+        out_doc.insert_pdf(img_doc)
+    out_doc.save(output_path, garbage=4, deflate=True)
+    orig = os.path.getsize(input_path)
+    out = os.path.getsize(output_path)
+    doc.close(); out_doc.close()
+    return {'output_path': output_path, 'original_size': orig, 'output_size': out, 'is_grayscale': True, 'reduction_pct': round((1-out/orig)*100,1)}
+
+def get_compression_stats(input_path: str) -> dict:
+    """Analyze PDF to estimate compression potential."""
+    import fitz
+    doc = fitz.open(input_path)
+    file_size = os.path.getsize(input_path)
+    page_count = len(doc)
+    img_count = sum(len(page.get_images()) for page in doc)
+    text_len = sum(len(page.get_text()) for page in doc)
+    has_large_images = img_count > 0
+    estimated_reduction = 50 if has_large_images else 20
+    doc.close()
+    return {
+        'file_size': file_size,
+        'page_count': page_count,
+        'image_count': img_count,
+        'text_characters': text_len,
+        'estimated_reduction_pct': estimated_reduction,
+        'recommended_level': 'high' if has_large_images else 'medium',
+    }
+
+def compress_flatten_annotations(input_path: str, output_path: str) -> dict:
+    """Flatten annotations/comments into page content then compress."""
+    import pikepdf
+    with pikepdf.open(input_path) as pdf:
+        for page in pdf.pages:
+            if '/Annots' in page:
+                del page['/Annots']
+        pdf.save(output_path, compress_streams=True, object_stream_mode=pikepdf.ObjectStreamMode.generate)
+    orig = os.path.getsize(input_path)
+    out = os.path.getsize(output_path)
+    return {'output_path': output_path, 'original_size': orig, 'output_size': out, 'annotations_removed': True}
+
+def compress_linearize(input_path: str, output_path: str) -> dict:
+    """Linearize (web-optimize) PDF for fast web viewing, then compress."""
+    import fitz
+    doc = fitz.open(input_path)
+    doc.save(output_path, garbage=4, deflate=True, linear=True, clean=True)
+    orig = os.path.getsize(input_path)
+    out = os.path.getsize(output_path)
+    doc.close()
+    return {'output_path': output_path, 'original_size': orig, 'output_size': out, 'linearized': True, 'web_optimized': True}

@@ -1,5 +1,5 @@
 """
-pdf_crop.py — Crop PDF pages with maximum precision (Ultra-Mega Enhanced)
+pdf_crop.py - Crop PDF pages with maximum precision (Ultra-Mega Enhanced)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -319,7 +319,7 @@ def crop_pdf(
         else:
             meta = {}
         meta.update({
-            '/Producer': 'IshuTools.fun PDF Suite — Crop',
+            '/Producer': 'IshuTools.fun PDF Suite - Crop',
             '/ModDate': datetime.utcnow().strftime("D:%Y%m%d%H%M%S+00'00'"),
         })
         writer.add_metadata(meta)
@@ -361,7 +361,7 @@ def auto_crop_pdf(
     Args:
         input_path:  Source PDF
         output_path: Output PDF
-        method:      'content' — use text+image bbox | 'whitespace' — pixel-based
+        method:      'content' - use text+image bbox | 'whitespace' - pixel-based
         margin_pt:   Padding to keep around detected content
         password:    PDF password
         compress:    Compression pass

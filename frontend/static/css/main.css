@@ -1939,3 +1939,44 @@ img { max-width: 100%; display: block; }
   color: var(--text-muted);
   margin-top: 20px;
 }
+
+/* ═══ SEO Content Section ══════════════════════════════════════════════════ */
+.seo-content-section {
+  background: var(--surface-elevated, #0f0f1a);
+  border-top: 1px solid var(--border, rgba(99,102,241,0.15));
+  padding: 2rem 0 0.5rem;
+  margin-top: 2rem;
+}
+.seo-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  color: var(--text-muted, #64748b);
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+.seo-inner h2 {
+  font-size: 0.95rem;
+  color: var(--text-secondary, #94a3b8);
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+.seo-inner h3 {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0.8rem 0 0.3rem;
+  font-weight: 600;
+}
+.seo-inner a {
+  color: var(--accent, #6366f1);
+  text-decoration: none;
+}
+.seo-inner a:hover { text-decoration: underline; }
+.seo-inner ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+}
+.seo-inner ul li::before { content: '✓ '; color: #6366f1; }

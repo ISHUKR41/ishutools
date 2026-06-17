@@ -723,7 +723,7 @@ def merge_split_outputs(split_dir: str, output_path: str,
     Args:
         split_dir:  Directory with split PDF files
         output_path: Output merged PDF path
-        sort_by:    'name' | 'mtime' | 'size' — sort order
+        sort_by:    'name' | 'mtime' | 'size' - sort order
 
     Returns:
         dict: file_count, total_pages, output_path
@@ -794,7 +794,7 @@ def get_page_word_counts(input_path: str, password: str = '') -> list:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — Smart split, content-aware, bookmark-based ────────
+# ── ENTERPRISE ADDITIONS - Smart split, content-aware, bookmark-based ────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def split_by_bookmarks(input_path: str, output_dir: str,
@@ -993,3 +993,88 @@ def split_at_bookmarks(input_path: str, output_dir: str) -> dict:
         parts.append({'path': out_path, 'title': title, 'pages': end_pg - start_pg})
     doc.close()
     return {'parts': parts, 'total_parts': len(parts)}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENTERPRISE ADVANCED FUNCTIONS - pdf_split.py
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def split_by_text_pattern(input_path: str, output_dir: str, pattern: str) -> dict:
+    """Split PDF wherever a page contains text matching the given regex pattern."""
+    import fitz, re
+    doc = fitz.open(input_path)
+    os.makedirs(output_dir, exist_ok=True)
+    groups = []
+    current_group = []
+    for i, page in enumerate(doc):
+        text = page.get_text()
+        if re.search(pattern, text, re.IGNORECASE) and current_group:
+            groups.append(current_group[:])
+            current_group = []
+        current_group.append(i)
+    if current_group:
+        groups.append(current_group)
+    output_files = []
+    for gi, group in enumerate(groups):
+        out_path = os.path.join(output_dir, f'part_{gi+1:03d}.pdf')
+        out_doc = fitz.open()
+        for pg in group:
+            out_doc.insert_pdf(doc, from_page=pg, to_page=pg)
+        out_doc.save(out_path, garbage=4, deflate=True)
+        out_doc.close()
+        output_files.append(out_path)
+    doc.close()
+    return {'output_files': output_files, 'part_count': len(groups), 'pattern': pattern}
+
+def split_extract_odd_even(input_path: str, odd_path: str, even_path: str) -> dict:
+    """Split PDF into two: one with odd pages, one with even pages (for duplex printing)."""
+    import fitz
+    doc = fitz.open(input_path)
+    odd_doc = fitz.open()
+    even_doc = fitz.open()
+    for i in range(len(doc)):
+        if i % 2 == 0:
+            odd_doc.insert_pdf(doc, from_page=i, to_page=i)
+        else:
+            even_doc.insert_pdf(doc, from_page=i, to_page=i)
+    odd_doc.save(odd_path, garbage=4, deflate=True)
+    even_doc.save(even_path, garbage=4, deflate=True)
+    doc.close(); odd_doc.close(); even_doc.close()
+    return {'odd_path': odd_path, 'even_path': even_path, 'odd_pages': -1, 'even_pages': -1}
+
+def split_by_max_pages(input_path: str, output_dir: str, max_pages_per_file: int = 10) -> dict:
+    """Split PDF into chunks of at most max_pages_per_file pages each."""
+    import fitz
+    doc = fitz.open(input_path)
+    os.makedirs(output_dir, exist_ok=True)
+    n = len(doc)
+    output_files = []
+    for start in range(0, n, max_pages_per_file):
+        end = min(start + max_pages_per_file - 1, n - 1)
+        out_doc = fitz.open()
+        out_doc.insert_pdf(doc, from_page=start, to_page=end)
+        out_path = os.path.join(output_dir, f'pages_{start+1}_to_{end+1}.pdf')
+        out_doc.save(out_path, garbage=4, deflate=True)
+        out_doc.close()
+        output_files.append(out_path)
+    doc.close()
+    return {'output_files': output_files, 'part_count': len(output_files), 'max_pages_per_file': max_pages_per_file}
+
+def split_remove_blank_pages(input_path: str, output_path: str, threshold: int = 100) -> dict:
+    """Split out blank pages from PDF."""
+    import fitz
+    doc = fitz.open(input_path)
+    out = fitz.open()
+    removed = 0
+    for i, page in enumerate(doc):
+        text = page.get_text().strip()
+        pix = page.get_pixmap(matrix=fitz.Matrix(0.5,0.5), colorspace=fitz.csGRAY)
+        avg = sum(pix.samples) / len(pix.samples) if pix.samples else 255
+        if text or avg < 250:
+            out.insert_pdf(doc, from_page=i, to_page=i)
+        else:
+            removed += 1
+    out.save(output_path, garbage=4, deflate=True)
+    total = len(out)
+    out.close(); doc.close()
+    return {'output_path': output_path, 'original_pages': len(doc) if not doc.is_closed else -1, 'remaining_pages': total, 'blank_pages_removed': removed}

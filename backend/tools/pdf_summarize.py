@@ -1,5 +1,5 @@
 """
-pdf_summarize.py — AI-powered extractive PDF summarization (Enterprise Edition)
+pdf_summarize.py - AI-powered extractive PDF summarization (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -985,7 +985,7 @@ def compare_two_pdfs_text(path1: str, path2: str) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — Advanced NLP, TF-IDF, Named Entity Recognition ────
+# ── ENTERPRISE ADDITIONS - Advanced NLP, TF-IDF, Named Entity Recognition ────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def extract_named_entities(input_path: str, password: str = '') -> dict:
@@ -1175,7 +1175,7 @@ def generate_executive_summary(input_path: str, max_sentences: int = 10,
 def extract_key_topics(input_path: str, max_topics: int = 10) -> dict:
     """
     Extract key topics and entities from PDF using TF-IDF keyword extraction.
-    No API key required — pure Python NLP.
+    No API key required - pure Python NLP.
     """
     import fitz, re
     from collections import Counter
@@ -1224,7 +1224,7 @@ def generate_executive_summary(input_path: str, max_sentences: int = 5) -> dict:
     """
     Generate a concise executive summary using TextRank-inspired extraction.
     Picks the most representative sentences from the document.
-    No AI API needed — pure extractive summarization.
+    No AI API needed - pure extractive summarization.
     """
     import fitz, re
     from collections import defaultdict

@@ -1,5 +1,5 @@
 """
-pdf_redact.py — Permanently redact sensitive content from PDF (Enterprise Edition)
+pdf_redact.py - Permanently redact sensitive content from PDF (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -18,7 +18,7 @@ Features:
   - Custom redaction fill color (hex)
   - Redaction label overlay (e.g. "[REDACTED]", "████")
   - Label font, size, and color control
-  - Flatten redactions (permanent — not reversible via annotation editing)
+  - Flatten redactions (permanent - not reversible via annotation editing)
   - Cross-reference: count of redacted instances per page
   - Redaction report export (JSON-serializable)
   - Ghostscript final flatten pass for absolute permanence
@@ -173,7 +173,7 @@ def _compile_patterns(
         wl_compiled = [re.compile(re.escape(w), re.IGNORECASE) for w in whitelist if w]
         filtered = []
         for pat, lbl in compiled:
-            # keep pattern — whitelist is applied at match time
+            # keep pattern - whitelist is applied at match time
             filtered.append((pat, lbl, wl_compiled))
         return filtered
 
@@ -201,7 +201,7 @@ def _redact_with_fitz(
 ) -> dict:
     """
     Use PyMuPDF to search, mark, and permanently flatten redactions.
-    This is the most reliable method — fitz handles text location precisely.
+    This is the most reliable method - fitz handles text location precisely.
     """
     doc = fitz.open(input_path)
     total_redacted = 0
@@ -851,12 +851,12 @@ def audit_redaction(input_path: str) -> dict:
 
         if exposed_text_risk:
             recommendations.append(
-                'Text may still be extractable — use "flatten redactions" for permanent redaction.')
+                'Text may still be extractable - use "flatten redactions" for permanent redaction.')
         if metadata_risk:
             recommendations.append('Enable "Strip Metadata" when redacting.')
         if redaction_boxes == 0:
             recommendations.append(
-                'No redaction boxes detected — this PDF may not have been redacted yet.')
+                'No redaction boxes detected - this PDF may not have been redacted yet.')
 
         return {
             'is_properly_redacted': is_properly_redacted,
@@ -872,7 +872,7 @@ def audit_redaction(input_path: str) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — Smart PII Redaction, Regex, Audit Trail ───────────
+# ── ENTERPRISE ADDITIONS - Smart PII Redaction, Regex, Audit Trail ───────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def redact_pii_smart(input_path: str, output_path: str,
@@ -1109,3 +1109,82 @@ def redact_custom_patterns(input_path: str, output_path: str,
     doc.save(output_path, garbage=4, deflate=True)
     doc.close()
     return {'output_path': output_path, 'total_redacted': total_redacted}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENTERPRISE ADVANCED FUNCTIONS - pdf_redact.py
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def redact_by_pattern_list(input_path: str, output_path: str, patterns: list) -> dict:
+    """Redact multiple regex patterns (emails, phone numbers, names, etc.) in one pass."""
+    import fitz, re
+    doc = fitz.open(input_path)
+    total_redacted = 0
+    for page in doc:
+        text = page.get_text()
+        for pattern in patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            for match in matches:
+                rects = page.search_for(match if isinstance(match, str) else match[0])
+                for rect in rects:
+                    page.add_redact_annot(rect, fill=(0,0,0))
+                    total_redacted += 1
+        if total_redacted > 0:
+            page.apply_redactions()
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'items_redacted': total_redacted, 'patterns_count': len(patterns)}
+
+def redact_page_region(input_path: str, output_path: str, page_num: int, region: tuple) -> dict:
+    """Redact a rectangular region on a specific page (x0,y0,x1,y1)."""
+    import fitz
+    doc = fitz.open(input_path)
+    if 0 <= page_num - 1 < len(doc):
+        page = doc[page_num - 1]
+        rect = fitz.Rect(*region)
+        page.add_redact_annot(rect, fill=(0,0,0))
+        page.apply_redactions()
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'page': page_num, 'region': region}
+
+def redact_ssn_credit_cards(input_path: str, output_path: str) -> dict:
+    """Auto-redact SSN, credit card numbers, and similar sensitive data."""
+    import fitz, re
+    patterns = {
+        'SSN': r'\b\d{3}-\d{2}-\d{4}\b',
+        'Credit Card': r'\b(?:\d[ -]?){13,16}\b',
+        'IBAN': r'\b[A-Z]{2}\d{2}[A-Z0-9]{4}\d{7}(?:[A-Z0-9]?){0,16}\b',
+    }
+    doc = fitz.open(input_path)
+    counts = {k: 0 for k in patterns}
+    for page in doc:
+        text = page.get_text()
+        redacted_any = False
+        for label, pattern in patterns.items():
+            for match in re.finditer(pattern, text):
+                matched_str = match.group()
+                rects = page.search_for(matched_str)
+                for rect in rects:
+                    page.add_redact_annot(rect, fill=(0,0,0))
+                    counts[label] += 1
+                    redacted_any = True
+        if redacted_any:
+            page.apply_redactions()
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'redaction_counts': counts, 'total': sum(counts.values())}
+
+def redact_highlight_preview(input_path: str, output_path: str, search_text: str) -> dict:
+    """Highlight text that would be redacted (preview mode - does not permanently redact)."""
+    import fitz
+    doc = fitz.open(input_path)
+    highlighted = 0
+    for page in doc:
+        rects = page.search_for(search_text, quads=False)
+        for rect in rects:
+            page.add_highlight_annot(rect)
+            highlighted += 1
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'highlighted_instances': highlighted, 'search_text': search_text, 'mode': 'preview'}

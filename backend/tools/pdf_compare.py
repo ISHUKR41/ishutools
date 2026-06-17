@@ -1,5 +1,5 @@
 """
-pdf_compare.py — Deep comparison of two PDF documents (Enterprise Edition)
+pdf_compare.py - Deep comparison of two PDF documents (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -917,7 +917,7 @@ def compare_metadata_only(path1: str, path2: str) -> dict:
     """
     Compare metadata between two PDFs (title, author, creation date, etc.)
 
-    Quick comparison without reading page content — useful for version checking.
+    Quick comparison without reading page content - useful for version checking.
 
     Returns:
         dict: metadata_doc1, metadata_doc2, differences, is_identical
@@ -963,7 +963,7 @@ def compare_metadata_only(path1: str, path2: str) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — Visual diff, word-level diff, metadata compare ────
+# ── ENTERPRISE ADDITIONS - Visual diff, word-level diff, metadata compare ────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def compare_visual_diff(path1: str, path2: str, output_path: str,
@@ -1023,7 +1023,7 @@ def compare_visual_diff(path1: str, path2: str, output_path: str,
 
         # Label
         new_pg.insert_text(fitz.Point(10, 15),
-                            f'Page {pg_idx+1} — {diff_pixels:,} different pixels',
+                            f'Page {pg_idx+1} - {diff_pixels:,} different pixels',
                             fontsize=8, color=(0.8, 0, 0))
 
     out_doc.save(output_path, garbage=4, deflate=True)
@@ -1165,3 +1165,95 @@ def compare_metadata(path_a: str, path_b: str) -> dict:
             for k in set(meta_a)|set(meta_b)
             if meta_a.get(k) != meta_b.get(k)}
     return {'metadata_a': meta_a, 'metadata_b': meta_b, 'differences': diff, 'are_identical': len(diff)==0}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENTERPRISE ADVANCED FUNCTIONS - pdf_compare.py
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def compare_word_level(path1: str, path2: str) -> dict:
+    """Compare two PDFs at word level and return added/removed words."""
+    import fitz
+    def get_words(path):
+        doc = fitz.open(path)
+        words = []
+        for page in doc:
+            words.extend(page.get_text().split())
+        doc.close()
+        return words
+    words1 = set(get_words(path1))
+    words2 = set(get_words(path2))
+    added = words2 - words1
+    removed = words1 - words2
+    common = words1 & words2
+    return {
+        'words_in_doc1': len(words1),
+        'words_in_doc2': len(words2),
+        'added_words': list(added)[:100],
+        'removed_words': list(removed)[:100],
+        'common_words': len(common),
+        'similarity_pct': round(len(common)*100/max(len(words1|words2),1), 1),
+    }
+
+def compare_generate_diff_report(path1: str, path2: str, output_path: str) -> dict:
+    """Generate a detailed text diff report PDF."""
+    import fitz
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.pagesizes import A4
+    import io, difflib
+    def get_text(path):
+        doc = fitz.open(path)
+        t = '\n'.join(page.get_text() for page in doc)
+        doc.close()
+        return t
+    text1 = get_text(path1)
+    text2 = get_text(path2)
+    differ = difflib.unified_diff(
+        text1.splitlines(),
+        text2.splitlines(),
+        fromfile=os.path.basename(path1),
+        tofile=os.path.basename(path2),
+        lineterm='',
+    )
+    diff_lines = list(differ)
+    buf = io.BytesIO()
+    c = rl_canvas.Canvas(buf, pagesize=A4)
+    w, h = A4
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(40, h-40, "PDF Comparison Report - IshuTools.fun")
+    c.setFont("Courier", 8)
+    y = h - 70
+    for line in diff_lines[:200]:
+        if y < 40:
+            c.showPage()
+            c.setFont("Courier", 8)
+            y = h - 40
+        if line.startswith('+'):
+            c.setFillColorRGB(0, 0.6, 0)
+        elif line.startswith('-'):
+            c.setFillColorRGB(0.8, 0, 0)
+        else:
+            c.setFillColorRGB(0, 0, 0)
+        c.drawString(40, y, line[:120])
+        y -= 12
+    c.save()
+    buf.seek(0)
+    with open(output_path, 'wb') as f:
+        f.write(buf.read())
+    return {'output_path': output_path, 'diff_lines': len(diff_lines), 'has_differences': len(diff_lines) > 0}
+
+def compare_page_count_and_size(path1: str, path2: str) -> dict:
+    """Quick comparison of page count, file size, and metadata."""
+    import fitz
+    def info(path):
+        doc = fitz.open(path)
+        d = {'pages': len(doc), 'size': os.path.getsize(path), 'metadata': doc.metadata}
+        doc.close()
+        return d
+    i1, i2 = info(path1), info(path2)
+    return {
+        'doc1': i1, 'doc2': i2,
+        'page_diff': i2['pages'] - i1['pages'],
+        'size_diff': i2['size'] - i1['size'],
+        'same_page_count': i1['pages'] == i2['pages'],
+    }

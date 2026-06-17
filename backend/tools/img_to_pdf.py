@@ -1,5 +1,5 @@
 """
-img_to_pdf.py — Convert images to PDF (Enterprise Edition)
+img_to_pdf.py - Convert images to PDF (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -162,7 +162,7 @@ def _load_and_prep_image(
         else:
             raise
 
-    # Animated GIF / WebP — use first frame
+    # Animated GIF / WebP - use first frame
     if hasattr(img, 'n_frames') and img.n_frames > 1:
         try:
             img.seek(0)
@@ -245,7 +245,7 @@ def _images_to_pdf_img2pdf(
         img_bytes_list = []
         for path, img, dpi in img_path_list:
             buf = io.BytesIO()
-            # img2pdf needs JPEG or PNG — save as JPEG for photos
+            # img2pdf needs JPEG or PNG - save as JPEG for photos
             img.save(buf, format='JPEG', quality=95, optimize=True,
                      progressive=True)
             img_bytes_list.append(buf.getvalue())
@@ -468,7 +468,7 @@ def _pikepdf_set_metadata(
     """Inject PDF metadata using pikepdf."""
     try:
         with pikepdf.open(path, suppress_warnings=True) as pdf:
-            pdf.docinfo['/Producer'] = 'IshuTools.fun PDF Suite — Img2PDF'
+            pdf.docinfo['/Producer'] = 'IshuTools.fun PDF Suite - Img2PDF'
             pdf.docinfo['/Creator'] = 'img_to_pdf'
             if title:
                 pdf.docinfo['/Title'] = title
@@ -893,7 +893,7 @@ def create_photo_book(image_paths: list, output_path: str,
     c.setFont('Helvetica', 12)
     c.setFillColorRGB(0.4, 0.4, 0.4)
     c.drawCentredString(pw / 2, ph * 0.48,
-                        f'{len(image_paths)} Photos — IshuTools.fun')
+                        f'{len(image_paths)} Photos - IshuTools.fun')
     c.showPage()
 
     pages_rendered = 1
@@ -1028,7 +1028,7 @@ def optimize_images_before_pdf(image_paths: list, output_dir: str,
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — Multi-format, EXIF, Barcode, QR ──────────────────
+# ── ENTERPRISE ADDITIONS - Multi-format, EXIF, Barcode, QR ──────────────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def images_to_pdf_with_exif(image_paths: list, output_path: str,
@@ -1234,7 +1234,7 @@ def images_to_pdf_with_captions(image_paths: list, output_path: str,
 
             c.setFont('Helvetica', 8)
             c.setFillColorRGB(0.6, 0.6, 0.6)
-            c.drawCentredString(W/2, 20, f'Page {idx+1} — IshuTools.fun')
+            c.drawCentredString(W/2, 20, f'Page {idx+1} - IshuTools.fun')
 
             if idx < len(image_paths) - 1:
                 c.showPage()

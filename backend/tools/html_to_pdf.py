@@ -1,5 +1,5 @@
 """
-html_to_pdf.py — Convert HTML/URL to PDF (Enterprise Edition)
+html_to_pdf.py - Convert HTML/URL to PDF (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -752,7 +752,7 @@ def _inject_metadata(path: str, title='', author='',
                       source_url='', word_count=0) -> None:
     try:
         with pikepdf.open(path, suppress_warnings=True) as pdf:
-            pdf.docinfo['/Producer'] = 'IshuTools.fun PDF Suite — HTML2PDF'
+            pdf.docinfo['/Producer'] = 'IshuTools.fun PDF Suite - HTML2PDF'
             pdf.docinfo['/Creator'] = 'html_to_pdf'
             if title:
                 pdf.docinfo['/Title'] = title
@@ -1073,7 +1073,7 @@ p { text-indent: 0.5in; margin: 0 0 0.5em; }
 </head><body>
 {html_body}
 <footer style="text-align:center;font-size:0.7em;color:#999;margin-top:40px;border-top:1px solid #eee;padding-top:10px;">
-Converted by IshuTools.fun — Free PDF Tools
+Converted by IshuTools.fun - Free PDF Tools
 </footer>
 </body></html>'''
 
@@ -1122,7 +1122,7 @@ def get_page_dimensions_options() -> list:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — BeautifulSoup preprocessing, CSS themes ───────────
+# ── ENTERPRISE ADDITIONS - BeautifulSoup preprocessing, CSS themes ───────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def html_url_to_pdf_with_bs4(url: str, output_path: str,

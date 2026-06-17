@@ -1,5 +1,5 @@
 """
-pptx_to_pdf.py — Convert PowerPoint .pptx to PDF (Enterprise Edition)
+pptx_to_pdf.py - Convert PowerPoint .pptx to PDF (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -475,7 +475,7 @@ def _pikepdf_metadata(
 ) -> None:
     try:
         with pikepdf.open(path, suppress_warnings=True) as pdf:
-            pdf.docinfo['/Producer'] = 'IshuTools.fun PDF Suite — PPTX2PDF'
+            pdf.docinfo['/Producer'] = 'IshuTools.fun PDF Suite - PPTX2PDF'
             pdf.docinfo['/Creator'] = 'pptx_to_pdf'
             if title:
                 pdf.docinfo['/Title'] = title
@@ -937,7 +937,7 @@ def pptx_to_pdf_handout(input_path: str, output_path: str,
             c.setFont('Helvetica', 7)
             c.setFillColorRGB(0.5, 0.5, 0.5)
             c.drawString(margin, ph - 15,
-                         f'IshuTools.fun — Slide Handout — '
+                         f'IshuTools.fun - Slide Handout - '
                          f'Slides {batch_start+1}–{min(batch_start+slides_per_page, len(slide_images))} '
                          f'of {len(slide_images)}')
 
@@ -992,7 +992,7 @@ def pptx_to_pdf_handout(input_path: str, output_path: str,
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — python-pptx analysis, slide extraction ────────────
+# ── ENTERPRISE ADDITIONS - python-pptx analysis, slide extraction ────────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def analyze_pptx_structure(input_path: str) -> dict:

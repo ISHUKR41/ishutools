@@ -1,5 +1,5 @@
 """
-pdf_forms.py — PDF form field operations (Ultra-Mega Enhanced)
+pdf_forms.py - PDF form field operations (Ultra-Mega Enhanced)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -739,7 +739,7 @@ def create_survey_form(output_path: str, title: str,
     c.setFont("Helvetica-Bold", 22)
     c.drawCentredString(W/2, H-50, title)
     c.setFont("Helvetica", 10)
-    c.drawCentredString(W/2, H-70, "IshuTools.fun — Form Generator by Ishu Kumar")
+    c.drawCentredString(W/2, H-70, "IshuTools.fun - Form Generator by Ishu Kumar")
 
     y = H - 120
     c.setFillColor(HexColor("#111827"))

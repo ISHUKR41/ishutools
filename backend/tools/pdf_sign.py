@@ -1,5 +1,5 @@
 """
-pdf_sign.py — Add visual signatures to PDF pages (Enterprise Edition)
+pdf_sign.py - Add visual signatures to PDF pages (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -171,7 +171,7 @@ def _make_qr_code(data: str, size: int = 80) -> bytes:
 
 
 def _gs_flatten(input_path: str, output_path: str) -> bool:
-    """Ghostscript flatten — permanently bakes overlay into page streams."""
+    """Ghostscript flatten - permanently bakes overlay into page streams."""
     if not GS_BIN:
         return False
     cmd = [
@@ -401,7 +401,7 @@ def _create_audit_page(
     c.setFont('Helvetica-Bold', 16)
     c.drawString(40, height - 35, 'Signature Audit Trail')
     c.setFont('Helvetica', 9)
-    c.drawString(40, height - 52, 'IshuTools.fun — Digital Signature Suite')
+    c.drawString(40, height - 52, 'IshuTools.fun - Digital Signature Suite')
 
     # Document info
     c.setFillColorRGB(0.2, 0.2, 0.2)
@@ -625,7 +625,7 @@ def sign_pdf(
     try:
         meta = dict(reader.metadata) if reader.metadata else {}
         meta.update({
-            '/Producer': 'IshuTools.fun PDF Suite — Sign',
+            '/Producer': 'IshuTools.fun PDF Suite - Sign',
             '/ModDate': datetime.now(timezone.utc).strftime("D:%Y%m%d%H%M%S+00'00'"),
             '/Author': signature_text,
             '/Subject': reason or 'Digitally Signed',
@@ -966,7 +966,7 @@ def generate_signature_from_name(name: str, output_path: str,
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — QR Signature, Image Stamp, Batch Sign ────────────
+# ── ENTERPRISE ADDITIONS - QR Signature, Image Stamp, Batch Sign ────────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def sign_with_qr_code(input_path: str, output_path: str,
@@ -1239,3 +1239,72 @@ def verify_signature_presence(input_path: str) -> dict:
         result['error'] = str(e)
 
     return result
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENTERPRISE ADVANCED FUNCTIONS - pdf_sign.py
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def add_initials(input_path: str, output_path: str, initials: str, page_nums: list = None, position: tuple = (50, 50)) -> dict:
+    """Add initials to specified pages (or all pages if none specified)."""
+    import fitz
+    doc = fitz.open(input_path)
+    pages = page_nums if page_nums else list(range(len(doc)))
+    for pg in pages:
+        if 0 <= pg < len(doc):
+            page = doc[pg]
+            page.insert_text(
+                position, initials,
+                fontsize=20, color=(0.2, 0.2, 0.7), overlay=True,
+            )
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'initials': initials, 'pages_signed': len(pages)}
+
+def add_signature_date(input_path: str, output_path: str, name: str, page_num: int = -1) -> dict:
+    """Add signature block with name and date to specified page."""
+    import fitz
+    from datetime import datetime
+    doc = fitz.open(input_path)
+    pg_idx = page_num if page_num >= 0 else len(doc) - 1
+    page = doc[pg_idx]
+    w, h = page.rect.width, page.rect.height
+    sig_x, sig_y = w * 0.6, h - 100
+    page.insert_text((sig_x, sig_y), '______________________', fontsize=12, color=(0,0,0), overlay=True)
+    page.insert_text((sig_x, sig_y + 15), name, fontsize=11, color=(0.1,0.1,0.6), overlay=True)
+    page.insert_text((sig_x, sig_y + 30), datetime.now().strftime('%B %d, %Y'), fontsize=10, color=(0.3,0.3,0.3), overlay=True)
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'signer': name, 'page': pg_idx + 1}
+
+def add_approval_stamp(input_path: str, output_path: str, stamp_text: str = 'APPROVED', color: tuple = (0, 0.5, 0)) -> dict:
+    """Add a large approval/rejection stamp to all pages."""
+    import fitz
+    doc = fitz.open(input_path)
+    for page in doc:
+        w, h = page.rect.width, page.rect.height
+        rect = fitz.Rect(w*0.1, h*0.35, w*0.9, h*0.65)
+        page.draw_rect(rect, color=color, width=4)
+        page.insert_text(
+            (w*0.15, h*0.55), stamp_text,
+            fontsize=72, color=color, rotate=30, overlay=True,
+        )
+    doc.save(output_path, garbage=4, deflate=True)
+    doc.close()
+    return {'output_path': output_path, 'stamp': stamp_text}
+
+def verify_signature_info(input_path: str) -> dict:
+    """Check if PDF has digital signature fields and return info."""
+    import fitz
+    doc = fitz.open(input_path)
+    sig_fields = []
+    for page_num, page in enumerate(doc):
+        for widget in page.widgets() or []:
+            if widget.field_type_string == 'Sig':
+                sig_fields.append({
+                    'page': page_num + 1,
+                    'field_name': widget.field_name,
+                    'rect': list(widget.rect),
+                })
+    doc.close()
+    return {'has_signatures': len(sig_fields) > 0, 'signature_fields': sig_fields, 'count': len(sig_fields)}

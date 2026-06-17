@@ -1,5 +1,5 @@
 """
-excel_to_pdf.py — Convert Excel (.xlsx/.xls/.csv) to PDF (Enterprise Edition)
+excel_to_pdf.py - Convert Excel (.xlsx/.xls/.csv) to PDF (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -231,7 +231,7 @@ def _pikepdf_metadata(
 ) -> None:
     try:
         with pikepdf.open(path, suppress_warnings=True) as pdf:
-            pdf.docinfo['/Producer'] = 'IshuTools.fun PDF Suite — Excel2PDF'
+            pdf.docinfo['/Producer'] = 'IshuTools.fun PDF Suite - Excel2PDF'
             pdf.docinfo['/Creator'] = 'excel_to_pdf'
             if title:
                 pdf.docinfo['/Title'] = title
@@ -644,7 +644,7 @@ def excel_to_pdf(
     elif page_size == 'A4':
         ps = A4
     else:
-        ps = A4  # auto — may be overridden per sheet
+        ps = A4  # auto - may be overridden per sheet
 
     story = []
     sheets_count = 0
@@ -895,7 +895,7 @@ def excel_to_pdf_landscape(input_path: str, output_path: str,
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — openpyxl analysis, chart detection, formatting ─────
+# ── ENTERPRISE ADDITIONS - openpyxl analysis, chart detection, formatting ─────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def excel_to_pdf_with_formulas(input_path: str, output_path: str,

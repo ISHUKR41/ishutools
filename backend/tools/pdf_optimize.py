@@ -1,5 +1,5 @@
 """
-pdf_optimize.py — Optimize PDF for web, print, screen, archive (Ultra-Mega Enhanced)
+pdf_optimize.py - Optimize PDF for web, print, screen, archive (Ultra-Mega Enhanced)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 

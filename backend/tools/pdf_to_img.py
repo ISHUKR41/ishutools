@@ -167,7 +167,7 @@ def _pil_mode_for_fmt(fmt: str, transparent: bool = False) -> str:
     return 'RGB'
 
 
-# ── PyMuPDF conversion (primary — no Poppler required) ────────────────────────
+# ── PyMuPDF conversion (primary - no Poppler required) ────────────────────────
 
 def _convert_with_fitz(
     input_path:   str,
@@ -361,7 +361,7 @@ def pdf_first_page_to_image(
 ) -> dict:
     """
     Convert only the first page of a PDF to an image.
-    Faster than full conversion — used for preview thumbnails.
+    Faster than full conversion - used for preview thumbnails.
     """
     res = _convert_with_fitz(
         input_path, [1], dpi, fmt, quality, os.path.dirname(out_path),

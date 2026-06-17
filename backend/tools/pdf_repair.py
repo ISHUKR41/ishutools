@@ -1,5 +1,5 @@
 """
-pdf_repair.py — Repair corrupted/broken PDF files (Enterprise Edition)
+pdf_repair.py - Repair corrupted/broken PDF files (Enterprise Edition)
 IshuTools.fun | Professional PDF Suite
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
@@ -233,7 +233,7 @@ def _strategy_pikepdf(src: str, dst: str, log: list) -> dict:
         log.append(f'pikepdf: success={result["success"]} pages={result["pages"]}')
     except Exception as e:
         result['error'] = str(e)
-        log.append(f'pikepdf: failed — {e}')
+        log.append(f'pikepdf: failed - {e}')
     return result
 
 
@@ -258,7 +258,7 @@ def _strategy_fitz(src: str, dst: str, log: list) -> dict:
         log.append(f'fitz: success={result["success"]} pages={result["pages"]}')
     except Exception as e:
         result['error'] = str(e)
-        log.append(f'fitz: failed — {e}')
+        log.append(f'fitz: failed - {e}')
     return result
 
 
@@ -283,7 +283,7 @@ def _strategy_pypdf_recovery(src: str, dst: str, log: list) -> dict:
                 recovered += 1
             except Exception as e:
                 skipped += 1
-                log.append(f'pypdf: page {i + 1} skipped — {e}')
+                log.append(f'pypdf: page {i + 1} skipped - {e}')
 
         if recovered == 0:
             result['error'] = 'No pages recoverable'
@@ -305,12 +305,12 @@ def _strategy_pypdf_recovery(src: str, dst: str, log: list) -> dict:
         log.append(f'pypdf: recovered {recovered}/{total} pages')
     except Exception as e:
         result['error'] = str(e)
-        log.append(f'pypdf: failed — {e}')
+        log.append(f'pypdf: failed - {e}')
     return result
 
 
 def _strategy_ghostscript(src: str, dst: str, log: list) -> dict:
-    """Strategy 4: Ghostscript CLI passthrough — repairs many structural issues."""
+    """Strategy 4: Ghostscript CLI passthrough - repairs many structural issues."""
     result = {'success': False, 'method': 'ghostscript', 'pages': 0}
     if not GS_BIN:
         result['error'] = 'Ghostscript not available'
@@ -336,13 +336,13 @@ def _strategy_ghostscript(src: str, dst: str, log: list) -> dict:
             log.append(f'ghostscript: success={result["success"]} pages={result["pages"]}')
         else:
             result['error'] = (proc.stderr or proc.stdout)[:400]
-            log.append(f'ghostscript: failed — rc={proc.returncode}')
+            log.append(f'ghostscript: failed - rc={proc.returncode}')
     except subprocess.TimeoutExpired:
         result['error'] = 'Ghostscript timed out'
         log.append('ghostscript: timed out (>180s)')
     except Exception as e:
         result['error'] = str(e)
-        log.append(f'ghostscript: exception — {e}')
+        log.append(f'ghostscript: exception - {e}')
     return result
 
 
@@ -384,7 +384,7 @@ def _strategy_qpdf(src: str, dst: str, log: list) -> dict:
             log.append('qpdf: timed out')
             break
         except Exception as e:
-            log.append(f'qpdf: exception — {e}')
+            log.append(f'qpdf: exception - {e}')
 
     result['error'] = 'qpdf could not produce a readable file'
     log.append('qpdf: failed')
@@ -420,7 +420,7 @@ def _strategy_binary_patch(src: str, dst: str, log: list) -> dict:
         log.append(f'binary_patch: success={result["success"]}')
     except Exception as e:
         result['error'] = str(e)
-        log.append(f'binary_patch: failed — {e}')
+        log.append(f'binary_patch: failed - {e}')
     return result
 
 
@@ -445,7 +445,7 @@ def _strategy_render_rebuild(src: str, dst: str, log: list, dpi: int = 150) -> d
                 new_page.insert_image(new_page.rect, pixmap=pix)
                 recovered += 1
             except Exception as e:
-                log.append(f'render_rebuild: page {i + 1} failed — {e}')
+                log.append(f'render_rebuild: page {i + 1} failed - {e}')
 
         if recovered == 0:
             doc.close()
@@ -463,11 +463,11 @@ def _strategy_render_rebuild(src: str, dst: str, log: list, dpi: int = 150) -> d
 
         result['success'] = True
         result['pages'] = recovered
-        result['note'] = 'Text is NOT searchable — PDF was rebuilt from rendered images.'
+        result['note'] = 'Text is NOT searchable - PDF was rebuilt from rendered images.'
         log.append(f'render_rebuild: rebuilt {recovered} pages')
     except Exception as e:
         result['error'] = str(e)
-        log.append(f'render_rebuild: failed — {e}')
+        log.append(f'render_rebuild: failed - {e}')
     return result
 
 
@@ -679,7 +679,7 @@ def repair_pdf(
             result_strategy['strategy_name'] = name
             break
         elif r.get('success'):
-            log.append(f'{name}: reported success but 0 pages — continuing')
+            log.append(f'{name}: reported success but 0 pages - continuing')
 
     if not result_strategy:
         errors = '; '.join(log[-12:])
@@ -832,7 +832,7 @@ def extract_salvageable_pages(input_path: str, output_dir: str) -> dict:
             # Try rendering
             pix = pg.get_pixmap(matrix=fitz.Matrix(1, 1))
             if pix.n > 0:
-                # Page rendered OK — save as individual PDF
+                # Page rendered OK - save as individual PDF
                 out_doc = fitz.open()
                 out_doc.new_page(width=pg.rect.width, height=pg.rect.height)
                 out_doc[0].show_pdf_page(out_doc[0].rect, doc, i)
@@ -922,7 +922,7 @@ def rebuild_pdf_from_images(input_path: str, output_path: str,
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ── ENTERPRISE ADDITIONS — Multi-engine repair, page recovery ────────────────
+# ── ENTERPRISE ADDITIONS - Multi-engine repair, page recovery ────────────────
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def repair_with_pypdfium2(input_path: str, output_path: str) -> dict:
@@ -975,7 +975,7 @@ def diagnose_pdf_health(input_path: str, password: str = '') -> dict:
             if password:
                 doc.authenticate(password)
             else:
-                report['errors'].append('PDF is encrypted — provide password to analyze')
+                report['errors'].append('PDF is encrypted - provide password to analyze')
                 doc.close()
                 return report
 
@@ -1020,11 +1020,11 @@ def diagnose_pdf_health(input_path: str, password: str = '') -> dict:
 
         # Recommendations
         if report['file_size'] > 5 * 1024 * 1024:
-            report['recommendations'].append('File size > 5 MB — consider compression')
+            report['recommendations'].append('File size > 5 MB - consider compression')
         if not report.get('has_toc') and doc.page_count > 10:
             report['recommendations'].append('Add a Table of Contents for better navigation')
         if form_count > 0:
-            report['recommendations'].append(f'{form_count} form fields found — consider flattening if not needed')
+            report['recommendations'].append(f'{form_count} form fields found - consider flattening if not needed')
 
         doc.close()
         report['health_score'] = max(0, 100 - len(report['errors']) * 30 - len(report['warnings']) * 10)
@@ -1073,7 +1073,7 @@ def repair_xref_table(input_path: str, output_path: str) -> dict:
 
 
 def diagnose_pdf(input_path: str) -> dict:
-    """Comprehensive PDF diagnosis — detects issues before repair attempt."""
+    """Comprehensive PDF diagnosis - detects issues before repair attempt."""
     import os, fitz, pikepdf, hashlib
     report = {'file': input_path, 'size_bytes': os.path.getsize(input_path),
               'issues': [], 'severity': 'none', 'engines_tested': []}
@@ -1144,3 +1144,79 @@ def recover_text_from_damaged_pdf(input_path: str, output_txt_path: str) -> dict
     with open(output_txt_path, 'w', encoding='utf-8', errors='replace') as f:
         f.write(best_text or 'No text could be recovered.')
     return {'output_path': output_txt_path, 'chars_recovered': len(best_text), 'strategies': strategies}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENTERPRISE ADVANCED FUNCTIONS - pdf_repair.py
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def repair_check_integrity(input_path: str) -> dict:
+    """Check PDF integrity and report issues without repairing."""
+    import fitz
+    issues = []
+    try:
+        doc = fitz.open(input_path)
+        page_count = len(doc)
+        for i, page in enumerate(doc):
+            try:
+                _ = page.get_text()
+            except Exception as e:
+                issues.append(f"Page {i+1}: {e}")
+        doc.close()
+        return {'is_readable': True, 'page_count': page_count, 'issues': issues, 'issue_count': len(issues)}
+    except Exception as e:
+        return {'is_readable': False, 'error': str(e), 'issues': [str(e)], 'issue_count': 1}
+
+def repair_rebuild_xref(input_path: str, output_path: str) -> dict:
+    """Rebuild the PDF cross-reference table to fix corruption."""
+    import pikepdf
+    try:
+        with pikepdf.open(input_path, suppress_warnings=True) as pdf:
+            pdf.save(output_path, object_stream_mode=pikepdf.ObjectStreamMode.generate, compress_streams=True)
+        success = True
+        error = None
+    except Exception as e:
+        import shutil
+        shutil.copy2(input_path, output_path)
+        success = False
+        error = str(e)
+    return {'output_path': output_path, 'xref_rebuilt': success, 'error': error}
+
+def repair_extract_readable_pages(input_path: str, output_path: str) -> dict:
+    """Extract only readable/uncorrupted pages from a damaged PDF."""
+    import fitz
+    doc = fitz.open(input_path)
+    out = fitz.open()
+    extracted = 0
+    failed = 0
+    for i in range(len(doc)):
+        try:
+            page = doc[i]
+            _ = page.get_text()
+            out.insert_pdf(doc, from_page=i, to_page=i)
+            extracted += 1
+        except Exception:
+            failed += 1
+    out.save(output_path, garbage=4, deflate=True)
+    out.close(); doc.close()
+    return {'output_path': output_path, 'pages_extracted': extracted, 'pages_failed': failed}
+
+def repair_recover_metadata(input_path: str) -> dict:
+    """Recover as much metadata as possible from a potentially damaged PDF."""
+    result = {'metadata': {}, 'page_count': 0, 'is_encrypted': False}
+    try:
+        import fitz
+        doc = fitz.open(input_path)
+        result['metadata'] = doc.metadata
+        result['page_count'] = len(doc)
+        result['is_encrypted'] = doc.is_encrypted
+        doc.close()
+    except Exception as e:
+        result['error'] = str(e)
+    try:
+        import pikepdf
+        with pikepdf.open(input_path, suppress_warnings=True) as pdf:
+            result['pikepdf_page_count'] = len(pdf.pages)
+    except Exception as e2:
+        result['pikepdf_error'] = str(e2)
+    return result
