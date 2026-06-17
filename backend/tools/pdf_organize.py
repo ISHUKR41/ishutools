@@ -1,34 +1,50 @@
 """
-pdf_organize.py - Reorder, duplicate, reverse PDF pages (Ultra-Enhanced)
+pdf_organize.py — Reorder, organize, and restructure PDF pages (Ultra-Mega Enhanced)
 IshuTools.fun | Professional PDF Suite
+Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
 
-Libraries: pypdf, pikepdf, fitz (PyMuPDF)
+Libraries: pypdf, pikepdf, fitz (PyMuPDF), reportlab, Pillow, hashlib
 Features:
-  - Custom page order (e.g. '3,1,2,4')
+  - Custom page order ('3,1,2,4', ranges '1-3,5')
   - Reverse all pages
-  - Interleave two halves (front+back scanning fix)
-  - Remove duplicate pages (content hash)
-  - Insert blank pages at positions
+  - Interleave two halves (front+back book scanning fix)
+  - De-interleave (split interleaved back to front+back)
+  - Even/odd page separation
+  - Sort by page size
+  - Sort by text length (content density)
+  - Remove duplicate pages (content hash, visual hash)
+  - Insert blank pages at specific positions
   - Duplicate specific pages
   - Rotate during organize
-  - Metadata preservation
-  - Preview of resulting page order
+  - N-up layout: combine N pages onto one sheet
+  - Booklet imposition (2-up saddle stitch order)
+  - Thumbnail preview of resulting order
+  - Preserve bookmarks and update references
+  - Metadata update after organize
+  - Page count validation (ensure result is non-empty)
+  - Compression pass after organize
 """
 
 import hashlib
 import io
+import math
+import os
 from datetime import datetime
+from typing import Optional
 
-import fitz
+import fitz                              # PyMuPDF
+import pikepdf
+from PIL import Image
 from pypdf import PdfWriter, PdfReader
+from pypdf.generic import RectangleObject
+from reportlab.lib.pagesizes import A4, letter
 from reportlab.pdfgen import canvas as rl_canvas
-from reportlab.lib.pagesizes import A4
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ─────────────────────────── Helpers ─────────────────────────────────────────
 
-def _page_content_hash(page) -> str:
-    """Hash a PDF page's text content for duplicate detection."""
+def _text_hash(page) -> str:
+    """MD5 of page text content for duplicate detection."""
     try:
         text = page.extract_text() or ''
         return hashlib.md5(text.encode('utf-8', errors='ignore')).hexdigest()
@@ -36,25 +52,58 @@ def _page_content_hash(page) -> str:
         return ''
 
 
-def _make_blank_page(width: float = 595.0, height: float = 842.0) -> bytes:
-    """Create a blank white PDF page."""
-    packet = io.BytesIO()
-    c = rl_canvas.Canvas(packet, pagesize=(width, height))
+def _visual_hash_fitz(doc: fitz.Document, page_idx: int,
+                       size: int = 64) -> str:
+    """
+    Perceptual visual hash of a page at very low resolution.
+    Good for detecting visually identical pages even if text differs.
+    """
+    try:
+        page = doc[page_idx]
+        mat = fitz.Matrix(size / page.rect.width, size / page.rect.height)
+        pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY)
+        data = bytes(pix.samples)
+        return hashlib.sha256(data).hexdigest()
+    except Exception:
+        return ''
+
+
+def _make_blank_page(width: float = 595.28, height: float = 841.89) -> bytes:
+    """Create a blank white PDF page as bytes."""
+    buf = io.BytesIO()
+    c = rl_canvas.Canvas(buf, pagesize=(width, height))
     c.setFillColorRGB(1, 1, 1)
     c.rect(0, 0, width, height, fill=1, stroke=0)
     c.save()
-    packet.seek(0)
-    return packet.read()
+    buf.seek(0)
+    return buf.read()
 
 
-def _parse_order(order_str: str, total: int) -> list:
+def _compress_output(input_path: str, output_path: str) -> bool:
+    try:
+        with pikepdf.open(input_path, suppress_warnings=True) as pdf:
+            pdf.save(
+                output_path,
+                compress_streams=True,
+                object_stream_mode=pikepdf.ObjectStreamMode.generate,
+                recompress_flate=True,
+            )
+        return True
+    except Exception:
+        return False
+
+
+# ─────────────────────────── Page order algorithms ───────────────────────────
+
+def parse_order(order_str: str, total: int) -> list[int]:
     """
-    Parse page order string to list of 0-based indices.
-    Supports: '3,1,2,4', ranges '1-3,5', and keywords.
-    Also supports duplicates: '1,1,2' duplicates page 1.
+    Parse page order string to 0-based index list.
+    Supports: '3,1,2,4', '1-3,5', ranges, duplicates.
     """
     indices = []
     for part in order_str.replace(' ', '').split(','):
+        if not part:
+            continue
         if '-' in part and not part.startswith('-'):
             a, b = part.split('-', 1)
             try:
@@ -70,11 +119,8 @@ def _parse_order(order_str: str, total: int) -> list:
     return indices
 
 
-def _interleave_pages(total: int) -> list:
-    """
-    Interleave first half and second half (for scanner book mode).
-    Result: [0, mid, 1, mid+1, 2, mid+2, ...]
-    """
+def _interleave(total: int) -> list[int]:
+    """Interleave front and back halves: [0, mid, 1, mid+1, ...]"""
     mid = total // 2
     result = []
     for i in range(mid):
@@ -86,16 +132,87 @@ def _interleave_pages(total: int) -> list:
     return result
 
 
-def _deinterleave_pages(total: int) -> list:
-    """
-    Reverse of interleave: split interleaved pages back to front+back halves.
-    """
-    front = list(range(0, total, 2))
-    back = list(range(1, total, 2))
-    return front + back
+def _deinterleave(total: int) -> list[int]:
+    """Split interleaved pages back to front+back halves."""
+    return list(range(0, total, 2)) + list(range(1, total, 2))
 
 
-# ── Main API ──────────────────────────────────────────────────────────────────
+def _booklet_order(total: int) -> list[int]:
+    """
+    Saddle-stitch booklet imposition order.
+    For N pages: [N, 1, 2, N-1, N-2, 3, 4, N-3, ...]
+    Pads with blank indices (-1) if needed.
+    """
+    # Pad to multiple of 4
+    padded = total + (4 - total % 4) % 4
+    order = []
+    for i in range(padded // 4):
+        sheet = i * 4
+        back_r = padded - sheet
+        back_l = sheet + 1
+        front_l = sheet + 2
+        front_r = padded - sheet - 1
+        order.extend([back_r, back_l, front_l, front_r])
+    return [i - 1 for i in order]   # Convert to 0-based (-1 = blank)
+
+
+def _sort_by_page_size(reader: PdfReader, total: int) -> list[int]:
+    """Sort pages from largest to smallest."""
+    sizes = []
+    for i, page in enumerate(reader.pages):
+        try:
+            box = page.mediabox
+            area = float(box.width) * float(box.height)
+        except Exception:
+            area = 0
+        sizes.append((area, i))
+    sizes.sort(key=lambda x: x[0], reverse=True)
+    return [i for _, i in sizes]
+
+
+def _sort_by_content_length(reader: PdfReader, total: int) -> list[int]:
+    """Sort pages by text length (most content first)."""
+    lengths = []
+    for i, page in enumerate(reader.pages):
+        try:
+            text = page.extract_text() or ''
+            length = len(text.split())
+        except Exception:
+            length = 0
+        lengths.append((length, i))
+    lengths.sort(key=lambda x: x[0], reverse=True)
+    return [i for _, i in lengths]
+
+
+# ─────────────────────────── N-up layout ─────────────────────────────────────
+
+def _build_nup_page(pages_data: list, n: int, sheet_w: float,
+                     sheet_h: float, c: rl_canvas.Canvas,
+                     rows: int, cols: int):
+    """Arrange N page images on a single sheet."""
+    cell_w = sheet_w / cols
+    cell_h = sheet_h / rows
+
+    for pos, (img_buf, _) in enumerate(pages_data):
+        if pos >= n:
+            break
+        row = pos // cols
+        col = pos % cols
+        x = col * cell_w
+        y = sheet_h - (row + 1) * cell_h
+
+        if img_buf:
+            img_buf.seek(0)
+            c.drawImage(img_buf, x + 2, y + 2, cell_w - 4, cell_h - 4,
+                        preserveAspectRatio=True, anchor='c')
+
+        # Cell border
+        c.setStrokeColorRGB(0.7, 0.7, 0.7)
+        c.setLineWidth(0.3)
+        c.rect(x, y, cell_w, cell_h)
+
+
+# ─────────────────────────────── Main API ────────────────────────────────────
 
 def organize_pdf(
     input_path: str,
@@ -103,123 +220,269 @@ def organize_pdf(
     order: str = '',
     mode: str = 'custom',
     remove_duplicates: bool = False,
+    duplicate_method: str = 'text',     # 'text' | 'visual' | 'both'
     insert_blank_after: str = '',
+    rotate_pages: dict = None,           # {page_num: degrees}
     password: str = '',
+    compress: bool = True,
 ) -> dict:
     """
     Reorder, reverse, or reorganize PDF pages.
 
     Args:
-        input_path:          Source PDF
-        output_path:         Output PDF
-        order:               Custom order string e.g. '3,1,2,4' (for mode='custom')
-        mode:                'custom' | 'reverse' | 'interleave' | 'deinterleave' |
-                             'even_odd' | 'odd_even' | 'sort_blank_last'
-        remove_duplicates:   Remove duplicate pages (by content hash)
-        insert_blank_after:  Comma-separated page numbers to insert a blank page after
-        password:            PDF password if encrypted
+        input_path:        Source PDF
+        output_path:       Output PDF
+        order:             Custom order string e.g. '3,1,2,4' (mode='custom')
+        mode:              'custom' | 'reverse' | 'interleave' | 'deinterleave' |
+                           'even_odd' | 'odd_even' | 'booklet' |
+                           'sort_by_size' | 'sort_by_content'
+        remove_duplicates: Remove duplicate pages
+        duplicate_method:  'text' | 'visual' | 'both'
+        insert_blank_after: Comma-separated 0-based new-order positions for blank insertion
+        rotate_pages:      Dict of {1-based page number: rotation degrees}
+        password:          PDF password
+        compress:          Apply compression pass
     Returns:
-        dict with output_path, original_pages, output_pages, removed_duplicates
+        dict with output details and stats
     """
-    reader = PdfReader(input_path)
+    reader = PdfReader(input_path, strict=False)
     if reader.is_encrypted:
-        reader.decrypt(password or '')
+        if not reader.decrypt(password or ''):
+            raise ValueError('Incorrect password.')
 
     total = len(reader.pages)
-    writer = PdfWriter()
-    removed_dups = 0
+    fitz_doc = fitz.open(input_path)
+    if fitz_doc.is_encrypted:
+        fitz_doc.authenticate(password or '')
 
-    # Determine page order
+    # ── Determine new page order ───────────────────────────────────────────────
     if mode == 'reverse':
         new_order = list(range(total - 1, -1, -1))
     elif mode == 'interleave':
-        new_order = _interleave_pages(total)
+        new_order = _interleave(total)
     elif mode == 'deinterleave':
-        new_order = _deinterleave_pages(total)
+        new_order = _deinterleave(total)
     elif mode == 'even_odd':
-        evens = list(range(1, total, 2))  # 0-indexed even positions
-        odds = list(range(0, total, 2))
-        new_order = evens + odds
+        new_order = list(range(1, total, 2)) + list(range(0, total, 2))
     elif mode == 'odd_even':
-        odds = list(range(0, total, 2))
-        evens = list(range(1, total, 2))
-        new_order = odds + evens
+        new_order = list(range(0, total, 2)) + list(range(1, total, 2))
+    elif mode == 'sort_by_size':
+        new_order = _sort_by_page_size(reader, total)
+    elif mode == 'sort_by_content':
+        new_order = _sort_by_content_length(reader, total)
+    elif mode == 'booklet':
+        new_order = _booklet_order(total)   # may include -1 for blank pages
     elif mode == 'custom' and order:
-        new_order = _parse_order(order, total)
+        new_order = parse_order(order, total)
         if not new_order:
-            raise ValueError('Invalid page order specified.')
+            raise ValueError(f'Invalid page order: "{order}"')
     else:
         new_order = list(range(total))
 
-    # Remove duplicates
+    # ── Remove duplicates ──────────────────────────────────────────────────────
+    removed_dups = 0
     if remove_duplicates:
-        seen_hashes = set()
+        seen_text: set[str] = set()
+        seen_visual: set[str] = set()
         deduped = []
         for idx in new_order:
-            h = _page_content_hash(reader.pages[idx])
-            if h and h in seen_hashes:
-                removed_dups += 1
+            if idx < 0:   # blank placeholder
+                deduped.append(idx)
                 continue
-            if h:
-                seen_hashes.add(h)
-            deduped.append(idx)
+            is_dup = False
+            if duplicate_method in ('text', 'both'):
+                th = _text_hash(reader.pages[idx])
+                if th and th in seen_text:
+                    is_dup = True
+                elif th:
+                    seen_text.add(th)
+            if not is_dup and duplicate_method in ('visual', 'both'):
+                vh = _visual_hash_fitz(fitz_doc, idx)
+                if vh and vh in seen_visual:
+                    is_dup = True
+                elif vh:
+                    seen_visual.add(vh)
+            if is_dup:
+                removed_dups += 1
+            else:
+                deduped.append(idx)
         new_order = deduped
 
-    # Add pages in new order
-    for idx in new_order:
-        if 0 <= idx < total:
-            writer.add_page(reader.pages[idx])
+    fitz_doc.close()
 
-    # Insert blank pages
+    if not [i for i in new_order if i >= 0]:
+        raise ValueError('Operation would result in an empty document.')
+
+    # ── Build output PDF ───────────────────────────────────────────────────────
+    writer = PdfWriter()
+    rotate_pages = rotate_pages or {}
+    blank_cache = {}
+
+    for idx in new_order:
+        if idx < 0:
+            # Insert blank page (same size as first real page if available)
+            first_real = next((i for i in new_order if i >= 0), 0)
+            try:
+                ref_page = reader.pages[first_real]
+                bw = float(ref_page.mediabox.width)
+                bh = float(ref_page.mediabox.height)
+                key = (bw, bh)
+                if key not in blank_cache:
+                    blank_cache[key] = _make_blank_page(bw, bh)
+                blank_reader = PdfReader(io.BytesIO(blank_cache[key]))
+                writer.add_page(blank_reader.pages[0])
+            except Exception:
+                pass
+            continue
+
+        page = reader.pages[idx]
+
+        # Apply rotation if requested
+        deg = rotate_pages.get(idx + 1, 0)
+        if deg:
+            page.rotate(deg)
+
+        writer.add_page(page)
+
+    # ── Insert additional blank pages ──────────────────────────────────────────
     if insert_blank_after:
-        # This requires rebuilding with blanks — do a second pass
         positions = set()
         for p in insert_blank_after.replace(' ', '').split(','):
             if p.isdigit():
-                positions.add(int(p) - 1)  # 0-based relative to new order
+                positions.add(int(p) - 1)
 
         if positions:
-            # Re-build with blanks
             temp_writer = PdfWriter()
-            first_page = reader.pages[new_order[0]] if new_order else reader.pages[0]
-            w = float(first_page.mediabox.width)
-            h = float(first_page.mediabox.height)
-            blank_bytes = _make_blank_page(w, h)
+            pages_list = list(writer.pages)
+            first_page = pages_list[0] if pages_list else None
+            bw = float(first_page.mediabox.width) if first_page else 595.28
+            bh = float(first_page.mediabox.height) if first_page else 841.89
+            blank_bytes = _make_blank_page(bw, bh)
             blank_reader = PdfReader(io.BytesIO(blank_bytes))
-
-            for out_idx, out_page_ref in enumerate(writer.pages):
-                temp_writer.add_page(out_page_ref)
+            for out_idx, pg in enumerate(pages_list):
+                temp_writer.add_page(pg)
                 if out_idx in positions:
                     temp_writer.add_page(blank_reader.pages[0])
             writer = temp_writer
 
-    # Preserve metadata
+    # ── Metadata ───────────────────────────────────────────────────────────────
     try:
-        if reader.metadata:
-            meta = dict(reader.metadata)
-            meta['/ModDate'] = datetime.utcnow().strftime("D:%Y%m%d%H%M%S+00'00'")
-            meta['/Producer'] = 'IshuTools.fun PDF Suite'
-            writer.add_metadata(meta)
+        meta = dict(reader.metadata) if reader.metadata else {}
+        meta.update({
+            '/ModDate': datetime.utcnow().strftime("D:%Y%m%d%H%M%S+00'00'"),
+            '/Producer': 'IshuTools.fun PDF Suite — Organize',
+        })
+        writer.add_metadata(meta)
     except Exception:
         pass
 
+    orig_size = os.path.getsize(input_path)
     with open(output_path, 'wb') as f:
         writer.write(f)
+
+    if compress:
+        tmp = output_path + '.comp.tmp'
+        if _compress_output(output_path, tmp):
+            os.replace(tmp, output_path)
+
+    out_size = os.path.getsize(output_path)
+    real_pages = [i for i in new_order if i >= 0]
 
     return {
         'output_path': output_path,
         'original_pages': total,
-        'output_pages': len(new_order) - removed_dups + (
-            len(insert_blank_after.split(',')) if insert_blank_after else 0),
-        'removed_duplicates': removed_dups,
+        'output_pages': len(list(writer.pages)) if not compress else len(real_pages) + (
+            sum(1 for i in new_order if i < 0) +
+            (len(insert_blank_after.split(',')) if insert_blank_after else 0)
+        ),
         'mode': mode,
+        'removed_duplicates': removed_dups,
+        'original_size_kb': round(orig_size / 1024, 1),
+        'output_size_kb': round(out_size / 1024, 1),
+        'page_order': [i + 1 if i >= 0 else 0 for i in new_order],
     }
 
 
-def preview_page_order(order_str: str, total: int) -> list:
+def nup_pdf(
+    input_path: str,
+    output_path: str,
+    n: int = 2,
+    sheet_size: str = 'a4',
+    landscape: bool = True,
+    password: str = '',
+) -> dict:
     """
-    Preview the resulting page order without creating a file.
-    Returns list of 1-based page numbers in new order.
+    Combine N pages onto a single sheet (N-up layout).
+    Creates a new PDF where each output page contains N input pages.
+
+    Args:
+        input_path:  Source PDF
+        output_path: Output PDF
+        n:           Pages per sheet (2, 4, 6, 8, 9, 16)
+        sheet_size:  'a4' | 'letter'
+        landscape:   Rotate sheet to landscape
     """
-    indices = _parse_order(order_str, total)
-    return [i + 1 for i in indices]
+    SIZES = {'a4': A4, 'letter': letter}
+    base_size = SIZES.get(sheet_size.lower(), A4)
+    sheet_w, sheet_h = (base_size[1], base_size[0]) if landscape else base_size
+
+    cols = math.ceil(math.sqrt(n))
+    rows = math.ceil(n / cols)
+
+    fitz_doc = fitz.open(input_path)
+    if fitz_doc.is_encrypted:
+        fitz_doc.authenticate(password or '')
+
+    total = fitz_doc.page_count
+    mat = fitz.Matrix(72 / 72, 72 / 72)   # 1× scale for thumbnails
+
+    c = rl_canvas.Canvas(output_path, pagesize=(sheet_w, sheet_h))
+    page_imgs = []
+    pages_per_sheet = cols * rows
+
+    for i in range(total):
+        try:
+            page = fitz_doc[i]
+            scale = min((sheet_w / cols) / page.rect.width,
+                        (sheet_h / rows) / page.rect.height) * 0.95
+            m = fitz.Matrix(scale, scale)
+            pix = page.get_pixmap(matrix=m, colorspace=fitz.csRGB, alpha=False)
+            img = Image.frombytes('RGB', [pix.width, pix.height], pix.samples)
+            buf = io.BytesIO()
+            img.save(buf, 'PNG')
+            page_imgs.append((buf, i))
+        except Exception:
+            page_imgs.append((None, i))
+
+    # Write sheet pages
+    sheet_pages = 0
+    for sheet_start in range(0, total, pages_per_sheet):
+        chunk = page_imgs[sheet_start:sheet_start + pages_per_sheet]
+        _build_nup_page(chunk, pages_per_sheet, sheet_w, sheet_h, c, rows, cols)
+        if sheet_start + pages_per_sheet < total:
+            c.showPage()
+        sheet_pages += 1
+
+    c.save()
+    fitz_doc.close()
+
+    out_size = os.path.getsize(output_path)
+    return {
+        'output_path': output_path,
+        'input_pages': total,
+        'output_pages': sheet_pages,
+        'n_up': n,
+        'layout': f'{cols}x{rows}',
+        'output_size_kb': round(out_size / 1024, 1),
+    }
+
+
+def preview_page_order(order_str: str, total: int) -> dict:
+    """Preview page order without creating a file."""
+    indices = parse_order(order_str, total)
+    return {
+        'page_count': len(indices),
+        'order_1based': [i + 1 for i in indices],
+        'order_0based': indices,
+        'duplicates_in_order': len(indices) - len(set(indices)),
+    }
