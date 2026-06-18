@@ -186,6 +186,52 @@ code {
 }
 .icon-btn:hover { background: var(--p); color: #fff; border-color: var(--p); }
 
+/* ── Quick Answer / Featured Snippet Box ────────────────── */
+.quick-ans-box {
+  background: linear-gradient(135deg, rgba(99,102,241,0.09), rgba(139,92,246,0.04));
+  border: 1px solid var(--borderH);
+  border-left: 4px solid var(--p);
+  border-radius: var(--rad);
+  padding: 1.4rem 1.5rem 1.2rem;
+  margin-bottom: 2rem;
+}
+.qab-label {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--pL); margin-bottom: 0.55rem;
+}
+.qab-q {
+  font-family: var(--fHead);
+  font-size: clamp(1rem, 2.5vw, 1.12rem);
+  font-weight: 800; color: var(--t1); margin-bottom: 0.75rem;
+}
+.qab-steps {
+  padding-left: 1.3rem;
+  display: flex; flex-direction: column; gap: 0.4rem;
+}
+.qab-steps li { font-size: 0.9rem; color: var(--t2); line-height: 1.65; }
+.qab-steps li strong { color: var(--t1); }
+.qab-link { color: var(--pL); font-weight: 600; }
+.qab-credit { margin-top: 0.9rem; font-size: 0.77rem; color: var(--t3); }
+.qab-credit a { color: var(--pL); }
+
+/* ── Creator badge row in tool mini-header ───────────────── */
+.tmh-creator {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+.tmh-creator a {
+  display: inline-flex; align-items: center; gap: 0.28rem;
+  padding: 0.2rem 0.7rem;
+  background: rgba(99,102,241,0.1);
+  border: 1px solid rgba(99,102,241,0.28);
+  border-radius: 99px;
+  font-size: 0.73rem; color: var(--pL); font-weight: 600;
+  transition: all var(--speed);
+}
+.tmh-creator a:hover { background: rgba(99,102,241,0.2); text-decoration: none; }
+.tmh-creator a i { font-size: 0.68rem; }
+
 /* ── Compact Tool Mini-Header (H1 — above the fold) ─────── */
 .tool-mini-hdr {
   width: 100%;
