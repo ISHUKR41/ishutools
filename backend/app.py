@@ -191,6 +191,25 @@ def sitemap_tools():
     return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'sitemap-tools.xml',
                                mimetype='application/xml')
 
+@app.route('/sitemap-merge-pdf.xml')
+def sitemap_merge_pdf():
+    """Serve the dedicated merge-pdf SEO sitemap."""
+    return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'sitemap-merge-pdf.xml',
+                               mimetype='application/xml')
+
+@app.route('/sitemap-index.xml')
+def sitemap_index():
+    """Serve the sitemap index."""
+    return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'sitemap-index.xml',
+                               mimetype='application/xml')
+
+@app.route('/ishu-kumar/')
+@app.route('/ishu-kumar')
+def ishu_kumar_page():
+    """Serve the Ishu Kumar author / entity page — for Google Knowledge Graph."""
+    ishu_dir = os.path.join(FRONTEND_DIR, 'ishu-kumar')
+    return send_from_directory(ishu_dir, 'index.html')
+
 @app.route('/robots.txt')
 def robots():
     """Serve robots.txt for SEO crawlers."""
@@ -375,20 +394,18 @@ def api_merge_pdf():
         resp.headers['X-Output-Size']       = str(out_size)
         resp.headers['X-Linearized']        = str(result.get('linearized', False))
 
-        # Quality score via enterprise estimator
-        try:
-            from tools.pdf_merge import estimate_merge_quality_score
-            qs = estimate_merge_quality_score(paths, {
-                'total_pages':       result.get('total_pages', 0),
-                'method_used':       result.get('method_used', ''),
-                'skipped_duplicates': result.get('skipped_duplicates', 0),
-                'output_size_bytes': out_size,
-            })
-            resp.headers['X-Quality-Score'] = str(qs.get('score', 100))
-            resp.headers['X-Quality-Grade'] = str(qs.get('grade', 'A+'))
-        except Exception:
-            resp.headers['X-Quality-Score'] = '100'
-            resp.headers['X-Quality-Grade'] = 'A+'
+        # Quality score — result already contains score/grade from merge_pdfs()
+        qs_score = result.get('quality_score', 100)
+        qs_grade = result.get('quality_grade', 'A+')
+        if not qs_score or qs_score == 100:
+            try:
+                from tools.pdf_merge import estimate_merge_quality_score
+                in_bytes = sum(os.path.getsize(p) for p in paths if os.path.exists(p))
+                qs_score, qs_grade = estimate_merge_quality_score(result, in_bytes)
+            except Exception:
+                qs_score, qs_grade = 100, 'A+'
+        resp.headers['X-Quality-Score'] = str(qs_score)
+        resp.headers['X-Quality-Grade'] = str(qs_grade)
 
         resp.headers['Access-Control-Expose-Headers'] = (
             'X-Total-Pages,X-Source-Count,X-Skipped-Dupes,X-TOC-Added,'
