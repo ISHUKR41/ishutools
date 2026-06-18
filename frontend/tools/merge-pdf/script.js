@@ -133,41 +133,25 @@ function smartFilename(){
 }
 
 /* ══════════════════════════════════════════════════════
-   WEB AUDIO EFFECTS
+   SOUND TOGGLE — wired to SOUNDS global from sounds/sounds.js
 ══════════════════════════════════════════════════════ */
-let _actx = null;
-const getACtx = ()=>{
-  try{ return _actx&&_actx.state!=='closed'?_actx:(_actx=new(window.AudioContext||window.webkitAudioContext)()); }
-  catch(_){ return null; }
-};
+const soundToggle  = $('soundToggle');
+const soundIcon    = $('soundIcon');
 
-function playSuccessChime(){
-  const ctx=getACtx(); if(!ctx) return;
-  const now=ctx.currentTime;
-  [[523.25,0,.55,.18],[659.25,.11,.5,.16],[783.99,.22,.45,.14],[1046.5,.32,.62,.2]].forEach(([f,d,dr,g])=>{
-    const o=ctx.createOscillator(),e=ctx.createGain();
-    o.type='sine'; o.frequency.value=f;
-    e.gain.setValueAtTime(0,now+d);
-    e.gain.linearRampToValueAtTime(g,now+d+.04);
-    e.gain.exponentialRampToValueAtTime(.001,now+d+dr);
-    o.connect(e); e.connect(ctx.destination);
-    o.start(now+d); o.stop(now+d+dr+.05);
-  });
+function updateSoundUI(){
+  if(!soundToggle||!soundIcon) return;
+  const on = window.SOUNDS?.isEnabled();
+  soundIcon.className = on ? 'fas fa-volume-high' : 'fas fa-volume-xmark';
+  soundToggle.classList.toggle('sound-off', !on);
+  soundToggle.setAttribute('aria-label', on ? 'Mute sounds' : 'Unmute sounds');
 }
+updateSoundUI();
 
-function playDownloadWhoosh(){
-  const ctx=getACtx(); if(!ctx) return;
-  const now=ctx.currentTime;
-  const o=ctx.createOscillator(),g=ctx.createGain(),f=ctx.createBiquadFilter();
-  o.type='sawtooth';
-  o.frequency.setValueAtTime(440,now);
-  o.frequency.exponentialRampToValueAtTime(80,now+.3);
-  f.type='lowpass'; f.frequency.setValueAtTime(1800,now);
-  f.frequency.exponentialRampToValueAtTime(300,now+.3); f.Q.value=3;
-  g.gain.setValueAtTime(.28,now); g.gain.exponentialRampToValueAtTime(.001,now+.35);
-  o.connect(f); f.connect(g); g.connect(ctx.destination);
-  o.start(now); o.stop(now+.38);
-}
+soundToggle?.addEventListener('click',()=>{
+  const on = window.SOUNDS?.toggle();
+  updateSoundUI();
+  if(on) window.SOUNDS?.playToggleOnSound();
+});
 
 /* ══════════════════════════════════════════════════════
    CONFETTI
@@ -216,6 +200,7 @@ function showToast(msg,type='info'){
   toast.className=`toast ${type} show`;
   toast.innerHTML=`<span>${icons[type]||'•'}</span> ${msg}`;
   clearTimeout(_tt); _tt=setTimeout(()=>toast.classList.remove('show'),4000);
+  window.SOUNDS?.playNotifySound(type);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -261,6 +246,7 @@ async function addFiles(raw){
   files.push(...entries);
   originalOrder = files.map(f=>f.id);
   goFiles(); renderFileList(); updateCounts(); checkDuplicates();
+  window.SOUNDS?.playFileAddSound();
 
   // Async: load thumbnails + validate
   const lib = await loadPDFJS();
@@ -344,10 +330,12 @@ function renderFileList(){
   sortable=Sortable.create(fileList,{
     animation:160, handle:'.fc-handle',
     ghostClass:'sortable-ghost', chosenClass:'sortable-chosen',
+    onStart(){ window.SOUNDS?.playDragStartSound(); },
     onEnd(ev){
       const m=files.splice(ev.oldIndex,1)[0];
       files.splice(ev.newIndex,0,m);
       updateCounts(); updateNums();
+      if(ev.oldIndex!==ev.newIndex) window.SOUNDS?.playDragDropSound();
     },
   });
 }
@@ -431,7 +419,12 @@ function mkFileCard(entry,idx){
   });
 
   // Expand / remove
-  card.querySelector('.expand-btn').addEventListener('click',()=>card.classList.toggle('expanded'));
+  card.querySelector('.expand-btn').addEventListener('click',()=>{
+    const willExpand = !card.classList.contains('expanded');
+    card.classList.toggle('expanded');
+    if(willExpand) window.SOUNDS?.playExpandSound();
+    else window.SOUNDS?.playCollapseSound();
+  });
   card.querySelector('.remove-btn').addEventListener('click',()=>removeFile(entry.id));
 
   // Double-click name → expand + focus display name
@@ -450,6 +443,7 @@ function syncPrBtns(card,val){
 function removeFile(id){
   const idx=files.findIndex(f=>f.id===id); if(idx===-1) return;
   const card=document.querySelector(`[data-id="${id}"]`);
+  window.SOUNDS?.playFileRemoveSound();
   const doRemove=()=>{
     files.splice(idx,1);
     originalOrder=originalOrder.filter(i=>i!==id);
@@ -532,6 +526,7 @@ function sortFiles(by){
   else if(by==='name') files.sort((a,b)=>a.file.name.localeCompare(b.file.name));
   else if(by==='size') files.sort((a,b)=>b.file.size-a.file.size);
   renderFileList(); updateCounts();
+  window.SOUNDS?.playSortSound();
   if(typeof gsap!=='undefined') gsap.from('#fileList .file-card',{duration:.22,y:7,stagger:.04,ease:'power2.out'});
 }
 
@@ -571,6 +566,7 @@ function applyPreset(key){
   setO('optToc','qToc',p.toc); setO('optSeparators','qSep',p.sep);
   setO('optCompress','qCompress',p.compress); setO('optBookmarks','qBookmarks',p.bmarks);
   setO('optSkipDupes',null,p.dupes);
+  window.SOUNDS?.playPresetSound();
   showToast(`Preset "${key}" applied`,'success');
 }
 $$('.preset-btn').forEach(b=>b.addEventListener('click',()=>applyPreset(b.dataset.preset)));
@@ -644,6 +640,7 @@ async function validateFile(entry){
 async function doMerge(){
   if(files.length<2){ showToast('Add at least 2 files to merge','warn'); return; }
   mergeStart=Date.now();
+  window.SOUNDS?.playMergeStartSound();
   goProgress(); startProgress(); setStep(1); setMsg('Uploading files…',`Sending ${files.length} files`);
 
   try{
@@ -697,7 +694,7 @@ async function doMerge(){
     setTimeout(()=>{
       goResult();
       fillResult(mergeResult,delta,pct);
-      playSuccessChime();
+      window.SOUNDS?.playSuccessChime();
       launchConfetti();
       renderRecent();
       if(typeof gsap!=='undefined'){
@@ -708,6 +705,7 @@ async function doMerge(){
 
   } catch(err){
     completeProgress(); goFiles();
+    window.SOUNDS?.playErrorSound();
     showToast(err.message||'Merge failed. Please try again.','error');
     console.error('Merge error:',err);
   }
@@ -735,7 +733,7 @@ function triggerDownload(){
   const a=document.createElement('a');
   a.href=downloadUrl; a.download=mergeResult.filename;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  playDownloadWhoosh();
+  window.SOUNDS?.playDownloadWhoosh();
   showToast(`Downloading ${mergeResult.filename}`,'success');
 }
 
@@ -775,6 +773,7 @@ function renderRecent(){
 function copyFilename(){
   if(!mergeResult) return;
   navigator.clipboard.writeText(mergeResult.filename).then(()=>{
+    window.SOUNDS?.playCopySound();
     showToast(`"${mergeResult.filename}" copied!`,'success');
     const btn=$('copyNameBtn'); if(!btn) return;
     btn.classList.add('copied'); btn.innerHTML='<i class="fas fa-check"></i> Copied!';
@@ -834,7 +833,7 @@ document.addEventListener('drop',e=>{
 ══════════════════════════════════════════════════════ */
 mergeBtn?.addEventListener('click',doMerge);
 downloadBtn?.addEventListener('click',triggerDownload);
-mergeAgainBtn?.addEventListener('click',goUpload);
+mergeAgainBtn?.addEventListener('click',()=>{ window.SOUNDS?.playMergeAgainSound(); goUpload(); });
 $('copyNameBtn')?.addEventListener('click',copyFilename);
 
 // Options panel

@@ -49,6 +49,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
 
+  <!-- Sound Library — must load before script.js -->
+  <script src="sounds/sounds.js"></script>
+
   <link rel="stylesheet" href="style.css" />
 
   <!-- Structured Data -->
@@ -144,9 +147,14 @@
       <a href="/" class="nav-link"><i class="fas fa-house"></i> Home</a>
       <a href="/#organize" class="nav-link"><i class="fas fa-layer-group"></i> All Tools</a>
     </div>
-    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark/light theme">
-      <i class="fas fa-moon" id="themeIcon"></i>
-    </button>
+    <div class="nav-controls">
+      <button class="icon-toggle" id="soundToggle" aria-label="Toggle sounds" title="Toggle sounds on/off">
+        <i class="fas fa-volume-high" id="soundIcon"></i>
+      </button>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark/light theme">
+        <i class="fas fa-moon" id="themeIcon"></i>
+      </button>
+    </div>
   </div>
 </nav>
 
