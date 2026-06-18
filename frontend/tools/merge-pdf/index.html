@@ -148,6 +148,7 @@
   <section class="upload-section" id="uploadSection">
     <div class="upload-zone" id="dropZone" role="button" tabindex="0" aria-label="Upload PDF files">
       <div class="drop-bg"></div>
+      <div class="drop-count-overlay" id="dropCountOverlay"><i class="fas fa-plus-circle"></i> Drop to add files</div>
       <div class="drop-content">
         <div class="drop-icon-wrap">
           <div class="drop-icon-ring"></div>
@@ -182,9 +183,68 @@
       </div>
     </div>
 
-    <div class="drag-hint"><i class="fas fa-grip-dots-vertical"></i> Drag to reorder files</div>
+    <div class="drag-hint"><i class="fas fa-grip-dots-vertical"></i> Drag to reorder — <span id="dragHintCount">add files to begin</span></div>
+
+    <!-- ── LIVE STATS BAR ── -->
+    <div class="stats-bar" id="statsBar">
+      <div class="sbar-left">
+        <div class="sbar-item">
+          <div class="sbar-icon" style="--sc:#6366f1"><i class="fas fa-layer-group"></i></div>
+          <div><div class="sbar-val" id="sbFiles">0</div><div class="sbar-lbl">Files</div></div>
+        </div>
+        <div class="sbar-div"></div>
+        <div class="sbar-item">
+          <div class="sbar-icon" style="--sc:#06b6d4"><i class="fas fa-book-open"></i></div>
+          <div><div class="sbar-val" id="sbPages">—</div><div class="sbar-lbl">Total Pages</div></div>
+        </div>
+        <div class="sbar-div"></div>
+        <div class="sbar-item">
+          <div class="sbar-icon" style="--sc:#10b981"><i class="fas fa-database"></i></div>
+          <div><div class="sbar-val" id="sbSize">—</div><div class="sbar-lbl">Total Size</div></div>
+        </div>
+        <div class="sbar-div"></div>
+        <div class="sbar-item">
+          <div class="sbar-icon" style="--sc:#f59e0b"><i class="fas fa-clock"></i></div>
+          <div><div class="sbar-val" id="sbEst">~0s</div><div class="sbar-lbl">Est. Time</div></div>
+        </div>
+      </div>
+      <div class="sbar-right">
+        <span class="sort-label">Sort:</span>
+        <div class="sort-btns" id="sortBtns">
+          <button class="sort-btn active" data-sort="order" title="Original order"><i class="fas fa-list-ol"></i> Order</button>
+          <button class="sort-btn" data-sort="name" title="Sort A→Z"><i class="fas fa-font"></i> Name</button>
+          <button class="sort-btn" data-sort="size" title="Sort by size"><i class="fas fa-database"></i> Size</button>
+          <button class="sort-btn" data-sort="pages" title="Sort by page count"><i class="fas fa-book-open"></i> Pages</button>
+        </div>
+      </div>
+    </div>
 
     <div class="file-list" id="fileList" role="list" aria-label="PDF files to merge"></div>
+
+    <!-- ── QUICK OPTIONS ── -->
+    <div class="quick-opts-row" id="quickOptsRow">
+      <span class="qopts-label"><i class="fas fa-bolt"></i> Quick:</span>
+      <label class="qopt-chip" for="qOptToc" title="Prepend a Table of Contents page">
+        <input type="checkbox" id="qOptToc" />
+        <i class="fas fa-list-ol"></i><span>TOC</span>
+      </label>
+      <label class="qopt-chip" for="qOptSep" title="Insert separator pages between documents">
+        <input type="checkbox" id="qOptSep" />
+        <i class="fas fa-grip-lines"></i><span>Separators</span>
+      </label>
+      <label class="qopt-chip" for="qOptCompress" title="Compress output PDF">
+        <input type="checkbox" id="qOptCompress" />
+        <i class="fas fa-compress-arrows-alt"></i><span>Compress</span>
+      </label>
+      <label class="qopt-chip qopt-checked" for="qOptBmarks" title="Preserve bookmarks from all PDFs">
+        <input type="checkbox" id="qOptBmarks" checked />
+        <i class="fas fa-bookmark"></i><span>Bookmarks</span>
+      </label>
+      <label class="qopt-chip" for="qOptLinear" title="Linearize for fast web viewing">
+        <input type="checkbox" id="qOptLinear" />
+        <i class="fas fa-globe"></i><span>Web Optimized</span>
+      </label>
+    </div>
 
     <!-- ── ADVANCED OPTIONS ── -->
     <div class="options-panel">

@@ -191,6 +191,7 @@ def api_merge_pdf():
         normalize_size   = request.form.get('normalize_page_size', 'false').lower() == 'true'
         target_size      = request.form.get('target_page_size', 'A4')
         compress_out     = request.form.get('compress_output', 'false').lower() == 'true'
+        linearize_out    = request.form.get('linearize', 'false').lower() == 'true'
         merge_method     = request.form.get('merge_method', 'auto')
         out_title        = request.form.get('output_title', '')
         out_author       = request.form.get('output_author', '')
@@ -247,6 +248,20 @@ def api_merge_pdf():
                 output_metadata=output_metadata if output_metadata else None,
             )
 
+        # Optional linearization for web-optimized viewing (fast open in browser)
+        if linearize_out:
+            try:
+                import pikepdf
+                lin_out = out + '.linear.pdf'
+                with pikepdf.open(out, suppress_warnings=True) as pdf:
+                    pdf.save(lin_out, linearize=True, compress_streams=True)
+                if os.path.exists(lin_out) and os.path.getsize(lin_out) > 0:
+                    os.replace(lin_out, out)
+                    result['linearized'] = True
+                    result['method_used'] = result.get('method_used', 'pypdf') + '+linearized'
+            except Exception as lin_e:
+                logger.warning(f'Linearization failed (non-fatal): {lin_e}')
+
         stems = '_'.join(file_stem(f) for f in files[:3])
         download_name = f'{stems}_merged.pdf'
         resp = send_result(out, download_name)
@@ -256,8 +271,9 @@ def api_merge_pdf():
         resp.headers['X-TOC-Added']         = str(result.get('toc_added', False))
         resp.headers['X-Method-Used']       = str(result.get('method_used', 'pypdf'))
         resp.headers['X-Output-Size']       = str(os.path.getsize(out))
+        resp.headers['X-Linearized']        = str(result.get('linearized', False))
         resp.headers['Access-Control-Expose-Headers'] = (
-            'X-Total-Pages,X-Source-Count,X-Skipped-Dupes,X-TOC-Added,X-Method-Used,X-Output-Size'
+            'X-Total-Pages,X-Source-Count,X-Skipped-Dupes,X-TOC-Added,X-Method-Used,X-Output-Size,X-Linearized'
         )
         return resp
     except Exception as e:

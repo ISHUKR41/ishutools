@@ -14,12 +14,15 @@ const MAX_FILES = 50;
 const MAX_FILE_SIZE_MB = 1024;
 const PDFJS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs';
 const PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+const FILE_COLORS = ['#6366f1','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
 
 let files = [];           // Array of { id, file, pageRange, password, info }
 let sortable = null;
 let pdfjsLib = null;
 let mergeResult = null;
 let downloadUrl = null;
+let currentSort = 'order';
+let originalOrder = []; // store original file order for "order" sort
 
 /* ══════════════════════════════════════════════════════════
    DOM REFS
@@ -51,7 +54,7 @@ const themeToggle    = $('themeToggle');
 const themeIcon      = $('themeIcon');
 const toast          = $('toast');
 
-// Options
+// Main Options
 const optToc        = $('optToc');
 const optSeparators = $('optSeparators');
 const optBookmarks  = $('optBookmarks');
@@ -62,6 +65,20 @@ const optTargetSize = $('optTargetSize');
 const optMethod     = $('optMethod');
 const optTitle      = $('optTitle');
 const optAuthor     = $('optAuthor');
+
+// Quick Options (chips)
+const qOptToc      = $('qOptToc');
+const qOptSep      = $('qOptSep');
+const qOptCompress = $('qOptCompress');
+const qOptBmarks   = $('qOptBmarks');
+const qOptLinear   = $('qOptLinear');
+
+// Stats
+const sbFiles = $('sbFiles');
+const sbPages = $('sbPages');
+const sbSize  = $('sbSize');
+const sbEst   = $('sbEst');
+const dragHintCount = $('dragHintCount');
 
 /* ══════════════════════════════════════════════════════════
    CANVAS BACKGROUND
@@ -232,15 +249,187 @@ async function addFiles(newFiles) {
   }));
 
   files.push(...newEntries);
+  originalOrder = [...files.map(f => f.id)]; // track original order
   showFilesSection();
   renderFileList();
   updateCounts();
+  checkDuplicates();
 
   // Load thumbnails + info in background
   const lib = await loadPDFJS();
   for (const entry of newEntries) {
     loadFileInfo(entry, lib);
   }
+}
+
+/* ══════════════════════════════════════════════════════════
+   LIVE STATS
+══════════════════════════════════════════════════════════ */
+function updateLiveStats() {
+  const n = files.length;
+  if (sbFiles) sbFiles.textContent = n;
+
+  const totalBytes = files.reduce((s, f) => s + f.file.size, 0);
+  if (sbSize) sbSize.textContent = totalBytes > 0 ? formatBytes(totalBytes) : '—';
+
+  const known = files.filter(f => f.info && typeof f.info.pageCount === 'number');
+  if (known.length > 0) {
+    const total = known.reduce((s, f) => s + f.info.pageCount, 0);
+    const hasUnknown = known.length < files.length;
+    if (sbPages) sbPages.textContent = total + (hasUnknown ? '+' : '');
+  } else {
+    if (sbPages) sbPages.textContent = '—';
+  }
+
+  // Estimate merge time (very rough: ~0.5s per MB of total input)
+  const estSec = Math.max(1, Math.round(totalBytes / (1024 * 1024) * 0.5 + n * 0.3));
+  if (sbEst) sbEst.textContent = estSec < 60 ? `~${estSec}s` : `~${Math.ceil(estSec/60)}m`;
+
+  // Update drag hint
+  if (dragHintCount) {
+    dragHintCount.textContent = n > 0
+      ? `${n} ${n===1?'file':'files'} — drag to reorder`
+      : 'add files to begin';
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   SORT FILES
+══════════════════════════════════════════════════════════ */
+function sortFiles(by) {
+  currentSort = by;
+  document.querySelectorAll('.sort-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.sort === by);
+  });
+
+  if (by === 'order') {
+    files.sort((a, b) => originalOrder.indexOf(a.id) - originalOrder.indexOf(b.id));
+  } else if (by === 'name') {
+    files.sort((a, b) => a.file.name.localeCompare(b.file.name));
+  } else if (by === 'size') {
+    files.sort((a, b) => b.file.size - a.file.size);
+  } else if (by === 'pages') {
+    files.sort((a, b) => {
+      const pa = a.info?.pageCount || 0;
+      const pb = b.info?.pageCount || 0;
+      return pb - pa;
+    });
+  }
+
+  renderFileList();
+  updateCounts();
+  if (typeof gsap !== 'undefined') {
+    gsap.from('#fileList .file-card', { duration: 0.3, y: 8, stagger: 0.04, ease: 'power2.out' });
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   DUPLICATE DETECTION
+══════════════════════════════════════════════════════════ */
+function checkDuplicates() {
+  // Remove existing warning
+  const existing = document.querySelector('.dupe-warning');
+  if (existing) existing.remove();
+
+  const seen = new Map(); // name+size -> id
+  const dupes = [];
+
+  files.forEach(f => {
+    const key = `${f.file.name}__${f.file.size}`;
+    if (seen.has(key)) {
+      dupes.push(f.id);
+      dupes.push(seen.get(key));
+    } else {
+      seen.set(key, f.id);
+    }
+  });
+
+  // Mark cards
+  document.querySelectorAll('.file-card').forEach(card => {
+    card.classList.toggle('is-duplicate', dupes.includes(card.dataset.id));
+  });
+
+  if (dupes.length > 0) {
+    const warn = document.createElement('div');
+    warn.className = 'dupe-warning';
+    warn.innerHTML = `<i class="fas fa-triangle-exclamation"></i> ${dupes.length/2|0} possible duplicate file(s) detected. Enable "Skip Duplicates" to remove them.`;
+    fileList.before(warn);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   QUICK OPTIONS SYNC
+══════════════════════════════════════════════════════════ */
+function setupQuickOptSync() {
+  // quick → main opts
+  qOptToc && qOptToc.addEventListener('change', () => {
+    if (optToc) optToc.checked = qOptToc.checked;
+    qOptToc.closest('.qopt-chip').classList.toggle('active', qOptToc.checked);
+  });
+  qOptSep && qOptSep.addEventListener('change', () => {
+    if (optSeparators) optSeparators.checked = qOptSep.checked;
+    qOptSep.closest('.qopt-chip').classList.toggle('active', qOptSep.checked);
+  });
+  qOptCompress && qOptCompress.addEventListener('change', () => {
+    if (optCompress) optCompress.checked = qOptCompress.checked;
+    qOptCompress.closest('.qopt-chip').classList.toggle('active', qOptCompress.checked);
+  });
+  qOptBmarks && qOptBmarks.addEventListener('change', () => {
+    if (optBookmarks) optBookmarks.checked = qOptBmarks.checked;
+    qOptBmarks.closest('.qopt-chip').classList.toggle('active', qOptBmarks.checked);
+  });
+  qOptLinear && qOptLinear.addEventListener('change', () => {
+    qOptLinear.closest('.qopt-chip').classList.toggle('active', qOptLinear.checked);
+  });
+
+  // main → quick opts (keep in sync when user opens advanced panel)
+  optToc        && optToc.addEventListener('change',        () => { if (qOptToc) qOptToc.checked = optToc.checked; });
+  optSeparators && optSeparators.addEventListener('change', () => { if (qOptSep) qOptSep.checked = optSeparators.checked; });
+  optCompress   && optCompress.addEventListener('change',   () => { if (qOptCompress) qOptCompress.checked = optCompress.checked; });
+  optBookmarks  && optBookmarks.addEventListener('change',  () => { if (qOptBmarks) qOptBmarks.checked = optBookmarks.checked; });
+
+  // Set initial active states
+  [qOptToc, qOptSep, qOptCompress, qOptBmarks, qOptLinear].forEach(el => {
+    if (el) el.closest('.qopt-chip')?.classList.toggle('active', el.checked);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   CONFETTI
+══════════════════════════════════════════════════════════ */
+function launchConfetti() {
+  const container = document.createElement('div');
+  container.className = 'confetti-container';
+  document.body.appendChild(container);
+
+  const colors = ['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#a78bfa'];
+  const shapes = ['0%','4px','50%'];
+  const count = 90;
+
+  for (let i = 0; i < count; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const shape = shapes[Math.floor(Math.random() * shapes.length)];
+    const size = Math.random() * 8 + 6;
+    const left = Math.random() * 100;
+    const delay = Math.random() * 0.8;
+    const duration = Math.random() * 1.5 + 2;
+    const drift = (Math.random() - 0.5) * 160;
+
+    piece.style.cssText = `
+      left:${left}%;
+      width:${size}px;height:${size}px;
+      background:${color};
+      border-radius:${shape};
+      animation-duration:${duration}s;
+      animation-delay:${delay}s;
+      transform:translateX(${drift}px);
+    `;
+    container.appendChild(piece);
+  }
+
+  setTimeout(() => container.remove(), 4000);
 }
 
 async function loadFileInfo(entry, lib) {
@@ -320,6 +509,9 @@ function updateFileCard(entry) {
       card.classList.add('expanded');
     }
   }
+
+  // Re-run stats since we now know page count
+  updateLiveStats();
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -353,8 +545,10 @@ function renderFileList() {
 
 function createFileCard(entry, idx) {
   const card = document.createElement('div');
+  const colorIdx = idx % FILE_COLORS.length;
   card.className = 'file-card entering';
   card.setAttribute('data-id', entry.id);
+  card.setAttribute('data-color', colorIdx);
   card.setAttribute('role', 'listitem');
 
   // Remove entering class after animation
@@ -440,19 +634,23 @@ function removeFile(id) {
       files.splice(idx, 1);
       renderFileList();
       updateCounts();
+      checkDuplicates();
       if (files.length === 0) showUploadSection();
     }, 250);
   } else {
     files.splice(idx, 1);
     renderFileList();
     updateCounts();
+    checkDuplicates();
     if (files.length === 0) showUploadSection();
   }
 }
 
 function updateFileNumbers() {
-  fileList.querySelectorAll('.file-num').forEach((el, i) => {
-    el.textContent = `#${i + 1}`;
+  fileList.querySelectorAll('.file-card').forEach((card, i) => {
+    const numEl = card.querySelector('.file-num');
+    if (numEl) numEl.textContent = `#${i + 1}`;
+    card.setAttribute('data-color', i % FILE_COLORS.length);
   });
 }
 
@@ -461,6 +659,7 @@ function updateCounts() {
   if (fileCountBadge) fileCountBadge.textContent = `${n} ${n === 1 ? 'file' : 'files'}`;
   if (mergeBtnCount) mergeBtnCount.textContent = n > 0 ? `${n} files` : '';
   if (mergeBtn) mergeBtn.disabled = n < 2;
+  updateLiveStats();
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -575,6 +774,7 @@ async function doMerge() {
   formData.append('normalize_page_size',  optNormalize.checked  ? 'true' : 'false');
   formData.append('target_page_size',     optTargetSize.value);
   formData.append('merge_method',         optMethod.value);
+  formData.append('linearize',            qOptLinear && qOptLinear.checked ? 'true' : 'false');
   if (optTitle.value.trim())  formData.append('output_title', optTitle.value.trim());
   if (optAuthor.value.trim()) formData.append('output_author', optAuthor.value.trim());
 
@@ -639,7 +839,10 @@ async function doMerge() {
     if (optSeparators.checked) extras.push('with separators');
     $('resultSubtitle').textContent = `${sourceCount} files → ${totalPages} pages merged ${extras.length ? '(' + extras.join(', ') + ')' : 'successfully'}`;
 
-    setTimeout(() => showResult(), 300);
+    setTimeout(() => {
+      showResult();
+      launchConfetti();
+    }, 300);
 
   } catch (err) {
     completeProgress();
@@ -837,10 +1040,20 @@ document.addEventListener('keydown', e => {
 });
 
 /* ══════════════════════════════════════════════════════════
+   SORT BUTTONS WIRING
+══════════════════════════════════════════════════════════ */
+document.querySelectorAll('.sort-btn').forEach(btn => {
+  btn.addEventListener('click', () => sortFiles(btn.dataset.sort));
+});
+
+/* ══════════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════════ */
 // Preload PDF.js in background
 loadPDFJS();
+
+// Quick option chips sync
+setupQuickOptSync();
 
 // Initial state
 updateCounts();
