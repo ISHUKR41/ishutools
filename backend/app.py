@@ -176,14 +176,18 @@ def health():
 
 @app.route('/api/merge-pdf', methods=['POST'])
 def api_merge_pdf():
-    """Merge multiple PDFs into one combined document with advanced options."""
+    """Merge multiple PDFs + images into one combined document with advanced options."""
     try:
         files = request.files.getlist('files')
         if len(files) < 2:
-            return error_response('Please upload at least 2 PDF files.')
+            return error_response('Please upload at least 2 files.')
 
-        # Parse advanced options from form
         import json as _json
+        from tools.pdf_merge import convert_image_to_pdf_file
+
+        # Image extensions supported
+        IMAGE_EXTS = {'.jpg','.jpeg','.png','.webp','.gif','.bmp','.tiff','.tif'}
+
         add_separators   = request.form.get('add_separators', 'false').lower() == 'true'
         add_toc          = request.form.get('add_toc', 'false').lower() == 'true'
         skip_duplicates  = request.form.get('skip_duplicates', 'false').lower() == 'true'
@@ -197,28 +201,51 @@ def api_merge_pdf():
         out_author       = request.form.get('output_author', '')
         out_filename_req = request.form.get('output_filename', '')
 
-        # Parse per-file page ranges (JSON array or comma-separated strings)
         try:
             page_ranges_raw = request.form.get('page_ranges', '[]')
             page_ranges = _json.loads(page_ranges_raw) if page_ranges_raw else []
         except Exception:
             page_ranges = []
 
-        # Parse per-file passwords
         try:
             passwords_raw = request.form.get('passwords', '[]')
             passwords = _json.loads(passwords_raw) if passwords_raw else []
         except Exception:
             passwords = []
 
-        # Parse per-file display names (for TOC / separator titles)
         try:
             display_names_raw = request.form.get('display_names', '[]')
             display_names = _json.loads(display_names_raw) if display_names_raw else []
         except Exception:
             display_names = []
 
+        try:
+            file_types_raw = request.form.get('file_types', '[]')
+            file_types = _json.loads(file_types_raw) if file_types_raw else []
+        except Exception:
+            file_types = []
+
+        # Save all uploaded files first
         paths = save_uploaded_files(files)
+
+        # Pre-convert any image files to PDF
+        converted_paths = []
+        for i, (path, f) in enumerate(zip(paths, files)):
+            fn = secure_filename(f.filename or '')
+            suf = os.path.splitext(fn)[1].lower()
+            ftype = file_types[i] if i < len(file_types) else 'pdf'
+            if suf in IMAGE_EXTS or ftype == 'img':
+                try:
+                    pdf_path = path + '_img2pdf.pdf'
+                    convert_image_to_pdf_file(path, pdf_path)
+                    converted_paths.append(pdf_path)
+                    logger.info(f'Converted image {fn} → PDF for merge')
+                except Exception as img_e:
+                    logger.warning(f'Image conversion failed for {fn}: {img_e}')
+                    converted_paths.append(path)  # fallback: keep original
+            else:
+                converted_paths.append(path)
+        paths = converted_paths
 
         # Pad lists to match file count
         while len(page_ranges) < len(paths):

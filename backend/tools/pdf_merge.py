@@ -2359,3 +2359,258 @@ def analyze_merge_output(output_path, input_paths=None):
         logger.warning(f'analyze_merge_output error: {e}')
 
     return report
+
+
+# ── Image → PDF Conversion ─────────────────────────────────────────────────────
+
+def convert_image_to_pdf_bytes(image_path: str,
+                                fit_mode: str = 'contain',
+                                page_size: tuple = A4,
+                                background: str = 'white',
+                                dpi: int = 150) -> bytes:
+    """
+    Convert a single image file (JPG, PNG, WebP, GIF, BMP, TIFF) to PDF bytes.
+
+    Args:
+        image_path:  Path to the source image.
+        fit_mode:    'contain' — image fits inside page keeping aspect ratio (default).
+                     'fill'   — image fills page (may crop).
+                     'actual' — page sized exactly to image dimensions.
+        page_size:   ReportLab page size tuple (default A4).
+        background:  Background colour string ('white', 'black', 'transparent').
+        dpi:         Target render DPI for sizing.
+
+    Returns:
+        PDF file contents as bytes.
+    """
+    try:
+        from PIL import Image, ImageOps, ExifTags
+        import img2pdf
+
+        # Try img2pdf first for lossless quality (handles JPG/PNG perfectly)
+        # Only for JPEG / PNG without transparency
+        try:
+            _img = Image.open(image_path)
+            _fmt = (_img.format or '').upper()
+            _has_alpha = _img.mode in ('RGBA', 'LA', 'PA') or 'A' in getattr(_img, 'mode', '')
+            if _fmt in ('JPEG', 'JPG') or (_fmt == 'PNG' and not _has_alpha):
+                # Use img2pdf for lossless JPEG embedding
+                pdf_bytes = img2pdf.convert(image_path, layout_fun=img2pdf.get_layout_fun(page_size))
+                if pdf_bytes:
+                    return pdf_bytes
+        except Exception:
+            pass
+
+        # Fallback: Pillow → ReportLab
+        from PIL import Image, ImageOps, ImageFilter
+        from reportlab.pdfgen import canvas as rl_canvas
+        import io
+
+        img = Image.open(image_path)
+
+        # Auto-rotate based on EXIF
+        try:
+            for orientation_tag in ExifTags.TAGS.keys():
+                if ExifTags.TAGS[orientation_tag] == 'Orientation':
+                    break
+            exif = img._getexif()
+            if exif and orientation_tag in exif:
+                orientation = exif[orientation_tag]
+                rot_map = {3: 180, 6: 270, 8: 90}
+                if orientation in rot_map:
+                    img = img.rotate(rot_map[orientation], expand=True)
+        except Exception:
+            pass
+
+        # Convert to RGB (handles RGBA, P, CMYK, etc.)
+        if img.mode in ('RGBA', 'LA'):
+            bg = Image.new('RGB', img.size, (255, 255, 255) if background == 'white' else (0, 0, 0))
+            if img.mode == 'LA':
+                img = img.convert('RGBA')
+            bg.paste(img, mask=img.split()[-1])
+            img = bg
+        elif img.mode != 'RGB':
+            img = img.convert('RGB')
+
+        iw, ih = img.size
+        pw, ph = page_size  # points
+
+        if fit_mode == 'actual':
+            # Page size matches image exactly (in points, 1pt = 1/72 inch)
+            scale = 72.0 / dpi
+            pw, ph = iw * scale, ih * scale
+        elif fit_mode == 'fill':
+            scale = max(pw / iw, ph / ih)
+            nw, nh = int(iw * scale), int(ih * scale)
+            img = img.resize((nw, nh), Image.LANCZOS)
+            left, top = (nw - int(pw)) // 2, (nh - int(ph)) // 2
+            img = img.crop((left, top, left + int(pw), top + int(ph)))
+            iw, ih = img.size
+        else:  # contain
+            scale = min(pw / iw, ph / ih)
+            nw, nh = max(1, int(iw * scale)), max(1, int(ih * scale))
+            img = img.resize((nw, nh), Image.LANCZOS)
+            iw, ih = nw, nh
+
+        buf = io.BytesIO()
+        c = rl_canvas.Canvas(buf, pagesize=(pw, ph))
+
+        # Background fill
+        if background in ('white', '#fff', '#ffffff'):
+            c.setFillColorRGB(1, 1, 1); c.rect(0, 0, pw, ph, fill=1, stroke=0)
+        elif background == 'black':
+            c.setFillColorRGB(0, 0, 0); c.rect(0, 0, pw, ph, fill=1, stroke=0)
+
+        # Centre image on page
+        x = (pw - iw) / 2
+        y = (ph - ih) / 2
+
+        # Write image to temp buffer
+        img_buf = io.BytesIO()
+        img.save(img_buf, format='PNG', optimize=False)
+        img_buf.seek(0)
+
+        from reportlab.lib.utils import ImageReader
+        c.drawImage(ImageReader(img_buf), x, y, width=iw, height=ih, preserveAspectRatio=True)
+        c.save()
+        buf.seek(0)
+        return buf.read()
+
+    except Exception as e:
+        logger.error(f'convert_image_to_pdf_bytes failed: {e}')
+        raise
+
+
+def convert_image_to_pdf_file(image_path: str,
+                               output_path: str,
+                               fit_mode: str = 'contain',
+                               page_size: tuple = A4,
+                               background: str = 'white') -> str:
+    """
+    Convert an image file to a PDF file on disk.
+
+    Args:
+        image_path:  Source image path.
+        output_path: Destination PDF path.
+        fit_mode:    'contain' | 'fill' | 'actual'.
+        page_size:   ReportLab page size tuple (default A4).
+        background:  Background colour ('white'|'black').
+
+    Returns:
+        output_path on success.
+    """
+    pdf_bytes = convert_image_to_pdf_bytes(image_path, fit_mode=fit_mode,
+                                           page_size=page_size, background=background)
+    with open(output_path, 'wb') as f:
+        f.write(pdf_bytes)
+    logger.info(f'Image converted to PDF: {image_path} → {output_path} ({len(pdf_bytes):,} bytes)')
+    return output_path
+
+
+def batch_images_to_pdf(image_paths: list, output_path: str,
+                         fit_mode: str = 'contain',
+                         page_size: tuple = A4) -> dict:
+    """
+    Convert multiple images to a single multi-page PDF (one image per page).
+
+    Args:
+        image_paths: List of image file paths.
+        output_path: Output PDF path.
+        fit_mode:    'contain' | 'fill' | 'actual'.
+        page_size:   Target page size (default A4).
+
+    Returns:
+        Dict with page_count, output_size, method_used.
+    """
+    try:
+        from PIL import Image
+        import img2pdf
+
+        # Try img2pdf bulk conversion first (lossless, fastest)
+        safe_paths = []
+        for p in image_paths:
+            try:
+                img = Image.open(p)
+                if img.mode not in ('RGBA', 'LA', 'PA') and img.format in ('JPEG', 'JPG', 'PNG'):
+                    safe_paths.append(p)
+                else:
+                    raise ValueError('needs conversion')
+            except Exception:
+                # Convert to clean PNG first
+                tmp = p + '_clean.png'
+                img = Image.open(p).convert('RGB')
+                img.save(tmp, 'PNG')
+                safe_paths.append(tmp)
+
+        pdf_bytes = img2pdf.convert(safe_paths, layout_fun=img2pdf.get_layout_fun(page_size))
+        with open(output_path, 'wb') as f:
+            f.write(pdf_bytes)
+
+        return {
+            'page_count': len(image_paths),
+            'output_size': len(pdf_bytes),
+            'method_used': 'img2pdf',
+        }
+
+    except Exception as e:
+        logger.warning(f'batch_images_to_pdf img2pdf failed, using reportlab: {e}')
+
+        # Fallback: page-by-page ReportLab
+        import io
+        from reportlab.pdfgen import canvas as rl_canvas
+        from reportlab.lib.utils import ImageReader
+        from PIL import Image
+
+        buf = io.BytesIO()
+        pw, ph = page_size
+        c = rl_canvas.Canvas(buf, pagesize=page_size)
+        for img_path in image_paths:
+            try:
+                img = Image.open(img_path).convert('RGB')
+                iw, ih = img.size
+                scale = min(pw / iw, ph / ih)
+                nw, nh = max(1, int(iw * scale)), max(1, int(ih * scale))
+                img = img.resize((nw, nh), Image.LANCZOS)
+                ibuf = io.BytesIO(); img.save(ibuf, 'PNG'); ibuf.seek(0)
+                c.setFillColorRGB(1, 1, 1); c.rect(0, 0, pw, ph, fill=1, stroke=0)
+                c.drawImage(ImageReader(ibuf), (pw - nw) / 2, (ph - nh) / 2, nw, nh)
+                c.showPage()
+            except Exception as pe:
+                logger.warning(f'Image page failed {img_path}: {pe}')
+                c.showPage()
+
+        c.save()
+        pdf_bytes = buf.getvalue()
+        with open(output_path, 'wb') as f:
+            f.write(pdf_bytes)
+
+        return {
+            'page_count': len(image_paths),
+            'output_size': len(pdf_bytes),
+            'method_used': 'reportlab',
+        }
+
+
+def get_image_info(image_path: str) -> dict:
+    """
+    Get metadata for an image file (dimensions, format, color mode, DPI).
+
+    Args:
+        image_path: Path to image.
+
+    Returns:
+        Dict with format, width, height, mode, dpi, file_size.
+    """
+    info = {'format': 'unknown', 'width': 0, 'height': 0, 'mode': 'unknown', 'dpi': (72, 72), 'file_size': 0, 'error': None}
+    try:
+        from PIL import Image
+        import os
+        info['file_size'] = os.path.getsize(image_path)
+        img = Image.open(image_path)
+        info['format'] = img.format or 'unknown'
+        info['width'], info['height'] = img.size
+        info['mode'] = img.mode
+        info['dpi'] = img.info.get('dpi', (72, 72))
+    except Exception as e:
+        info['error'] = str(e)
+    return info
