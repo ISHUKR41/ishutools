@@ -379,7 +379,24 @@ def api_merge_pdf():
         return resp
     except Exception as e:
         logger.exception("merge-pdf error")
-        return error_response(str(e))
+        raw = str(e).lower()
+        if 'password' in raw or 'encrypted' in raw or 'decrypt' in raw:
+            msg = 'One or more PDFs are password-protected — expand the file card and enter the correct password.'
+        elif 'corrupt' in raw or 'invalid' in raw or 'not a pdf' in raw or 'eoferror' in raw:
+            msg = 'One or more files appear to be corrupt or not a valid PDF. Please check your files and try again.'
+        elif 'memory' in raw or 'memoryerror' in raw:
+            msg = 'Not enough server memory — try merging fewer or smaller files at a time.'
+        elif 'timeout' in raw or 'timed out' in raw:
+            msg = 'Merge timed out — your files may be too large. Try merging in smaller batches.'
+        elif 'permission' in raw or 'access' in raw:
+            msg = 'A file could not be read — it may be in use or have restricted permissions.'
+        elif 'no pages' in raw or 'empty' in raw:
+            msg = 'One or more files have no pages or are empty. Please check your files.'
+        elif 'image' in raw and ('convert' in raw or 'pil' in raw or 'img2pdf' in raw):
+            msg = 'Could not convert one of the images to PDF. Make sure the image is not corrupted.'
+        else:
+            msg = f'Merge failed — {str(e)[:180]}. Please check your files and try again.'
+        return error_response(msg)
 
 
 @app.route('/api/merge-pdf/progress/<job_id>')
