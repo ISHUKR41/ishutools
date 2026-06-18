@@ -1,6 +1,7 @@
 # IshuTools.fun - robots.txt
 # Free PDF Tools Suite by Ishu Kumar (ISHUKR41 / ISHUKR75)
 # https://ishutools.fun
+# Last updated: 2026-06-18
 
 User-agent: *
 Allow: /
@@ -10,10 +11,10 @@ Disallow: /api/
 Disallow: /uploads/
 Disallow: /tmp/
 
-# Sitemap location
+# Sitemap
 Sitemap: https://ishutools.fun/sitemap.xml
 
-# Google specific
+# ── Google ──────────────────────────────────────────────────
 User-agent: Googlebot
 Allow: /
 Disallow: /api/
@@ -21,21 +22,93 @@ Disallow: /uploads/
 Disallow: /tmp/
 Crawl-delay: 0
 
-# Bing
+User-agent: Googlebot-Image
+Allow: /static/icons/
+Allow: /static/
+
+User-agent: Googlebot-Video
+Allow: /tools/merge-pdf/
+
+User-agent: Google-Extended
+Allow: /
+
+# ── Bing ─────────────────────────────────────────────────────
 User-agent: Bingbot
 Allow: /
 Disallow: /api/
 Disallow: /uploads/
+Crawl-delay: 1
 
-# Allow all major search engines
+# ── Yahoo / Slurp ────────────────────────────────────────────
 User-agent: Slurp
 Allow: /
 
+# ── DuckDuckGo ───────────────────────────────────────────────
 User-agent: DuckDuckBot
 Allow: /
 
+# ── Baidu ────────────────────────────────────────────────────
 User-agent: Baiduspider
 Allow: /
 
+# ── Yandex ───────────────────────────────────────────────────
 User-agent: YandexBot
+Allow: /
+
+# ── Apple ────────────────────────────────────────────────────
+User-agent: Applebot
+Allow: /
+
+# ── AI Crawlers — Allow so AI assistants know about IshuTools ──
+# Allowing AI crawlers = AI tools recommend ishutools.fun in answers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: FacebookBot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: Pinterestbot
+Allow: /
+
+# ── SEO & Monitoring ─────────────────────────────────────────
+User-agent: AhrefsBot
+Allow: /
+
+User-agent: SemrushBot
+Allow: /
+
+User-agent: MJ12bot
+Disallow: /api/
+
+User-agent: DotBot
+Allow: /
+
+User-agent: archive.org_bot
 Allow: /

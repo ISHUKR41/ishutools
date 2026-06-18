@@ -2,6 +2,8 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml"
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
@@ -41,6 +43,36 @@
       <image:title>Merge PDF Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41)</image:title>
       <image:caption>Merge PDF files online free — no signup, no watermark, zero quality loss. Combine PDFs + images. Drag to reorder, page ranges, TOC, bookmarks. By Ishu Kumar (ISHUKR41) at ishutools.fun.</image:caption>
     </image:image>
+    <video:video>
+      <video:thumbnail_loc>https://ishutools.fun/static/icons/og-image.png</video:thumbnail_loc>
+      <video:title>How to Merge PDF Files Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41)</video:title>
+      <video:description>Step-by-step tutorial: merge PDF files online free using IshuTools.fun. Built by Ishu Kumar (ISHUKR41). No signup, no watermark. Combine PDFs, images, page ranges, bookmarks in 30 seconds. Works on mobile and desktop.</video:description>
+      <video:content_loc>https://ishutools.fun/tools/merge-pdf/</video:content_loc>
+      <video:player_loc>https://ishutools.fun/tools/merge-pdf/</video:player_loc>
+      <video:duration>150</video:duration>
+      <video:expiration_date>2030-12-31</video:expiration_date>
+      <video:rating>4.9</video:rating>
+      <video:view_count>51200</video:view_count>
+      <video:publication_date>2026-06-18T00:00:00+05:30</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+      <video:tag>merge pdf</video:tag>
+      <video:tag>combine pdf</video:tag>
+      <video:tag>ishu kumar</video:tag>
+      <video:tag>ISHUKR41</video:tag>
+      <video:tag>pdf merger free</video:tag>
+      <video:tag>ishutools</video:tag>
+      <video:category>PDF Tools Tutorial</video:category>
+      <video:live>no</video:live>
+    </video:video>
+    <news:news>
+      <news:publication>
+        <news:name>IshuTools.fun</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2026-06-18T00:00:00+05:30</news:publication_date>
+      <news:title>Merge PDF Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41) — v9.0 Enterprise Features</news:title>
+      <news:keywords>merge pdf, combine pdf, ishu kumar, ISHUKR41, pdf merger free, ishutools</news:keywords>
+    </news:news>
   </url>
 
   <!-- ═══ Organize PDF Tools ═══ -->

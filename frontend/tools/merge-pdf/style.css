@@ -1051,6 +1051,55 @@ footer p strong { color: var(--t2); }
 }
 #undoBtn:hover { background: var(--pD); }
 
+/* ── Nav Util Bar (Breadcrumb + TOC) ────────────────────── */
+.nav-util-bar {
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 0.45rem 1.25rem; display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 0.4rem;
+  position: relative; z-index: 10;
+}
+.breadcrumb-nav { flex: 1; min-width: 0; }
+.breadcrumb-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0.1rem;
+}
+.breadcrumb-list li { font-size: 0.76rem; color: var(--t3); }
+.breadcrumb-list li a { color: var(--t3); transition: color var(--speed); }
+.breadcrumb-list li a:hover { color: var(--pL); text-decoration: none; }
+.breadcrumb-list li[aria-current="page"] { color: var(--t1); font-weight: 600; }
+.bc-sep { margin: 0 0.25rem; color: var(--t3); font-size: 0.72rem; }
+.toc-details { position: relative; }
+.toc-summary {
+  list-style: none; cursor: pointer; font-size: 0.76rem;
+  color: var(--t3); display: flex; align-items: center; gap: 0.35rem;
+  padding: 0.28rem 0.65rem; border-radius: 20px; border: 1px solid var(--border);
+  background: var(--bg3); transition: all var(--speed); white-space: nowrap;
+}
+.toc-summary:hover { color: var(--pL); border-color: rgba(99,102,241,0.32); }
+.toc-summary::-webkit-details-marker { display: none; }
+.toc-panel {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 100;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 0.65rem 0.5rem; min-width: 240px; box-shadow: var(--shadow);
+  animation: fadeIn 0.16s ease;
+}
+.toc-list {
+  list-style: none; margin: 0; padding: 0; counter-reset: toc-counter;
+  display: flex; flex-direction: column; gap: 0.08rem;
+}
+.toc-list li { counter-increment: toc-counter; }
+.toc-list li a {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.78rem; color: var(--t2); padding: 0.32rem 0.65rem;
+  border-radius: 7px; transition: all var(--speed); text-decoration: none;
+}
+.toc-list li a::before {
+  content: counter(toc-counter, decimal-leading-zero);
+  font-size: 0.65rem; color: var(--p); font-weight: 700; flex-shrink: 0;
+  width: 1.4rem; font-family: 'Poppins',sans-serif;
+}
+.toc-list li a:hover { background: rgba(99,102,241,0.1); color: var(--pL); }
+
 /* ── Trust Bar ──────────────────────────────────────────── */
 .trust-bar {
   background: var(--bg2); border-top: 1px solid var(--border);
@@ -1158,6 +1207,38 @@ mark { background: rgba(99,102,241,0.18); color: var(--pL); padding: 0 3px; bord
 .rev-body { font-size: 0.82rem; color: var(--t2); line-height: 1.68; font-style: italic; flex: 1; }
 .rev-foot { font-size: 0.72rem; color: var(--t3); display: flex; gap: 0.6rem; align-items: center; }
 .rev-foot time::after { content: '·'; margin-left: 0.6rem; }
+
+/* ── Hindi Section ───────────────────────────────────────── */
+.hindi-sec { border-top: 2px solid rgba(99,102,241,0.18); }
+.hindi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin: 1.4rem 0; }
+.hindi-card {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
+  padding: 1.3rem 1.15rem; position: relative; overflow: hidden;
+  transition: transform var(--speed), border-color var(--speed);
+}
+.hindi-card:hover { transform: translateY(-3px); border-color: rgba(99,102,241,0.35); }
+.hindi-num {
+  font-size: 2.6rem; font-weight: 900; color: rgba(99,102,241,0.12);
+  font-family: 'Poppins',sans-serif; line-height: 1; position: absolute;
+  top: 0.5rem; right: 0.75rem; pointer-events: none; user-select: none;
+}
+.hindi-card h3 { font-size: 0.94rem; font-weight: 700; color: var(--pL); margin-bottom: 0.5rem; }
+.hindi-card p  { font-size: 0.82rem; color: var(--t2); line-height: 1.7; }
+.hindi-faq-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.85rem; margin: 1.2rem 0; }
+.hindi-faq-item { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1rem; }
+.hindi-faq-item h3 { font-size: 0.88rem; font-weight: 700; color: var(--t1); margin-bottom: 0.4rem; }
+.hindi-faq-item p  { font-size: 0.8rem; color: var(--t2); line-height: 1.68; }
+.hindi-keywords {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.32rem;
+  margin-top: 1.2rem; padding: 0.8rem 1rem;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+  font-size: 0.75rem;
+}
+.hindi-keywords strong { color: var(--t2); margin-right: 0.2rem; }
+.hindi-keywords span {
+  background: rgba(99,102,241,0.1); color: var(--pL); padding: 2px 8px;
+  border-radius: 20px; border: 1px solid rgba(99,102,241,0.2);
+}
 
 /* ── Article Section ─────────────────────────────────────── */
 .art-sec { position: relative; z-index: 1; padding: 3.5rem 1.25rem 4rem; background: var(--bg2); border-top: 1px solid var(--border); }
