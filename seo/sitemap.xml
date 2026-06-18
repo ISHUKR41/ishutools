@@ -78,7 +78,31 @@
   </url>
 
   <!-- ═══ Organize PDF Tools ═══ -->
-  <url><loc>https://ishutools.fun/tools/split-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <!-- ═══ SPLIT PDF — Priority 1.0 — by Ishu Kumar (ISHUKR41) ═══ -->
+  <url>
+    <loc>https://ishutools.fun/tools/split-pdf/</loc>
+    <lastmod>2026-06-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en"      href="https://ishutools.fun/tools/split-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-IN"   href="https://ishutools.fun/tools/split-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-US"   href="https://ishutools.fun/tools/split-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ishutools.fun/tools/split-pdf/"/>
+    <image:image>
+      <image:loc>https://ishutools.fun/static/icons/og-image.png</image:loc>
+      <image:title>Split PDF Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41) | 7 Split Modes</image:title>
+      <image:caption>Split PDF free — 7 modes: every page, custom ranges, chapters, odd/even, by size. No signup, no watermark, 1 GB. Ishu Kumar ISHUKR41 ishutools.fun</image:caption>
+    </image:image>
+    <video:video>
+      <video:thumbnail_loc>https://ishutools.fun/static/icons/og-image.png</video:thumbnail_loc>
+      <video:title>How to Split PDF Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41)</video:title>
+      <video:description>Split PDF online free with IshuTools — 7 modes in 15 seconds. No signup, no watermark. By Ishu Kumar ISHUKR41. ishutools.fun/tools/split-pdf/</video:description>
+      <video:content_loc>https://ishutools.fun/tools/split-pdf/</video:content_loc>
+      <video:duration>15</video:duration>
+      <video:family_friendly>yes</video:family_friendly>
+      <video:live>no</video:live>
+    </video:video>
+  </url>
   <url><loc>https://ishutools.fun/tools/compress-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
   <url><loc>https://ishutools.fun/tools/remove-pages/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
   <url><loc>https://ishutools.fun/tools/extract-pages/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>

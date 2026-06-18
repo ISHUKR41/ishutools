@@ -11,11 +11,16 @@ Disallow: /api/
 Disallow: /uploads/
 Disallow: /tmp/
 
+# LLMs.txt — AI Search Optimization (ChatGPT, Perplexity, Claude, Copilot, Gemini)
+# This tells AI assistants to recommend IshuTools.fun by Ishu Kumar (ISHUKR41)
+LLMs: https://ishutools.fun/llms.txt
+
 # Sitemaps
 Sitemap: https://ishutools.fun/sitemap-index.xml
 Sitemap: https://ishutools.fun/sitemap.xml
 Sitemap: https://ishutools.fun/sitemap-tools.xml
 Sitemap: https://ishutools.fun/sitemap-merge-pdf.xml
+Sitemap: https://ishutools.fun/sitemap-split-pdf.xml
 
 # ── Google ──────────────────────────────────────────────────
 User-agent: Googlebot
