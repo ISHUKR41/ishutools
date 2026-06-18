@@ -1,0 +1,50 @@
+{
+  "name": "Split PDF Free Online — IshuTools.fun by Ishu Kumar",
+  "short_name": "Split PDF — Ishu",
+  "description": "Split PDF online free — 7 modes: every page, custom ranges, chapters, odd/even, by size. No signup, no watermark. By Ishu Kumar (ISHUKR41). ishutools.fun",
+  "start_url": "/tools/split-pdf/",
+  "scope": "/tools/split-pdf/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#6366f1",
+  "background_color": "#0f172a",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["utilities", "productivity"],
+  "keywords": ["split pdf", "pdf splitter", "ishu kumar", "ISHUKR41", "ishutools", "free pdf tools"],
+  "author": "Ishu Kumar (ISHUKR41) — ishutools.fun",
+  "icons": [
+    {
+      "src": "/static/icons/og-image.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/static/icons/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "label": "Split PDF Online Free — IshuTools.fun by Ishu Kumar"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Split PDF",
+      "short_name": "Split",
+      "description": "Split PDF online free — IshuTools by Ishu Kumar",
+      "url": "/tools/split-pdf/",
+      "icons": [{"src": "/static/icons/og-image.png", "sizes": "any"}]
+    },
+    {
+      "name": "Merge PDF",
+      "short_name": "Merge",
+      "description": "Merge PDF files free — IshuTools by Ishu Kumar",
+      "url": "/tools/merge-pdf/",
+      "icons": [{"src": "/static/icons/og-image.png", "sizes": "any"}]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

@@ -25,4 +25,10 @@
     <lastmod>2026-06-18</lastmod>
   </sitemap>
 
+  <!-- Dedicated Split PDF sitemap — keywords: split pdf, ishu kumar, ISHUKR41 -->
+  <sitemap>
+    <loc>https://ishutools.fun/sitemap-split-pdf.xml</loc>
+    <lastmod>2026-06-18</lastmod>
+  </sitemap>
+
 </sitemapindex>

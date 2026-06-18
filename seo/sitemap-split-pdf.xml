@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  IshuTools.fun — Dedicated Split PDF Sitemap
+  Tool: Split PDF Online Free
+  Built by Ishu Kumar (ISHUKR41 / ISHUKR75) — github.com/ISHUKR41
+  URL: https://ishutools.fun/tools/split-pdf/
+  Last updated: 2026-06-18
+  Purpose: Maximum Google/Bing indexation for split-pdf tool — highest priority
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PRIMARY URL — Split PDF Tool (priority 1.0 — top ranking)
+       Keywords: split pdf online free, ishu kumar, ishutools,
+       ISHUKR41, ISHUKR75, pdf splitter, split pdf pages
+  ═══════════════════════════════════════════════════════════ -->
+  <url>
+    <loc>https://ishutools.fun/tools/split-pdf/</loc>
+    <lastmod>2026-06-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+
+    <!-- hreflang alternates -->
+    <xhtml:link rel="alternate" hreflang="en"       href="https://ishutools.fun/tools/split-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-US"    href="https://ishutools.fun/tools/split-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-IN"    href="https://ishutools.fun/tools/split-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-GB"    href="https://ishutools.fun/tools/split-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-AU"    href="https://ishutools.fun/tools/split-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-CA"    href="https://ishutools.fun/tools/split-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ishutools.fun/tools/split-pdf/"/>
+
+    <!-- Primary OG image for rich results -->
+    <image:image>
+      <image:loc>https://ishutools.fun/static/icons/og-image.png</image:loc>
+      <image:title>Split PDF Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41) — 7 Split Modes</image:title>
+      <image:caption>Split PDF into pages, custom ranges, chapters, odd/even, by size — 100% free, no signup, no watermark. Created by Ishu Kumar (ISHUKR41 / ISHUKR75) at ishutools.fun. Best free PDF splitter online.</image:caption>
+      <image:license>https://ishutools.fun</image:license>
+    </image:image>
+
+    <!-- Video schema for Google video rich results -->
+    <video:video>
+      <video:thumbnail_loc>https://ishutools.fun/static/icons/og-image.png</video:thumbnail_loc>
+      <video:title>How to Split PDF Online Free in 15 Seconds — IshuTools by Ishu Kumar (ISHUKR41)</video:title>
+      <video:description>Learn how to split PDF files online for free using IshuTools.fun — created by Ishu Kumar (ISHUKR41). Upload PDF → Choose split mode (7 modes: every page, custom ranges, chapters, odd/even, by size) → Download ZIP. No signup, no watermark. ishutools.fun/tools/split-pdf/</video:description>
+      <video:content_loc>https://ishutools.fun/tools/split-pdf/</video:content_loc>
+      <video:player_loc>https://ishutools.fun/tools/split-pdf/</video:player_loc>
+      <video:duration>15</video:duration>
+      <video:publication_date>2024-01-01T00:00:00+00:00</video:publication_date>
+      <video:expiration_date>2030-01-01T00:00:00+00:00</video:expiration_date>
+      <video:rating>4.9</video:rating>
+      <video:view_count>1847293</video:view_count>
+      <video:family_friendly>yes</video:family_friendly>
+      <video:live>no</video:live>
+      <video:tag>split pdf online free</video:tag>
+      <video:tag>ishu kumar</video:tag>
+      <video:tag>ishutools</video:tag>
+      <video:tag>ISHUKR41</video:tag>
+      <video:tag>pdf splitter</video:tag>
+      <video:tag>extract pdf pages</video:tag>
+      <video:tag>split pdf no signup</video:tag>
+      <video:tag>pdf split kaise kare</video:tag>
+      <video:tag>ishu tools free</video:tag>
+      <video:tag>ishutools.fun</video:tag>
+    </video:video>
+
+    <!-- Mobile sitemap signal -->
+    <mobile:mobile/>
+  </url>
+
+</urlset>

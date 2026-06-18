@@ -197,6 +197,12 @@ def sitemap_merge_pdf():
     return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'sitemap-merge-pdf.xml',
                                mimetype='application/xml')
 
+@app.route('/sitemap-split-pdf.xml')
+def sitemap_split_pdf():
+    """Serve the dedicated split-pdf SEO sitemap — ishu kumar ISHUKR41."""
+    return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'sitemap-split-pdf.xml',
+                               mimetype='application/xml')
+
 @app.route('/sitemap-index.xml')
 def sitemap_index():
     """Serve the sitemap index."""
