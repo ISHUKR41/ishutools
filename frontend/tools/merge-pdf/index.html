@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Merge PDF Free Online — Combine Multiple PDF Files Into One | IshuTools.fun by Ishu Kumar</title>
   <meta name="description" content="Merge PDF files online free. Combine multiple PDF or image files into one document instantly. No signup, no watermark. Drag to reorder, set page ranges, add TOC. By Ishu Kumar — ishutools.fun the best free PDF tool site." />
-  <meta name="keywords" content="merge pdf, combine pdf online free, join pdf files, pdf merger online, merge pdf files free, ishu kumar, ishu, ishu developer, ishutools, ishutools.fun, ISHUKR41, ISHUKR75, ishu kumar developer, ishu kumar github, free pdf merger, combine multiple pdf, merge pdf without signup, merge pdf no watermark, best pdf merger 2025 2026, pdf merge tool online, pdf combiner free, pdf joiner online, combine pdf pages online, merge pdf instantly, merge pdf india, online pdf tools free india, ishu tools pdf, pdf merge tool by ishu kumar, ishu kumar pdf tools, ishu kumar free tools site, ishu kumar india, merge scanned pdf, merge password protected pdf, merge pdf preserve bookmarks, pdf combine table of contents, merge pdf drag drop, pdf merger with page range, merge images into pdf, combine jpg to pdf, combine png to pdf, merge image and pdf, jpg png to pdf merge, webp to pdf merge, image to pdf merge, convert image pdf merge, free image to pdf, merge photos into pdf, free pdf combiner no sign up, unlimited pdf merge, merge large pdf files, fast pdf merger, secure pdf merger, private pdf merger, enterprise pdf merge, bulk pdf combine, professional pdf merge, pdf merge with compression, merge pdf reduce size, pypdf merge, pikepdf, pymupdf merge, ghostscript pdf merge, reportlab pdf, pdf merge python free, merge pdf flask python, combine pdf python tool, pdf tools website, online pdf editor free, free pdf tools website india, ishu tools website, ishutools pdf, www ishutools fun, ishutools fun merge pdf, merge pdf site, best site to merge pdf, top pdf merge website, merge pdf free online 2026, how to merge pdf files free, how to combine pdf files, merge pdf files into one free" />
+  <meta name="keywords" content="merge pdf, combine pdf online free, join pdf files, pdf merger online, merge pdf files free, ishu kumar, ishu, ishutools, ishutools.fun, ISHUKR41, ISHUKR75, ishu kumar developer, ishu kumar github, free pdf merger, combine multiple pdf, merge pdf without signup, merge pdf no watermark, best pdf merger 2025 2026, pdf merge tool online, pdf combiner free, pdf joiner online, combine pdf pages online, merge pdf instantly, merge pdf india, online pdf tools free india, ishu tools pdf, pdf merge tool by ishu kumar, ishu kumar pdf tools, merge scanned pdf, merge password protected pdf, merge pdf preserve bookmarks, pdf combine table of contents, merge pdf drag drop, pdf merger with page range, merge images into pdf, combine jpg to pdf, combine png to pdf, merge image and pdf, jpg png to pdf merge, webp to pdf merge, image to pdf merge, convert image pdf merge, free image to pdf, merge photos into pdf, free pdf combiner no sign up, unlimited pdf merge, merge large pdf files, fast pdf merger, secure pdf merger, private pdf merger, enterprise pdf merge, bulk pdf combine, professional pdf merge, pdf merge with compression, merge pdf reduce size, pypdf merge, pikepdf, pymupdf merge, ghostscript pdf merge, reportlab pdf, pdf tools website, online pdf editor free, free pdf tools website india, ishu tools website, ishutools pdf, www ishutools fun, ishutools fun merge pdf, merge pdf site, best site to merge pdf, top pdf merge website, merge pdf free online 2026, how to merge pdf files free, how to combine pdf files, merge pdf files into one free" />
   <meta name="author" content="Ishu Kumar" />
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
   <meta name="googlebot" content="index, follow" />
@@ -19,7 +19,7 @@
 
   <!-- Open Graph -->
   <meta property="og:title" content="Merge PDF Files Free Online — IshuTools.fun by Ishu Kumar" />
-  <meta property="og:description" content="Combine multiple PDF or image files into one in seconds. Free, no signup, no watermark. Drag to reorder, page ranges, bookmarks. By Ishu Kumar." />
+  <meta property="og:description" content="Combine multiple PDF or image files into one in seconds. Free, no signup, no watermark. Drag to reorder, page ranges, bookmarks, TOC. By Ishu Kumar." />
   <meta property="og:url" content="https://ishutools.fun/tools/merge-pdf/" />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="https://ishutools.fun/static/icons/og-image.png" />
@@ -36,7 +36,7 @@
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236366f1'/%3E%3Ctext y='22' x='4' font-size='20'%3E🔗%3C/text%3E%3C/svg%3E" />
 
-  <!-- Fonts -->
+  <!-- Preconnect fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@600;700;800;900&display=swap" rel="stylesheet" />
@@ -44,84 +44,26 @@
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
 
-  <!-- SortableJS + GSAP -->
+  <!-- Libraries (defer = non-blocking) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
 
-  <!-- Sound Library — must load before script.js -->
+  <!-- Sound Library — must load synchronously before script.js -->
   <script src="sounds/sounds.js"></script>
 
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"SoftwareApplication",
-    "name":"Merge PDF Online Free — IshuTools by Ishu Kumar",
-    "applicationCategory":"UtilitiesApplication",
-    "operatingSystem":"Web Browser",
-    "url":"https://ishutools.fun/tools/merge-pdf/",
-    "description":"Merge multiple PDF files and images (JPG, PNG, WebP) into one document online for free. Drag to reorder, page range selection, table of contents, separator pages, bookmark preservation. No signup required. By Ishu Kumar.",
-    "offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},
-    "creator":{"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41","sameAs":["https://github.com/ISHUKR75"]},
-    "featureList":"Merge up to 50 files, drag to reorder, JPG/PNG to PDF, preserve bookmarks, page range selection, table of contents, separator pages, duplicate detection, 1 GB per file, no watermark, completely free",
-    "aggregateRating":{"@type":"AggregateRating","ratingValue":"4.9","ratingCount":"12847","bestRating":"5"}
-  }
-  </script>
-  <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"HowTo",
-    "name":"How to Merge PDF Files Online Free",
-    "description":"Step-by-step guide to combining multiple PDF files into one using IshuTools.fun by Ishu Kumar",
-    "totalTime":"PT30S",
-    "step":[
-      {"@type":"HowToStep","position":1,"name":"Upload PDFs or Images","text":"Click Upload or drag and drop PDF files, JPG, PNG or WebP images (up to 50 files, 1 GB each). Files are accepted from any device."},
-      {"@type":"HowToStep","position":2,"name":"Arrange & Configure","text":"Drag file cards to reorder. Optionally set page ranges, add Table of Contents, separator pages, or choose a merge preset."},
-      {"@type":"HowToStep","position":3,"name":"Merge & Download","text":"Click Merge PDF. Download your combined document instantly. The filename is automatically named after your first file."}
-    ]
-  }
-  </script>
-  <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"FAQPage",
-    "mainEntity":[
-      {"@type":"Question","name":"How many files can I merge at once?","acceptedAnswer":{"@type":"Answer","text":"IshuTools supports merging up to 50 PDF or image files at once, with up to 1 GB per file."}},
-      {"@type":"Question","name":"Can I merge image files (JPG, PNG) with PDFs?","acceptedAnswer":{"@type":"Answer","text":"Yes! IshuTools automatically converts JPG, PNG, WebP, GIF, BMP, and TIFF images to PDF pages and includes them in the merged document."}},
-      {"@type":"Question","name":"Will merging PDFs reduce quality?","acceptedAnswer":{"@type":"Answer","text":"No. IshuTools uses enterprise-grade pypdf, PyMuPDF, and pikepdf libraries that preserve 100% original quality, fonts, images, and formatting."}},
-      {"@type":"Question","name":"Is this PDF merger completely free?","acceptedAnswer":{"@type":"Answer","text":"100% free, forever. No signup, no email, no watermark, no hidden fees. Built by Ishu Kumar for everyone."}},
-      {"@type":"Question","name":"Can I select specific pages to merge?","acceptedAnswer":{"@type":"Answer","text":"Yes! Each file card has a page range field. Use ranges like 1-3,5,8-10 or keywords like 'odd', 'even', 'first 3', 'last 2'."}},
-      {"@type":"Question","name":"Are my uploaded files secure?","acceptedAnswer":{"@type":"Answer","text":"Absolutely. Files are processed over HTTPS, stored in isolated temporary folders, and permanently deleted immediately after download. IshuTools never stores or reads your documents."}}
-    ]
-  }
-  </script>
-  <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"BreadcrumbList",
-    "itemListElement":[
-      {"@type":"ListItem","position":1,"name":"IshuTools","item":"https://ishutools.fun/"},
-      {"@type":"ListItem","position":2,"name":"PDF Tools","item":"https://ishutools.fun/#organize"},
-      {"@type":"ListItem","position":3,"name":"Merge PDF","item":"https://ishutools.fun/tools/merge-pdf/"}
-    ]
-  }
-  </script>
-  <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"WebPage",
-    "name":"Merge PDF Online Free",
-    "url":"https://ishutools.fun/tools/merge-pdf/",
-    "description":"Free online PDF merger by Ishu Kumar. Combine PDFs and images into one file. No signup needed.",
-    "author":{"@type":"Person","name":"Ishu Kumar"},
-    "dateModified":"2026-06-18",
-    "inLanguage":"en-US",
-    "isPartOf":{"@type":"WebSite","name":"IshuTools.fun","url":"https://ishutools.fun/","description":"Free online PDF tools suite by Ishu Kumar"}
-  }
-  </script>
+  <!-- Structured Data: SoftwareApplication -->
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Merge PDF Online Free — IshuTools by Ishu Kumar","applicationCategory":"UtilitiesApplication","operatingSystem":"Web Browser","url":"https://ishutools.fun/tools/merge-pdf/","description":"Merge multiple PDF files and images (JPG, PNG, WebP) into one document online for free. Drag to reorder, page range selection, table of contents, separator pages, bookmark preservation. No signup required. By Ishu Kumar.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"creator":{"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41","sameAs":["https://github.com/ISHUKR75"]},"featureList":"Merge up to 50 files, drag to reorder, JPG/PNG to PDF, preserve bookmarks, page range selection, table of contents, separator pages, duplicate detection, 1 GB per file, no watermark, completely free","aggregateRating":{"@type":"AggregateRating","ratingValue":"4.9","ratingCount":"12847","bestRating":"5"}}</script>
+  <!-- Structured Data: HowTo -->
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to Merge PDF Files Online Free","description":"Step-by-step guide to combining multiple PDF files into one using IshuTools.fun by Ishu Kumar","totalTime":"PT30S","step":[{"@type":"HowToStep","position":1,"name":"Upload PDFs or Images","text":"Click Upload or drag and drop PDF files, JPG, PNG or WebP images (up to 50 files, 1 GB each)."},{"@type":"HowToStep","position":2,"name":"Arrange & Configure","text":"Drag file cards to reorder. Optionally set page ranges, add Table of Contents, separator pages."},{"@type":"HowToStep","position":3,"name":"Merge & Download","text":"Click Merge PDF. Download your combined document instantly."}]}</script>
+  <!-- Structured Data: FAQPage -->
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How many files can I merge at once?","acceptedAnswer":{"@type":"Answer","text":"IshuTools supports merging up to 50 PDF or image files at once, with up to 1 GB per file."}},{"@type":"Question","name":"Can I merge image files (JPG, PNG) with PDFs?","acceptedAnswer":{"@type":"Answer","text":"Yes! IshuTools automatically converts JPG, PNG, WebP, GIF, BMP, TIFF images to PDF pages and includes them in the merged document."}},{"@type":"Question","name":"Is this PDF merger completely free?","acceptedAnswer":{"@type":"Answer","text":"100% free, forever. No signup, no email, no watermark, no hidden fees. Built by Ishu Kumar for everyone."}},{"@type":"Question","name":"Are my uploaded files secure?","acceptedAnswer":{"@type":"Answer","text":"Files are processed over HTTPS in isolated temporary folders and permanently deleted immediately after download. IshuTools never stores your documents."}}]}</script>
+  <!-- Structured Data: BreadcrumbList -->
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"IshuTools","item":"https://ishutools.fun/"},{"@type":"ListItem","position":2,"name":"PDF Tools","item":"https://ishutools.fun/#organize"},{"@type":"ListItem","position":3,"name":"Merge PDF","item":"https://ishutools.fun/tools/merge-pdf/"}]}</script>
+  <!-- Structured Data: WebPage -->
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Merge PDF Online Free","url":"https://ishutools.fun/tools/merge-pdf/","description":"Free online PDF merger by Ishu Kumar. Combine PDFs and images into one file. No signup needed.","author":{"@type":"Person","name":"Ishu Kumar"},"dateModified":"2026-06-18","inLanguage":"en-US","isPartOf":{"@type":"WebSite","name":"IshuTools.fun","url":"https://ishutools.fun/"}}</script>
 </head>
 <body>
 
@@ -148,10 +90,10 @@
       <a href="/#organize" class="nav-link"><i class="fas fa-layer-group"></i> All Tools</a>
     </div>
     <div class="nav-controls">
-      <button class="icon-toggle" id="soundToggle" aria-label="Toggle sounds" title="Toggle sounds on/off">
+      <button class="ctrl-btn" id="soundToggle" aria-label="Toggle sounds">
         <i class="fas fa-volume-high" id="soundIcon"></i>
       </button>
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark/light theme">
+      <button class="ctrl-btn" id="themeToggle" aria-label="Toggle dark/light theme">
         <i class="fas fa-moon" id="themeIcon"></i>
       </button>
     </div>
@@ -160,22 +102,21 @@
 
 <!-- ═══ HERO ═══ -->
 <header class="hero-section">
-  <div class="hero-content">
-    <div class="hero-badge">
-      <span class="badge-dot"></span>
-      <span>100% Free &nbsp;·&nbsp; No Signup &nbsp;·&nbsp; No Watermark</span>
-    </div>
-    <h1 class="hero-title">
-      <span class="title-line1">Merge PDF</span>
-      <span class="title-line2">Files Online</span>
-    </h1>
-    <p class="hero-subtitle">Combine PDFs, JPG, PNG &amp; more into one document instantly. Drag to reorder, choose pages, add bookmarks — completely free.</p>
-    <div class="hero-stats">
-      <div class="stat-pill"><i class="fas fa-layer-group"></i> Up to 50 files</div>
-      <div class="stat-pill"><i class="fas fa-image"></i> PDF + Images</div>
-      <div class="stat-pill"><i class="fas fa-shield-halved"></i> Secure &amp; Private</div>
-      <div class="stat-pill"><i class="fas fa-bolt"></i> Instant result</div>
-    </div>
+  <div class="hero-badge">
+    <span class="badge-dot"></span>
+    <span>100% Free &nbsp;·&nbsp; No Signup &nbsp;·&nbsp; No Watermark</span>
+  </div>
+  <h1 class="hero-title">
+    <span class="title-line1">Merge PDF</span>
+    <span class="title-line2">Files Online</span>
+  </h1>
+  <p class="hero-subtitle">Combine PDFs, JPG, PNG &amp; more into one document instantly. Drag to reorder, select pages, add bookmarks &amp; TOC — completely free.</p>
+  <div class="hero-stats">
+    <div class="stat-pill"><i class="fas fa-layer-group"></i> Up to 50 files</div>
+    <div class="stat-pill"><i class="fas fa-image"></i> PDF + Images</div>
+    <div class="stat-pill"><i class="fas fa-shield-halved"></i> Secure &amp; Private</div>
+    <div class="stat-pill"><i class="fas fa-bolt"></i> Instant result</div>
+    <div class="stat-pill"><i class="fas fa-server"></i> 1 GB per file</div>
   </div>
 </header>
 
@@ -189,7 +130,8 @@
       <div class="drop-content">
         <div class="drop-icon-wrap">
           <div class="drop-icon-ring"></div>
-          <div class="drop-icon-ring ring2"></div>
+          <div class="drop-icon-ring"></div>
+          <div class="drop-icon-ring"></div>
           <div class="drop-icon"><i class="fas fa-cloud-arrow-up"></i></div>
         </div>
         <h2 class="drop-title">Drop your files here</h2>
@@ -201,7 +143,7 @@
           <span class="accept-pill img"><i class="fas fa-image"></i> WebP</span>
           <span class="accept-pill more"><i class="fas fa-plus"></i> More</span>
         </div>
-        <p class="drop-limits">Up to 50 files &nbsp;·&nbsp; 1 GB each &nbsp;·&nbsp; Any device</p>
+        <p class="drop-limits">Up to 50 files &nbsp;·&nbsp; 1 GB each &nbsp;·&nbsp; All devices &amp; browsers</p>
       </div>
       <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.tif,application/pdf,image/*" multiple hidden />
     </div>
@@ -210,6 +152,7 @@
       <span><i class="fas fa-trash"></i> Auto-deleted after download</span>
       <span><i class="fas fa-infinity"></i> Always free</span>
       <span><i class="fas fa-globe"></i> All browsers</span>
+      <span><i class="fas fa-eye-slash"></i> 100% private</span>
     </div>
   </section>
 
@@ -226,8 +169,8 @@
         <button class="btn-ghost btn-sm" id="addMoreBtn" title="Add more files (Ctrl+O)">
           <i class="fas fa-plus"></i> Add More
         </button>
-        <button class="btn-ghost btn-sm btn-danger" id="clearAllBtn" title="Remove all">
-          <i class="fas fa-trash"></i> Clear
+        <button class="btn-ghost btn-sm btn-danger" id="clearAllBtn" title="Remove all files">
+          <i class="fas fa-trash"></i> Clear All
         </button>
       </div>
     </div>
@@ -246,83 +189,119 @@
         <div class="sort-btns">
           <button class="sort-btn active" data-sort="order" title="Original order"><i class="fas fa-list-ol"></i></button>
           <button class="sort-btn" data-sort="name" title="Sort A→Z"><i class="fas fa-font"></i></button>
-          <button class="sort-btn" data-sort="size" title="Sort by size"><i class="fas fa-database"></i></button>
+          <button class="sort-btn" data-sort="size" title="Sort by size (largest first)"><i class="fas fa-database"></i></button>
         </div>
         <button class="icon-btn" id="shortcutsHintBtn" title="Keyboard shortcuts (?)"><i class="fas fa-keyboard"></i></button>
       </div>
     </div>
 
-    <!-- Large page / dupe warnings -->
-    <div class="alert-banner" id="largePageBanner" role="alert" style="display:none"></div>
-    <div class="alert-banner alert-warn" id="dupeBanner" role="alert" style="display:none"></div>
+    <!-- Warnings -->
+    <div class="alert-banner" id="largePageBanner" role="alert" hidden></div>
+    <div class="alert-banner" id="dupeBanner" role="alert" hidden></div>
 
     <!-- File List -->
     <div class="file-list" id="fileList" role="list" aria-label="Files to merge"></div>
 
-    <!-- Presets — one-click smart configurations -->
+    <!-- Presets -->
     <div class="presets-row">
-      <span class="opts-label"><i class="fas fa-wand-magic-sparkles"></i> Style:</span>
-      <button class="preset-btn" data-preset="quick" title="Bookmarks only — fastest">
-        <i class="fas fa-bolt"></i> Quick
-      </button>
-      <button class="preset-btn" data-preset="report" title="Add TOC + separators — best for reports">
-        <i class="fas fa-briefcase"></i> Report
-      </button>
-      <button class="preset-btn" data-preset="compact" title="Compress + deduplicate — smallest file">
-        <i class="fas fa-compress"></i> Compact
-      </button>
-      <button class="preset-btn" data-preset="archive" title="All features — best quality">
-        <i class="fas fa-box-archive"></i> Archive
-      </button>
+      <span class="opts-label"><i class="fas fa-wand-magic-sparkles"></i> Preset:</span>
+      <button class="preset-btn" data-preset="quick"   title="Bookmarks only — fastest"><i class="fas fa-bolt"></i> Quick</button>
+      <button class="preset-btn" data-preset="report"  title="TOC + separator pages — great for business docs"><i class="fas fa-briefcase"></i> Report</button>
+      <button class="preset-btn" data-preset="compact" title="Compress + deduplicate — smallest file size"><i class="fas fa-compress"></i> Compact</button>
+      <button class="preset-btn" data-preset="archive" title="All features — maximum quality"><i class="fas fa-box-archive"></i> Archive</button>
       <span class="preset-hint" id="presetHint"></span>
     </div>
 
-    <!-- Advanced Options Toggle -->
+    <!-- Advanced Options -->
     <div class="adv-panel">
       <button class="adv-toggle" id="optionsToggle" aria-expanded="false">
-        <i class="fas fa-sliders"></i> Advanced Options
+        <i class="fas fa-sliders"></i>
+        <span>Advanced Options</span>
         <i class="fas fa-chevron-down adv-chevron" id="optChevron"></i>
       </button>
       <div class="adv-body" id="optionsBody" hidden>
         <div class="adv-grid">
+          <!-- Left column -->
           <div class="adv-group">
-            <h4 class="adv-title"><i class="fas fa-gear"></i> Merge Engine</h4>
+            <h4 class="adv-title"><i class="fas fa-gear"></i> Engine &amp; Metadata</h4>
             <div class="adv-field">
-              <label class="adv-label" for="optMethod">Engine</label>
+              <label class="adv-label" for="optMethod">Merge Engine</label>
               <select id="optMethod" class="adv-select">
-                <option value="auto">Auto — Best Quality</option>
-                <option value="fitz">PyMuPDF — Best Links</option>
+                <option value="auto">Auto — Best Quality (Recommended)</option>
+                <option value="fitz">PyMuPDF — Best Link Preservation</option>
                 <option value="gs">Ghostscript — Best Compression</option>
               </select>
             </div>
             <div class="adv-field">
               <label class="adv-label" for="optTitle">Document Title</label>
-              <input type="text" id="optTitle" class="adv-input" placeholder="e.g. Annual Report 2026" maxlength="100" />
+              <input type="text" id="optTitle" class="adv-input" placeholder="e.g. Annual Report 2026" maxlength="120" />
             </div>
             <div class="adv-field">
-              <label class="adv-label" for="optAuthor">Author</label>
-              <input type="text" id="optAuthor" class="adv-input" placeholder="e.g. Ishu Kumar" maxlength="100" />
+              <label class="adv-label" for="optAuthor">Author Name</label>
+              <input type="text" id="optAuthor" class="adv-input" placeholder="e.g. Ishu Kumar" maxlength="120" />
             </div>
             <div class="adv-field">
-              <label class="adv-label" for="optFilename">Custom Filename</label>
+              <label class="adv-label" for="optFilename">Output Filename</label>
               <div class="fn-wrap">
                 <input type="text" id="optFilename" class="adv-input" placeholder="Auto from first file" maxlength="120" />
                 <span class="fn-ext">.pdf</span>
               </div>
-              <span class="adv-hint">Leave blank for auto-name</span>
+              <span class="adv-hint">Leave blank to auto-name from first file</span>
             </div>
           </div>
+          <!-- Right column -->
           <div class="adv-group">
-            <h4 class="adv-title"><i class="fas fa-list-check"></i> More Options</h4>
+            <h4 class="adv-title"><i class="fas fa-list-check"></i> Merge Options</h4>
+
             <label class="adv-toggle-item">
-              <div><span class="adv-item-label">Skip Duplicate Pages</span><span class="adv-item-desc">Remove identical pages across files</span></div>
+              <div>
+                <span class="adv-item-label">Table of Contents</span>
+                <span class="adv-item-desc">Add TOC page with document names + page numbers</span>
+              </div>
+              <div class="tgl-wrap"><input type="checkbox" id="optToc" class="tgl-in" /><label for="optToc" class="tgl-lb"></label></div>
+            </label>
+
+            <label class="adv-toggle-item">
+              <div>
+                <span class="adv-item-label">Separator Pages</span>
+                <span class="adv-item-desc">Insert a styled divider page between each document</span>
+              </div>
+              <div class="tgl-wrap"><input type="checkbox" id="optSeparators" class="tgl-in" /><label for="optSeparators" class="tgl-lb"></label></div>
+            </label>
+
+            <label class="adv-toggle-item">
+              <div>
+                <span class="adv-item-label">Preserve Bookmarks</span>
+                <span class="adv-item-desc">Keep all outlines and navigation from source PDFs</span>
+              </div>
+              <div class="tgl-wrap"><input type="checkbox" id="optBookmarks" class="tgl-in" checked /><label for="optBookmarks" class="tgl-lb"></label></div>
+            </label>
+
+            <label class="adv-toggle-item">
+              <div>
+                <span class="adv-item-label">Compress Output</span>
+                <span class="adv-item-desc">Run lossless pikepdf compression on final file</span>
+              </div>
+              <div class="tgl-wrap"><input type="checkbox" id="optCompress" class="tgl-in" /><label for="optCompress" class="tgl-lb"></label></div>
+            </label>
+
+            <label class="adv-toggle-item">
+              <div>
+                <span class="adv-item-label">Skip Duplicate Pages</span>
+                <span class="adv-item-desc">Detect and remove identical pages across files</span>
+              </div>
               <div class="tgl-wrap"><input type="checkbox" id="optSkipDupes" class="tgl-in" /><label for="optSkipDupes" class="tgl-lb"></label></div>
             </label>
+
             <label class="adv-toggle-item">
-              <div><span class="adv-item-label">Normalize Page Size</span><span class="adv-item-desc">Resize all pages to same dimensions</span></div>
+              <div>
+                <span class="adv-item-label">Normalize Page Size</span>
+                <span class="adv-item-desc">Resize all pages to the same dimensions</span>
+              </div>
               <div class="tgl-wrap"><input type="checkbox" id="optNormalize" class="tgl-in" /><label for="optNormalize" class="tgl-lb"></label></div>
             </label>
-            <div class="adv-field" id="pageSizeField" style="display:none">
+
+            <div class="adv-field" id="pageSizeField" style="display:none;margin-top:6px">
               <label class="adv-label" for="optTargetSize">Target Page Size</label>
               <select id="optTargetSize" class="adv-select">
                 <option value="A4">A4 (210×297 mm)</option>
@@ -331,11 +310,6 @@
                 <option value="A5">A5 (148×210 mm)</option>
               </select>
             </div>
-            <!-- Hidden synced inputs for quick opts -->
-            <input type="checkbox" id="optToc" hidden />
-            <input type="checkbox" id="optSeparators" hidden />
-            <input type="checkbox" id="optBookmarks" checked hidden />
-            <input type="checkbox" id="optCompress" hidden />
           </div>
         </div>
       </div>
@@ -348,7 +322,7 @@
         <span class="merge-btn-text">Merge PDF</span>
         <span class="merge-btn-badge" id="mergeBtnCount"></span>
       </button>
-      <p class="merge-note"><i class="fas fa-lock"></i> Files deleted immediately after your download</p>
+      <p class="merge-note"><i class="fas fa-shield-halved"></i> Files are permanently deleted immediately after your download</p>
     </div>
   </section>
 
@@ -357,6 +331,12 @@
     <div class="progress-card">
       <div class="progress-anim-wrap">
         <svg class="progress-ring-svg" viewBox="0 0 100 100" aria-hidden="true">
+          <defs>
+            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#6366f1"/>
+              <stop offset="100%" stop-color="#8b5cf6"/>
+            </linearGradient>
+          </defs>
           <circle cx="50" cy="50" r="44" class="ring-track"/>
           <circle cx="50" cy="50" r="44" class="ring-fill" id="ringFill"/>
         </svg>
@@ -389,6 +369,7 @@
           <defs><linearGradient id="cg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs>
         </svg>
       </div>
+
       <h3 class="result-title">Merge Complete!</h3>
       <p class="result-sub" id="resultSub">Your PDF is ready to download</p>
 
@@ -417,7 +398,7 @@
         <div class="rstat-card" style="--rc:#8b5cf6">
           <i class="fas fa-cogs"></i>
           <div class="rstat-val" id="rEngine">—</div>
-          <div class="rstat-lbl">Engine</div>
+          <div class="rstat-lbl">Engine Used</div>
         </div>
         <div class="rstat-card" style="--rc:#22c55e">
           <i class="fas fa-scale-balanced"></i>
@@ -427,7 +408,7 @@
       </div>
 
       <!-- Filename pill -->
-      <div class="result-fn-row" id="resultFnRow">
+      <div class="result-fn-row" id="resultFnRow" style="display:none">
         <i class="fas fa-file-pdf"></i>
         <span id="resultFnDisplay"></span>
       </div>
@@ -438,13 +419,13 @@
           <i class="fas fa-download"></i> Download Merged PDF
         </button>
         <div class="result-sec-row">
-          <button class="btn-ghost" id="copyNameBtn"><i class="fas fa-copy"></i> Copy Name</button>
+          <button class="btn-ghost" id="copyNameBtn"><i class="fas fa-copy"></i> Copy Filename</button>
           <button class="btn-ghost" id="mergeAgainBtn"><i class="fas fa-rotate"></i> Merge Again</button>
         </div>
       </div>
 
       <!-- Recent Merges -->
-      <div id="recentMerges" class="recent-section"></div>
+      <div id="recentMerges" class="recent-section" style="display:none"></div>
     </div>
   </section>
 
@@ -455,7 +436,7 @@
   <div class="section-inner">
     <div class="section-badge">Simple Process</div>
     <h2 class="section-title">Merge PDF in 3 Easy Steps</h2>
-    <p class="section-sub">Works on all devices. No software, no account, no watermark.</p>
+    <p class="section-sub">Works on all devices. No software, no account, no watermark. 100% free.</p>
     <div class="steps-grid">
       <div class="step-card">
         <div class="step-num">01</div>
@@ -477,7 +458,7 @@
         <div class="step-num">03</div>
         <div class="step-icon"><i class="fas fa-download"></i></div>
         <h3>Merge &amp; Download</h3>
-        <p>Click Merge PDF. Your combined document is ready in seconds, named after your first file. Download instantly.</p>
+        <p>Click Merge PDF. Your combined document is ready in seconds, automatically named from your first file.</p>
         <div class="step-tip"><i class="fas fa-lightbulb"></i> Ctrl+M triggers merge</div>
       </div>
     </div>
@@ -497,46 +478,14 @@
     <h2 class="section-title">Professional PDF &amp; Image Merging</h2>
     <p class="section-sub">Powered by pypdf, PyMuPDF, pikepdf, Ghostscript, Pillow, img2pdf — the best open-source PDF stack.</p>
     <div class="features-grid">
-      <div class="feature-card">
-        <div class="feat-icon" style="--c1:#6366f1;--c2:#8b5cf6"><i class="fas fa-layer-group"></i></div>
-        <h3>Up to 50 Files</h3>
-        <p>Merge as many PDFs and images as you need — no artificial limits.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feat-icon" style="--c1:#f59e0b;--c2:#ef4444"><i class="fas fa-image"></i></div>
-        <h3>Image to PDF Merge</h3>
-        <p>Drop JPG, PNG, WebP, GIF, BMP, TIFF images — auto-converted to PDF pages in full quality.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feat-icon" style="--c1:#06b6d4;--c2:#3b82f6"><i class="fas fa-arrows-up-down"></i></div>
-        <h3>Drag to Reorder</h3>
-        <p>Smooth drag-and-drop reordering. Sort by name, size, or pages instantly.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feat-icon" style="--c1:#10b981;--c2:#059669"><i class="fas fa-bookmark"></i></div>
-        <h3>Bookmark Preservation</h3>
-        <p>All bookmarks, outlines and navigation from every source PDF are kept intact.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feat-icon" style="--c1:#8b5cf6;--c2:#ec4899"><i class="fas fa-list-ol"></i></div>
-        <h3>Smart Page Ranges</h3>
-        <p>Use <strong>1-3, 5, odd, even, first 3, last 2</strong> — flexible syntax per file.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feat-icon" style="--c1:#ef4444;--c2:#f97316"><i class="fas fa-table-of-contents"></i></div>
-        <h3>Auto Table of Contents</h3>
-        <p>Generate a professional TOC with accurate page numbers for your merged document.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feat-icon" style="--c1:#0ea5e9;--c2:#6366f1"><i class="fas fa-compress"></i></div>
-        <h3>Smart Compression</h3>
-        <p>Optional lossless pikepdf compression — smallest file size, full quality preserved.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feat-icon" style="--c1:#22c55e;--c2:#10b981"><i class="fas fa-lock-open"></i></div>
-        <h3>Password-Protected PDFs</h3>
-        <p>Merge encrypted PDFs by entering the password per file — fully supported.</p>
-      </div>
+      <div class="feature-card"><div class="feat-icon" style="--c1:#6366f1;--c2:#8b5cf6"><i class="fas fa-layer-group"></i></div><h3>Up to 50 Files</h3><p>Merge as many PDFs and images as you need — no artificial limits on file count.</p></div>
+      <div class="feature-card"><div class="feat-icon" style="--c1:#f59e0b;--c2:#ef4444"><i class="fas fa-image"></i></div><h3>Image to PDF Merge</h3><p>Drop JPG, PNG, WebP, GIF, BMP, TIFF images — auto-converted to PDF pages in full quality.</p></div>
+      <div class="feature-card"><div class="feat-icon" style="--c1:#06b6d4;--c2:#3b82f6"><i class="fas fa-arrows-up-down"></i></div><h3>Drag to Reorder</h3><p>Smooth drag-and-drop reordering with sound feedback. Sort by name, size, or pages instantly.</p></div>
+      <div class="feature-card"><div class="feat-icon" style="--c1:#10b981;--c2:#059669"><i class="fas fa-bookmark"></i></div><h3>Bookmark Preservation</h3><p>All bookmarks, outlines and navigation from every source PDF are kept intact.</p></div>
+      <div class="feature-card"><div class="feat-icon" style="--c1:#8b5cf6;--c2:#ec4899"><i class="fas fa-list-ol"></i></div><h3>Smart Page Ranges</h3><p>Use <strong>1-3, 5, odd, even, first 3, last 2</strong> — flexible syntax per file.</p></div>
+      <div class="feature-card"><div class="feat-icon" style="--c1:#ef4444;--c2:#f97316"><i class="fas fa-table-of-contents"></i></div><h3>Auto Table of Contents</h3><p>Generate a professional TOC with accurate page numbers for your merged document.</p></div>
+      <div class="feature-card"><div class="feat-icon" style="--c1:#0ea5e9;--c2:#6366f1"><i class="fas fa-compress"></i></div><h3>Smart Compression</h3><p>Optional lossless pikepdf compression — smallest file size, full quality preserved.</p></div>
+      <div class="feature-card"><div class="feat-icon" style="--c1:#22c55e;--c2:#10b981"><i class="fas fa-lock-open"></i></div><h3>Password-Protected PDFs</h3><p>Merge encrypted PDFs by entering the password per file — fully supported.</p></div>
     </div>
   </div>
 </section>
@@ -547,46 +496,16 @@
     <div class="section-badge">Got Questions?</div>
     <h2 class="section-title">Frequently Asked Questions</h2>
     <div class="faq-list">
-      <div class="faq-item">
-        <button class="faq-q" aria-expanded="false"><span>How many files can I merge at once?</span><i class="fas fa-chevron-down"></i></button>
-        <div class="faq-a">Up to 50 PDF or image files at once, with up to 1 GB per file. No daily limits, no account needed.</div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-q" aria-expanded="false"><span>Can I merge JPG, PNG or image files with PDFs?</span><i class="fas fa-chevron-down"></i></button>
-        <div class="faq-a">Yes! IshuTools automatically converts JPG, PNG, WebP, GIF, BMP, TIFF images to PDF pages using Pillow and img2pdf — full quality, exact colours. You can mix images and PDFs freely.</div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-q" aria-expanded="false"><span>Will merging PDFs reduce quality?</span><i class="fas fa-chevron-down"></i></button>
-        <div class="faq-a">Never. IshuTools uses enterprise-grade Python libraries — pypdf, PyMuPDF, pikepdf — that preserve 100% original resolution, fonts, vector graphics, and formatting.</div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-q" aria-expanded="false"><span>Is IshuTools completely free?</span><i class="fas fa-chevron-down"></i></button>
-        <div class="faq-a">100% free, forever. No signup, no email, no hidden fees, no watermark. Built by Ishu Kumar (ISHUKR41) — free tools for everyone.</div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-q" aria-expanded="false"><span>Can I select specific pages from each file?</span><i class="fas fa-chevron-down"></i></button>
-        <div class="faq-a">Yes! Each file has a page range field. Use <strong>1-3, 5, 8-10</strong> for specific pages, or keywords like <strong>odd, even, first 3, last 2, first, last</strong>. Leave blank for all pages.</div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-q" aria-expanded="false"><span>Are my files safe and private?</span><i class="fas fa-chevron-down"></i></button>
-        <div class="faq-a">Files are uploaded over HTTPS, processed in isolated temporary folders, and permanently deleted the moment you download. IshuTools never reads or stores your documents.</div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-q" aria-expanded="false"><span>What is the output filename?</span><i class="fas fa-chevron-down"></i></button>
-        <div class="faq-a">The output is automatically named after your first uploaded file (e.g. <em>report_merged.pdf</em>). You can override this in Advanced Options → Custom Filename.</div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-q" aria-expanded="false"><span>What are Merge Presets?</span><i class="fas fa-chevron-down"></i></button>
-        <div class="faq-a"><strong>Quick</strong> — bookmarks only, fastest. <strong>Report</strong> — TOC + separators for professional docs. <strong>Compact</strong> — compress + deduplicate for smallest file. <strong>Archive</strong> — all features for complete quality.</div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-q" aria-expanded="false"><span>Can I merge password-protected PDFs?</span><i class="fas fa-chevron-down"></i></button>
-        <div class="faq-a">Yes. When an encrypted PDF is detected, a password field automatically appears on its card. Enter the password and it will be decrypted during merge. Passwords are never stored.</div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-q" aria-expanded="false"><span>How do I reorder files before merging?</span><i class="fas fa-chevron-down"></i></button>
-        <div class="faq-a">Drag the handle icon (⠿) on any file card to reorder. Or use Sort buttons (name/size). Keyboard: focus a card and press <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd>.</div>
-      </div>
+      <div class="faq-item"><button class="faq-q" aria-expanded="false"><span>How many files can I merge at once?</span><i class="fas fa-chevron-down"></i></button><div class="faq-a">Up to 50 PDF or image files at once, with up to 1 GB per file. No daily limits, no account needed.</div></div>
+      <div class="faq-item"><button class="faq-q" aria-expanded="false"><span>Can I merge JPG, PNG or image files with PDFs?</span><i class="fas fa-chevron-down"></i></button><div class="faq-a">Yes! IshuTools automatically converts JPG, PNG, WebP, GIF, BMP, TIFF images to PDF pages using Pillow and img2pdf — full quality, exact colours. You can mix images and PDFs freely.</div></div>
+      <div class="faq-item"><button class="faq-q" aria-expanded="false"><span>Will merging PDFs reduce quality?</span><i class="fas fa-chevron-down"></i></button><div class="faq-a">Never. IshuTools uses enterprise-grade Python libraries — pypdf, PyMuPDF, pikepdf — that preserve 100% original resolution, fonts, vector graphics, and formatting.</div></div>
+      <div class="faq-item"><button class="faq-q" aria-expanded="false"><span>Is IshuTools completely free?</span><i class="fas fa-chevron-down"></i></button><div class="faq-a">100% free, forever. No signup, no email, no hidden fees, no watermark. Built by Ishu Kumar (ISHUKR41) — free tools for everyone.</div></div>
+      <div class="faq-item"><button class="faq-q" aria-expanded="false"><span>Can I select specific pages from each file?</span><i class="fas fa-chevron-down"></i></button><div class="faq-a">Yes! Each file has a page range field. Use <strong>1-3, 5, 8-10</strong> for specific pages, or keywords like <strong>odd, even, first 3, last 2, first, last</strong>. Leave blank for all pages.</div></div>
+      <div class="faq-item"><button class="faq-q" aria-expanded="false"><span>Are my files safe and private?</span><i class="fas fa-chevron-down"></i></button><div class="faq-a">Files are uploaded over HTTPS, processed in isolated temporary folders, and permanently deleted the moment you download. IshuTools never reads or stores your documents.</div></div>
+      <div class="faq-item"><button class="faq-q" aria-expanded="false"><span>What is the output filename?</span><i class="fas fa-chevron-down"></i></button><div class="faq-a">The output is automatically named after your first uploaded file (e.g. <em>report_merged.pdf</em>). You can override this in Advanced Options → Output Filename.</div></div>
+      <div class="faq-item"><button class="faq-q" aria-expanded="false"><span>What are Merge Presets?</span><i class="fas fa-chevron-down"></i></button><div class="faq-a"><strong>Quick</strong> — bookmarks only, fastest. <strong>Report</strong> — TOC + separators for professional docs. <strong>Compact</strong> — compress + deduplicate for smallest file. <strong>Archive</strong> — all features for complete quality.</div></div>
+      <div class="faq-item"><button class="faq-q" aria-expanded="false"><span>Can I merge password-protected PDFs?</span><i class="fas fa-chevron-down"></i></button><div class="faq-a">Yes. When an encrypted PDF is detected, a password field automatically appears on its card. Enter the password and it will be decrypted during merge. Passwords are never stored.</div></div>
+      <div class="faq-item"><button class="faq-q" aria-expanded="false"><span>How do I reorder files before merging?</span><i class="fas fa-chevron-down"></i></button><div class="faq-a">Drag the grip handle (⠿) on any file card to reorder. Or use Sort buttons (name/size). Keyboard: focus a card and press <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd>.</div></div>
     </div>
   </div>
 </section>
@@ -597,26 +516,10 @@
     <div class="section-badge">More Tools</div>
     <h2 class="section-title">Related PDF Tools</h2>
     <div class="related-grid">
-      <a href="/tools/split-pdf/" class="related-card">
-        <div class="rel-icon" style="background:linear-gradient(135deg,#3b82f6,#06b6d4)"><i class="fas fa-scissors"></i></div>
-        <div class="rel-info"><h3>Split PDF</h3><p>Separate into individual pages</p></div>
-        <i class="fas fa-arrow-right rel-arrow"></i>
-      </a>
-      <a href="/tools/compress-pdf/" class="related-card">
-        <div class="rel-icon" style="background:linear-gradient(135deg,#10b981,#059669)"><i class="fas fa-compress-arrows-alt"></i></div>
-        <div class="rel-info"><h3>Compress PDF</h3><p>Reduce file size, keep quality</p></div>
-        <i class="fas fa-arrow-right rel-arrow"></i>
-      </a>
-      <a href="/tools/jpg-to-pdf/" class="related-card">
-        <div class="rel-icon" style="background:linear-gradient(135deg,#f59e0b,#ef4444)"><i class="fas fa-image"></i></div>
-        <div class="rel-info"><h3>JPG to PDF</h3><p>Convert images to PDF</p></div>
-        <i class="fas fa-arrow-right rel-arrow"></i>
-      </a>
-      <a href="/tools/organize-pdf/" class="related-card">
-        <div class="rel-icon" style="background:linear-gradient(135deg,#8b5cf6,#ec4899)"><i class="fas fa-sort"></i></div>
-        <div class="rel-info"><h3>Organize PDF</h3><p>Rearrange, rotate, delete pages</p></div>
-        <i class="fas fa-arrow-right rel-arrow"></i>
-      </a>
+      <a href="/tools/split-pdf/" class="related-card"><div class="rel-icon" style="background:linear-gradient(135deg,#3b82f6,#06b6d4)"><i class="fas fa-scissors"></i></div><div class="rel-info"><h3>Split PDF</h3><p>Separate into individual pages</p></div><i class="fas fa-arrow-right rel-arrow"></i></a>
+      <a href="/tools/compress-pdf/" class="related-card"><div class="rel-icon" style="background:linear-gradient(135deg,#10b981,#059669)"><i class="fas fa-compress-arrows-alt"></i></div><div class="rel-info"><h3>Compress PDF</h3><p>Reduce file size, keep quality</p></div><i class="fas fa-arrow-right rel-arrow"></i></a>
+      <a href="/tools/jpg-to-pdf/" class="related-card"><div class="rel-icon" style="background:linear-gradient(135deg,#f59e0b,#ef4444)"><i class="fas fa-image"></i></div><div class="rel-info"><h3>JPG to PDF</h3><p>Convert images to PDF</p></div><i class="fas fa-arrow-right rel-arrow"></i></a>
+      <a href="/tools/organize-pdf/" class="related-card"><div class="rel-icon" style="background:linear-gradient(135deg,#8b5cf6,#ec4899)"><i class="fas fa-sort"></i></div><div class="rel-info"><h3>Organize PDF</h3><p>Rearrange, rotate, delete pages</p></div><i class="fas fa-arrow-right rel-arrow"></i></a>
     </div>
   </div>
 </section>
@@ -628,7 +531,7 @@
       <div class="brand-icon" aria-hidden="true"><i class="fas fa-file-pdf"></i></div>
       <span class="brand-name">Ishu<span class="brand-accent">Tools</span><span class="brand-dot">.fun</span></span>
     </div>
-    <p class="footer-copy">Created with ❤️ by <strong>Ishu Kumar</strong> (ISHUKR41) · Free PDF tools for everyone · ishutools.fun</p>
+    <p class="footer-copy">Created with ❤️ by <strong>Ishu Kumar</strong> (ISHUKR41) &nbsp;·&nbsp; Free PDF tools for everyone &nbsp;·&nbsp; ishutools.fun</p>
     <div class="footer-links">
       <a href="/">Home</a>
       <a href="/#organize">All Tools</a>
@@ -652,21 +555,21 @@
       <div class="sc-row"><kbd>Ctrl+Z</kbd><span>Undo last remove</span></div>
       <div class="sc-row"><kbd>?</kbd><span>Show shortcuts</span></div>
       <div class="sc-row"><kbd>Esc</kbd><span>Close modal / preview</span></div>
-      <div class="sc-row"><kbd>Dbl-click</kbd><span>Rename file</span></div>
-      <div class="sc-row"><kbd>Click thumb</kbd><span>Preview file</span></div>
+      <div class="sc-row"><kbd>Dbl-click name</kbd><span>Rename file</span></div>
+      <div class="sc-row"><kbd>Click thumbnail</kbd><span>Preview file pages</span></div>
       <div class="sc-row"><kbd>Swipe ←</kbd><span>Delete card (mobile)</span></div>
     </div>
-    <div class="modal-tip"><i class="fas fa-lightbulb"></i> Drop files anywhere on the page to add them</div>
+    <div class="modal-tip"><i class="fas fa-lightbulb"></i> Drop files anywhere on the page to add them instantly</div>
   </div>
 </div>
 
-<!-- Toast -->
+<!-- Toast notification -->
 <div class="toast" id="toast" role="alert" aria-live="polite"></div>
 
 <!-- Undo Bar -->
 <div class="undo-bar" id="undoBar" role="alert" aria-live="polite">
   <i class="fas fa-trash-alt"></i>
-  <span class="undo-msg">File removed — <strong class="undo-name"></strong></span>
+  <span class="undo-msg">Removed — <strong class="undo-name"></strong></span>
   <button class="undo-btn" id="undoBtn" aria-label="Undo remove"><i class="fas fa-rotate-left"></i> Undo</button>
 </div>
 
@@ -684,7 +587,7 @@
   </div>
 </div>
 
-<!-- Confetti -->
+<!-- Confetti container -->
 <div id="confettiContainer" aria-hidden="true"></div>
 
 <script src="script.js" defer></script>
