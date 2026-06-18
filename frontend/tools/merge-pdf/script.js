@@ -1,6 +1,7 @@
 /**
- * IshuTools.fun — Merge PDF v7.0
+ * IshuTools.fun — Merge PDF v8.0
  * Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
+ * Libraries: Sortable.js, GSAP + ScrollTrigger, anime.js, canvas-confetti
  */
 'use strict';
 
@@ -11,31 +12,30 @@ const IMG_EXT   = new Set(['.jpg','.jpeg','.png','.webp','.gif','.bmp','.tiff','
 const PDF_EXT   = new Set(['.pdf']);
 const CIRC      = 2 * Math.PI * 44;
 const PRESETS   = {
-  quick:   { tip:'Fastest merge — bookmarks preserved, no extras.',         bm:true,  toc:false, sep:false, comp:false, dd:false },
-  report:  { tip:'Professional document — TOC + separator pages.',          bm:true,  toc:true,  sep:true,  comp:false, dd:false },
-  compact: { tip:'Smallest file — compress + skip duplicate pages.',        bm:false, toc:false, sep:false, comp:true,  dd:true  },
-  archive: { tip:'Maximum quality — all features enabled.',                 bm:true,  toc:true,  sep:true,  comp:true,  dd:false },
+  quick:   { tip:'Fastest merge — bookmarks on, no extras.',          bm:true,  toc:false, sep:false, comp:false, dd:false },
+  report:  { tip:'Professional doc — TOC + separator pages.',         bm:true,  toc:true,  sep:true,  comp:false, dd:false },
+  compact: { tip:'Smallest file — compress + skip duplicate pages.',  bm:false, toc:false, sep:false, comp:true,  dd:true  },
+  archive: { tip:'Maximum quality — all features enabled.',           bm:true,  toc:true,  sep:true,  comp:true,  dd:false },
 };
 
 /* ════════ STATE ════════ */
-const FILES       = [];
-let _dlUrl        = null;
-let _dlName       = '';
-let _dlBlob       = null;
-let _undoStack    = [];
-let _undoTimer    = null;
-let _sortMode     = 'order';
-let _jobId        = null;
-let _sse          = null;
-let _simTimer     = null;
-let _mergeStart   = 0;
-let _sortable     = null;
-let _recentMerges = [];
+const FILES    = [];
+let _dlUrl     = null;
+let _dlName    = '';
+let _dlBlob    = null;
+let _undoStack = [];
+let _undoTimer = null;
+let _sortMode  = 'order';
+let _jobId     = null;
+let _sse       = null;
+let _simTimer  = null;
+let _mergeSt   = 0;
+let _sortable  = null;
 
 /* ════════ DOM helper ════════ */
 const $ = id => document.getElementById(id);
 
-/* D is populated inside DOMContentLoaded */
+/* D is populated in DOMContentLoaded */
 let D = null;
 
 /* ════════ UTILS ════════ */
@@ -79,7 +79,7 @@ function pushUndo(entry, idx) {
 
 /* ════════ ADD FILES ════════ */
 function addFiles(fileList) {
-  let added = 0, skipped = 0;
+  let added = 0, skipped = 0, bigFile = false;
   for (const f of Array.from(fileList)) {
     if (FILES.length >= MAX_FILES) {
       toast(`Maximum ${MAX_FILES} files reached`, 'warn'); break;
@@ -89,9 +89,8 @@ function addFiles(fileList) {
     }
     const ex = fileExt(f.name);
     if (!IMG_EXT.has(ex) && !PDF_EXT.has(ex)) {
-      toast(`Unsupported format: ${ex || 'unknown'}`, 'warn'); continue;
+      toast(`Unsupported: ${ex || 'unknown file'}`, 'warn'); continue;
     }
-    // Skip exact duplicate
     if (FILES.some(e => e.file.name === f.name && e.file.size === f.size)) {
       skipped++; continue;
     }
@@ -102,16 +101,17 @@ function addFiles(fileList) {
     };
     FILES.push(entry);
     added++;
+    if (f.size > 80 * 1024 * 1024) bigFile = true;
     window.SOUNDS?.playFileAddSound?.();
     if (entry.imgConverted) genImgThumb(entry);
     else readPdfMeta(entry);
   }
   if (skipped > 0) toast(`${skipped} duplicate${skipped > 1 ? 's' : ''} skipped`, 'info', 2200);
+  if (bigFile) window.SOUNDS?.playWarningSound?.();
   if (added > 0) {
     showSection('files');
     rebuildList();
     updateStats();
-    // Scroll to file list smoothly
     setTimeout(() => D.sFi?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 120);
   }
   return added;
@@ -133,7 +133,7 @@ async function readPdfMeta(entry) {
     cv.width = vp.width; cv.height = vp.height;
     await pg1.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
     entry.thumb = cv.toDataURL('image/jpeg', .76);
-    refreshCard(entry); updateStats();
+    refreshCard(entry); updateStats(); updatePreviewStrip();
   } catch (err) {
     const isPass = err?.name === 'PasswordException' ||
       String(err).toLowerCase().includes('password');
@@ -155,7 +155,7 @@ async function genImgThumb(entry) {
         cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
         entry.thumb = cv.toDataURL('image/jpeg', .76);
         URL.revokeObjectURL(url);
-        refreshCard(entry); res();
+        refreshCard(entry); updatePreviewStrip(); res();
       };
       img.onerror = () => { URL.revokeObjectURL(url); rej(); };
       img.src = url;
@@ -171,11 +171,39 @@ function smartName() {
   return 'merged.pdf';
 }
 
+/* ════════ MERGE PREVIEW STRIP ════════ */
+function updatePreviewStrip() {
+  if (!D?.mpStrip || !D?.mergePreview) return;
+  if (FILES.length < 2) { D.mergePreview.hidden = true; return; }
+
+  D.mergePreview.hidden = false;
+  const frag = document.createDocumentFragment();
+  FILES.forEach((e, i) => {
+    if (i > 0) {
+      const arr = document.createElement('span');
+      arr.className = 'mp-arrow';
+      arr.innerHTML = '<i class="fas fa-chevron-right"></i>';
+      frag.appendChild(arr);
+    }
+    const item = document.createElement('div');
+    item.className = `mp-item ${e.imgConverted ? 'mp-img' : 'mp-pdf'}`;
+    item.title = e.name;
+    if (e.thumb) {
+      item.innerHTML = `<img src="${e.thumb}" alt="" loading="lazy"/>`;
+    } else {
+      const ico = e.imgConverted ? 'fa-image' : 'fa-file-pdf';
+      item.innerHTML = `<i class="fas ${ico}"></i>`;
+    }
+    frag.appendChild(item);
+  });
+  D.mpStrip.innerHTML = '';
+  D.mpStrip.appendChild(frag);
+}
+
 /* ════════ CARD BUILD ════════ */
 function buildCard(entry, idx) {
   const div = document.createElement('div');
-  const typeClass = entry.imgConverted ? 'is-img' : 'is-pdf';
-  div.className = `fc entering ${typeClass}`;
+  div.className = `fc entering ${entry.imgConverted ? 'is-img' : 'is-pdf'}`;
   div.dataset.id = entry.id;
   div.setAttribute('role', 'listitem');
   div.setAttribute('tabindex', '0');
@@ -201,7 +229,7 @@ function buildCard(entry, idx) {
     pills += `<span class="fp ok"><i class="fas fa-circle-check"></i>Ready</span>`;
 
   const rangeHtml = entry.imgConverted
-    ? `<div class="img-note"><i class="fas fa-info-circle"></i> Image will be auto-converted to PDF at full quality.</div>`
+    ? `<div class="img-note"><i class="fas fa-info-circle"></i> Image auto-converted to PDF at full quality.</div>`
     : `<div class="fc-field"><label><i class="fas fa-list-ol"></i>Page Range</label>
        <input type="text" class="fc-range-inp"
          placeholder="all / 1-3,5 / odd / even / first 2 / last 3"
@@ -232,7 +260,7 @@ function buildCard(entry, idx) {
       <div class="fc-expand">
         <div class="fc-row">
           ${rangeHtml}${pwdHtml}
-          <div class="fc-field"><label><i class="fas fa-tag"></i>Display Name <small>(TOC label)</small></label>
+          <div class="fc-field"><label><i class="fas fa-tag"></i>Display Name <small>(TOC)</small></label>
           <input type="text" class="fc-dname-inp"
             placeholder="Name in TOC / separator"
             value="${entry.displayName || ''}" autocomplete="off"/></div>
@@ -242,7 +270,7 @@ function buildCard(entry, idx) {
     <div class="fc-acts">
       <span class="fc-num" aria-label="File ${idx + 1}">${idx + 1}</span>
       <div class="fc-btns">
-        <button class="fc-btn exp" title="Options / Expand"><i class="fas fa-sliders"></i></button>
+        <button class="fc-btn exp" title="Options"><i class="fas fa-sliders"></i></button>
         <button class="fc-btn del" title="Remove file"><i class="fas fa-trash"></i></button>
       </div>
     </div>
@@ -281,7 +309,7 @@ function buildCard(entry, idx) {
     div.querySelectorAll('.rb').forEach(b => b.classList.toggle('on', b.dataset.r === entry.range));
   });
 
-  /* Password input */
+  /* Password */
   const pi = div.querySelector('.fc-pwd-inp');
   if (pi) pi.addEventListener('input', () => { entry.pwd = pi.value; });
 
@@ -298,18 +326,21 @@ function buildCard(entry, idx) {
     if (e.altKey && e.key === 'ArrowUp' && i > 0) {
       e.preventDefault();
       [FILES[i], FILES[i-1]] = [FILES[i-1], FILES[i]];
-      rebuildList(); updateStats(); window.SOUNDS?.playSortSound?.();
+      rebuildList(); updateStats(); updatePreviewStrip();
+      window.SOUNDS?.playSortSound?.();
       setTimeout(() => D.fList.querySelectorAll('.fc')[i-1]?.focus(), 40);
     } else if (e.altKey && e.key === 'ArrowDown' && i < FILES.length - 1) {
       e.preventDefault();
       [FILES[i], FILES[i+1]] = [FILES[i+1], FILES[i]];
-      rebuildList(); updateStats(); window.SOUNDS?.playSortSound?.();
+      rebuildList(); updateStats(); updatePreviewStrip();
+      window.SOUNDS?.playSortSound?.();
       setTimeout(() => D.fList.querySelectorAll('.fc')[i+1]?.focus(), 40);
     } else if ((e.key === 'Delete' || e.key === 'Backspace') && document.activeElement === div) {
       e.preventDefault(); removeFile(entry.id);
     }
   });
 
+  /* Mobile swipe */
   addSwipe(div, entry.id);
   return div;
 }
@@ -317,7 +348,7 @@ function buildCard(entry, idx) {
 function refreshCard(entry) {
   const old = D?.fList?.querySelector(`[data-id="${entry.id}"]`);
   if (!old) return;
-  const idx = FILES.findIndex(x => x.id === entry.id);
+  const idx  = FILES.findIndex(x => x.id === entry.id);
   const wasOpen = old.classList.contains('open');
   const nu = buildCard(entry, idx);
   nu.classList.remove('entering');
@@ -331,7 +362,9 @@ function rebuildList() {
   D.fList.innerHTML = '';
   D.fList.appendChild(frag);
   D.fileBadge.textContent = `${FILES.length} file${FILES.length !== 1 ? 's' : ''}`;
-  initSortable(); updateMergeBtn();
+  initSortable();
+  updateMergeBtn();
+  updatePreviewStrip();
 }
 
 /* ════════ SORTABLE ════════ */
@@ -340,7 +373,7 @@ function initSortable() {
   if (typeof Sortable === 'undefined') return;
   _sortable = Sortable.create(D.fList, {
     handle:      '.fc-handle',
-    animation:   200,
+    animation:   220,
     ghostClass:  'sortable-ghost',
     chosenClass: 'sortable-chosen',
     easing:      'cubic-bezier(.34,1.56,.64,1)',
@@ -355,10 +388,47 @@ function initSortable() {
       });
       FILES.length = 0; FILES.push(...reordered);
       D.fList.querySelectorAll('.fc-num').forEach((el, i) => el.textContent = i + 1);
-      updateStats(); _sortMode = 'order';
+      updateStats(); updatePreviewStrip(); _sortMode = 'order';
       document.querySelectorAll('.sb').forEach(b =>
         b.classList.toggle('active', b.dataset.sort === 'order'));
     },
+  });
+}
+
+/* ════════ MOBILE SWIPE ════════ */
+function addSwipe(card, id) {
+  const reveal = card.querySelector('.swipe-reveal');
+  if (!reveal) return;
+  let x0 = 0, dx = 0, swiping = false;
+  const mq = window.matchMedia('(hover:none)');
+  if (!mq.matches) return;
+
+  card.addEventListener('touchstart', e => {
+    x0 = e.touches[0].clientX; dx = 0; swiping = true;
+  }, { passive: true });
+
+  card.addEventListener('touchmove', e => {
+    if (!swiping) return;
+    dx = e.touches[0].clientX - x0;
+    if (dx < -4) {
+      e.preventDefault();
+      const off = Math.min(-dx, 80);
+      card.style.transform = `translateX(${-off}px)`;
+      reveal.style.opacity = String(Math.min(1, off / 70));
+    }
+  }, { passive: false });
+
+  card.addEventListener('touchend', () => {
+    swiping = false;
+    if (dx < -120) {
+      card.style.transform = 'translateX(-100%)';
+      card.style.opacity = '0';
+      setTimeout(() => removeFile(id), 220);
+    } else {
+      card.style.transform = '';
+      reveal.style.opacity = '0';
+    }
+    dx = 0;
   });
 }
 
@@ -371,10 +441,10 @@ function removeFile(id) {
   const card = D.fList.querySelector(`[data-id="${id}"]`);
   if (card) {
     card.style.cssText =
-      'opacity:0;transform:translateX(14px) scale(.94);pointer-events:none;transition:.22s ease';
+      'opacity:0;transform:translateX(16px) scale(.93);pointer-events:none;transition:.22s ease';
     setTimeout(() => card.remove(), 230);
   }
-  updateStats();
+  updateStats(); updatePreviewStrip();
   D.fileBadge.textContent = `${FILES.length} file${FILES.length !== 1 ? 's' : ''}`;
   if (FILES.length === 0) showSection('upload');
   else updateMergeBtn();
@@ -383,10 +453,9 @@ function removeFile(id) {
 /* ════════ STATS ════════ */
 function updateStats() {
   if (!D) return;
-  D.stFiles.textContent = FILES.length;
-  D.stFiles.classList.toggle('hi', FILES.length > 0);
   const tp = FILES.reduce((a, f) => a + (f.pages || 0), 0);
   D.stPages.textContent = tp > 0 ? tp : '—';
+  D.stPages.classList.toggle('hi', tp > 0);
   const ts = FILES.reduce((a, f) => a + f.size, 0);
   D.stSize.textContent  = ts > 0 ? fmtSize(ts) : '—';
   const est = (ts / 1024 / 1024) * 0.38 + FILES.length * 0.28;
@@ -396,7 +465,7 @@ function updateStats() {
   D.largeBanner.hidden  = big.length === 0;
   if (big.length > 0)
     D.largeBanner.innerHTML =
-      `<i class="fas fa-triangle-exclamation"></i> ${big.length} large file${big.length > 1 ? 's' : ''} — merge may take a moment`;
+      `<i class="fas fa-triangle-exclamation"></i> ${big.length} large file${big.length > 1 ? 's' : ''} detected — merge may take a moment`;
   updateMergeBtn();
 }
 
@@ -426,6 +495,7 @@ function resetProgress() {
   D.ps1.classList.add('active');
   if (D.progFileInfo) D.progFileInfo.textContent = '';
 }
+
 function setProg(pct, title, sub) {
   pct = clamp(pct, 0, 100);
   if (D.ring) D.ring.style.strokeDashoffset = CIRC - CIRC * pct / 100;
@@ -435,6 +505,7 @@ function setProg(pct, title, sub) {
   if (title && D.progTitle) D.progTitle.textContent = title;
   if (sub   && D.progSub)   D.progSub.textContent   = sub;
 }
+
 function stepProg(n) {
   [D.ps1, D.ps2, D.ps3, D.ps4].forEach((s, i) => {
     s.classList.toggle('done',   i < n);
@@ -445,11 +516,11 @@ function stepProg(n) {
 
 /* ════════ MERGE ════════ */
 async function startMerge() {
-  if (FILES.length < 2) { toast('Add at least 2 files first', 'warn'); return; }
+  if (FILES.length < 2) { toast('Add at least 2 files to merge', 'warn'); return; }
   window.SOUNDS?.resume?.();
   D.mergeBtn.disabled = true;
   D.mergeBtn.classList.remove('ready');
-  _mergeStart = Date.now();
+  _mergeSt = Date.now();
   window.SOUNDS?.playMergeStartSound?.();
   showSection('progress');
   $('secProgress')?.scrollIntoView({ behavior:'smooth', block:'center' });
@@ -476,7 +547,7 @@ async function startMerge() {
 
   openSSE(_jobId);
   stepProg(0);
-  setProg(5, 'Uploading…', `Sending ${FILES.length} file${FILES.length > 1 ? 's' : ''} to server`);
+  setProg(5, 'Uploading…', `Sending ${FILES.length} file${FILES.length > 1 ? 's' : ''}`);
 
   try {
     const resp = await fetch('/api/merge-pdf', { method:'POST', body:fd });
@@ -491,7 +562,6 @@ async function startMerge() {
     const methodUsed  = resp.headers.get('X-Method-Used')            || 'pypdf';
     const outputSize  = parseInt(resp.headers.get('X-Output-Size')   || '0') || 0;
     const skippedDups = parseInt(resp.headers.get('X-Skipped-Dupes') || '0') || 0;
-    const linearized  = resp.headers.get('X-Linearized')             || 'false';
 
     _dlBlob = await resp.blob();
     if (_dlUrl) URL.revokeObjectURL(_dlUrl);
@@ -501,12 +571,12 @@ async function startMerge() {
     setProg(100, 'Done!', 'Merge complete — ready to download');
     stepProg(3);
     await new Promise(r => setTimeout(r, 350));
-    showResult(totalPages, srcCount, methodUsed, outputSize, skippedDups, _dlBlob.size, linearized);
+    showResult(totalPages, srcCount, methodUsed, outputSize, skippedDups, _dlBlob.size);
   } catch (err) {
     closeSSE();
     window.SOUNDS?.playErrorSound?.();
     const msg = err.message || 'Merge failed — check your files and try again';
-    toast(msg, 'error', 8000);
+    toast(msg, 'error', 9000);
     showSection('files');
     D.mergeBtn.disabled = FILES.length < 2;
     D.mergeBtn.classList.toggle('ready', FILES.length >= 2);
@@ -563,447 +633,360 @@ function simProgress() {
 }
 
 /* ════════ RESULT ════════ */
-function showResult(totalPages, srcCount, methodUsed, outputSize, skippedDups, blobSize, linearized) {
+function showResult(totalPages, srcCount, methodUsed, outputSize, skippedDups, blobSize) {
   window.SOUNDS?.playSuccessChime?.();
   showSection('result');
   $('secResult')?.scrollIntoView({ behavior:'smooth', block:'start' });
 
-  const elapsed  = ((Date.now() - _mergeStart) / 1000).toFixed(1) + 's';
-  const totalIn  = FILES.reduce((a, f) => a + f.size, 0);
-  const sz       = outputSize || blobSize;
-  const chg      = totalIn > 0 ? ((sz - totalIn) / totalIn * 100) : 0;
-  const saved    = chg < -0.5 ? `−${Math.abs(chg).toFixed(1)}%`
-                 : chg > 0.5  ? `+${chg.toFixed(1)}%` : '0%';
+  const elapsed = ((Date.now() - _mergeSt) / 1000).toFixed(1) + 's';
+  const totalIn = FILES.reduce((a, f) => a + f.size, 0);
+  const sz      = outputSize || blobSize;
+  const chg     = totalIn > 0 ? ((sz - totalIn) / totalIn * 100) : 0;
 
-  counterAnim(D.rFiles, srcCount);
-  counterAnim(D.rPages, totalPages);
-  D.rSize.textContent   = fmtSize(sz);
-  D.rTime.textContent   = elapsed;
-  D.rEngine.textContent = (methodUsed || 'pypdf')
-    .replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-  D.rSaved.textContent  = saved;
-  D.rSaved.style.color  = chg < -1 ? 'var(--ok)' : chg > 5 ? 'var(--err)' : 'var(--tx)';
-
-  D.resSub.textContent = skippedDups > 0
-    ? `${srcCount} files merged · ${totalPages} pages · ${skippedDups} duplicate${skippedDups > 1 ? 's' : ''} removed`
-    : `${srcCount} file${srcCount !== 1 ? 's' : ''} merged into ${totalPages} page${totalPages !== 1 ? 's' : ''}`;
-
-  D.resFnTx.textContent = _dlName;
-  D.resFn.hidden = false;
-
-  /* Download button */
-  D.dlBtn.onclick = () => {
-    const a = document.createElement('a');
-    a.href = _dlUrl; a.download = _dlName;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-    window.SOUNDS?.playDownloadWhoosh?.();
-    toast('Download started!', 'success', 2600);
-  };
-
-  /* Copy name */
-  D.copyNameBtn.onclick = () => {
-    navigator.clipboard?.writeText(_dlName).then(() => {
-      const orig = D.copyNameBtn.innerHTML;
-      D.copyNameBtn.classList.add('copied');
-      D.copyNameBtn.innerHTML = '<i class="fas fa-check"></i>Copied!';
-      window.SOUNDS?.playCopySound?.();
-      setTimeout(() => {
-        D.copyNameBtn.classList.remove('copied');
-        D.copyNameBtn.innerHTML = orig;
-      }, 2400);
-    }).catch(() => toast('Copy not available', 'warn'));
-  };
-
-  /* Share */
-  D.shareBtn.onclick = () => {
-    const shareData = {
-      title: 'Merge PDF — IshuTools.fun',
-      text:  'Free online PDF merger by Ishu Kumar — no signup, no watermark!',
-      url:   'https://ishutools.fun/tools/merge-pdf/',
-    };
-    if (navigator.share) {
-      navigator.share(shareData).catch(() => {});
-    } else {
-      navigator.clipboard?.writeText(shareData.url).then(() => {
-        toast('Link copied!', 'success', 2200);
-      }).catch(() => {});
-    }
-    window.SOUNDS?.playCopySound?.();
-  };
-
-  /* Merge again */
-  D.mergeAgainBtn.onclick = () => {
-    window.SOUNDS?.playMergeAgainSound?.();
-    showSection('files');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    D.mergeBtn.disabled = FILES.length < 2;
-    D.mergeBtn.classList.toggle('ready', FILES.length >= 2);
-  };
-
-  /* Recent history */
-  _recentMerges.unshift({
-    id: genId(), name: _dlName,
-    files: srcCount, pages: totalPages,
-    size: fmtSize(sz),
-    time: new Date().toLocaleTimeString(),
-  });
-  if (_recentMerges.length > 4) _recentMerges.pop();
-  renderRecent();
-
-  /* Confetti */
-  launchConfetti(52);
-}
-
-function counterAnim(el, target) {
-  if (!target || isNaN(target)) { el.textContent = target || '—'; return; }
-  let v = 0;
-  const step = Math.max(1, Math.ceil(target / 30));
-  const t = setInterval(() => {
-    v = Math.min(v + step, target);
-    el.textContent = v;
-    if (v >= target) clearInterval(t);
-  }, 26);
-}
-
-function renderRecent() {
-  if (!_recentMerges.length) { D.recentMerges.innerHTML = ''; return; }
-  D.recentMerges.innerHTML = `
-    <div class="rec-wrap">
-      <div class="rec-lbl"><i class="fas fa-clock-rotate-left"></i>Recent Merges</div>
-      <div class="rec-list">${_recentMerges.map(r => `
-        <div class="rec-item">
-          <i class="fas fa-file-pdf"></i>
-          <div class="rec-name">${r.name}</div>
-          <div class="rec-meta">${r.files} files · ${r.pages}p · ${r.size}</div>
-          <span class="rec-time">${r.time}</span>
-        </div>`).join('')}
-      </div>
-    </div>`;
-}
-
-/* ════════ CONFETTI ════════ */
-function launchConfetti(n) {
-  const c = $('confetti'); if (!c) return; c.innerHTML = '';
-  const COLS = ['#6366f1','#8b5cf6','#f59e0b','#22c55e','#06b6d4',
-                '#ec4899','#f97316','#a78bfa','#34d399','#fb923c'];
-  for (let i = 0; i < n; i++) {
-    const p   = document.createElement('div'); p.className = 'cp2';
-    const sz  = 5 + Math.random() * 11;
-    const dr  = 2.2 + Math.random() * 2.6;
-    p.style.cssText =
-      `left:${Math.random()*100}%;width:${sz}px;height:${sz*1.6}px;` +
-      `background:${COLS[~~(Math.random()*COLS.length)]};` +
-      `border-radius:${Math.random() > .5 ? '50%' : '2px'};` +
-      `animation-duration:${dr}s;animation-delay:${Math.random()*1.2}s;` +
-      `transform:rotate(${Math.random()*360}deg)`;
-    c.appendChild(p);
+  const box = document.querySelector('.res-box');
+  if (box) {
+    box.classList.add('ready');
+    setTimeout(() => {
+      // Canvas-confetti celebration
+      if (typeof confetti !== 'undefined') {
+        confetti({ particleCount: 130, spread: 72, origin: { y: 0.55 },
+          colors: ['#6366f1', '#8b5cf6', '#a78bfa', '#22c55e', '#ffffff', '#f59e0b'] });
+        setTimeout(() => confetti({ particleCount: 60, spread: 48, origin: { x:0.1, y: 0.6 },
+          colors: ['#6366f1','#8b5cf6','#22c55e'] }), 280);
+        setTimeout(() => confetti({ particleCount: 60, spread: 48, origin: { x:0.9, y: 0.6 },
+          colors: ['#6366f1','#a78bfa','#ffffff'] }), 450);
+      }
+    }, 900);
   }
-  setTimeout(() => { if (c) c.innerHTML = ''; }, 8000);
+
+  // Animate 3 stats in with anime.js
+  const animateVal = (el, target, suffix = '') => {
+    if (typeof anime !== 'undefined' && typeof target === 'number') {
+      const obj = { val: 0 };
+      anime({ targets: obj, val: target, duration: 900, easing:'easeOutExpo',
+        update: () => { el.textContent = Math.round(obj.val) + suffix; } });
+    } else {
+      el.textContent = target + suffix;
+    }
+  };
+
+  animateVal($('rFiles'), srcCount);
+  animateVal($('rPages'), totalPages);
+  $('rSize').textContent = fmtSize(sz);
+
+  // Meta row
+  $('rTime').innerHTML = `<i class="fas fa-stopwatch"></i>${elapsed}`;
+  $('rEngine').innerHTML = `<i class="fas fa-cogs"></i>${methodUsed}`;
+  const chgStr = chg > 0
+    ? `+${chg.toFixed(1)}% larger`
+    : chg < -1 ? `${Math.abs(chg).toFixed(1)}% smaller`
+    : 'Same size';
+  $('rSaved').innerHTML = `<i class="fas fa-scale-balanced"></i>${chgStr}`;
+
+  // Filename display
+  const fn = $('resFn'), fnTx = $('resFnTx');
+  if (fn && fnTx) { fnTx.textContent = _dlName; fn.hidden = false; }
+
+  // Animate the result box in with GSAP
+  if (typeof gsap !== 'undefined') {
+    gsap.from('.res-box', { y: 30, duration: .6, ease:'back.out(1.4)' });
+    gsap.from('.rs', { y: 20, stagger: .08, duration: .5, ease:'back.out(1.2)', delay:.3 });
+  }
+}
+
+/* ════════ DOWNLOAD ════════ */
+function doDownload() {
+  if (!_dlUrl) return;
+  window.SOUNDS?.playDownloadWhoosh?.();
+  const a = document.createElement('a');
+  a.href = _dlUrl; a.download = _dlName;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  toast(`Downloading: ${_dlName}`, 'success', 3000);
 }
 
 /* ════════ PREVIEW MODAL ════════ */
-async function openPreview(entry) {
-  D.pvTitle.textContent = entry.displayName || entry.name;
-  D.pvBody.innerHTML =
-    `<div class="pv-loading"><i class="fas fa-spinner fa-spin"></i> Loading preview…</div>`;
+function openPreview(entry) {
   D.pvModal.removeAttribute('hidden');
-  document.body.style.overflow = 'hidden';
-  window.SOUNDS?.playExpandSound?.();
+  $('pvTitle').textContent = entry.name;
+  D.pvBody.innerHTML = `<div class="pv-loading"><i class="fas fa-spinner fa-spin"></i> Loading preview…</div>`;
+  renderPreviewContent(entry);
+}
 
+async function renderPreviewContent(entry) {
   if (entry.imgConverted) {
     const url = URL.createObjectURL(entry.file);
-    D.pvBody.innerHTML =
-      `<div class="pv-img-wrap"><img src="${url}" alt="${entry.name}"/></div>`;
+    D.pvBody.innerHTML = `<div class="pv-img-wrap"><img src="${url}" alt="Preview" onload="URL.revokeObjectURL(this.src)"/></div>`;
     return;
   }
-
   if (typeof pdfjsLib === 'undefined') {
-    D.pvBody.innerHTML =
-      `<div class="pv-err"><i class="fas fa-spinner fa-spin"></i> PDF.js loading — try again in a moment</div>`;
+    D.pvBody.innerHTML = `<div class="pv-err"><i class="fas fa-triangle-exclamation"></i>PDF.js not loaded — preview unavailable</div>`;
     return;
   }
-
   try {
-    const buf  = await entry.file.arrayBuffer();
-    const opts = { data: new Uint8Array(buf) };
-    if (entry.pwd) opts.password = entry.pwd;
-    const pdf = await pdfjsLib.getDocument(opts).promise;
-    entry.pages = pdf.numPages; updateStats();
-
-    const meta = await pdf.getMetadata().catch(() => null);
-    let head = '<div class="pv-doc-meta">';
-    if (meta?.info?.Title)  head += `<span><i class="fas fa-tag"></i>${meta.info.Title}</span>`;
-    if (meta?.info?.Author) head += `<span><i class="fas fa-user"></i>${meta.info.Author}</span>`;
-    head += `<span><i class="fas fa-book-open"></i>${pdf.numPages} page${pdf.numPages > 1 ? 's' : ''}</span></div>`;
-
-    const maxPg = Math.min(pdf.numPages, 12);
-    D.pvBody.innerHTML = head + `<div class="pv-grid" id="pvGrid"></div>` +
-      (pdf.numPages > 12 ? `<div class="pv-more">Showing first 12 of ${pdf.numPages} pages</div>` : '');
-
-    const grid = $('pvGrid');
-    for (let i = 1; i <= maxPg; i++) {
-      const pg   = await pdf.getPage(i);
-      const vp   = pg.getViewport({ scale:.66 });
-      const wrap = document.createElement('div'); wrap.className = 'pv-pg';
+    const buf = await entry.file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({
+      data: new Uint8Array(buf), password: entry.pwd || '',
+    }).promise;
+    const metaHtml = `<div class="pv-doc-meta">
+      <span><i class="fas fa-book-open"></i>${pdf.numPages} page${pdf.numPages > 1 ? 's' : ''}</span>
+      <span><i class="fas fa-database"></i>${fmtSize(entry.size)}</span>
+    </div>`;
+    const grid = document.createElement('div');
+    grid.className = 'pv-grid';
+    const limit = Math.min(pdf.numPages, 12);
+    for (let p = 1; p <= limit; p++) {
+      const page = await pdf.getPage(p);
+      const vp   = page.getViewport({ scale: .65 });
       const cv   = document.createElement('canvas');
       cv.width = vp.width; cv.height = vp.height;
-      const pn   = document.createElement('div'); pn.className = 'pv-pn'; pn.textContent = i;
-      wrap.appendChild(cv); wrap.appendChild(pn); grid.appendChild(wrap);
-      pg.render({ canvasContext: cv.getContext('2d'), viewport: vp });
+      await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+      const wrap = document.createElement('div'); wrap.className = 'pv-pg';
+      const num  = document.createElement('div'); num.className = 'pv-pn'; num.textContent = p;
+      wrap.appendChild(cv); wrap.appendChild(num); grid.appendChild(wrap);
     }
+    D.pvBody.innerHTML = metaHtml;
+    D.pvBody.appendChild(grid);
+    if (pdf.numPages > 12)
+      D.pvBody.insertAdjacentHTML('beforeend', `<div class="pv-more">Showing 12 of ${pdf.numPages} pages</div>`);
   } catch (err) {
-    const isPass = err?.name === 'PasswordException' ||
-      String(err).toLowerCase().includes('password');
-    if (isPass) {
-      entry.enc = true; refreshCard(entry);
-      D.pvBody.innerHTML =
-        `<div class="pv-err"><i class="fas fa-lock"></i>` +
-        `${entry.pwd ? 'Wrong password — check the card' : 'Expand the card and enter the PDF password'}</div>`;
-    } else {
-      D.pvBody.innerHTML =
-        `<div class="pv-err"><i class="fas fa-triangle-exclamation"></i>${err.message || 'Cannot preview this file'}</div>`;
-    }
+    const isPass = String(err).toLowerCase().includes('password');
+    D.pvBody.innerHTML = isPass
+      ? `<div class="pv-err"><i class="fas fa-lock"></i>Password-protected PDF — enter password in the file card first</div>`
+      : `<div class="pv-err"><i class="fas fa-triangle-exclamation"></i>Could not render preview</div>`;
   }
 }
 
 function closePreview() {
-  if (!D) return;
   D.pvModal.hidden = true;
-  document.body.style.overflow = '';
-  window.SOUNDS?.playCollapseSound?.();
+  D.pvBody.innerHTML = '';
 }
 
-/* ════════ DROP ZONE SETUP ════════ */
-function setupDrop() {
-  /* Click anywhere on drop zone */
-  D.dz.addEventListener('click', e => {
-    if (!e.target.closest('.dz-pick') &&
-        e.target !== D.dz &&
-        !e.target.closest('.dz-icon') &&
-        e.target.tagName !== 'H2' &&
-        e.target.tagName !== 'P') return;
-    D.fi.click();
-  });
-  document.querySelector('.dz-pick')?.addEventListener('click', e => {
-    e.stopPropagation(); D.fi.click();
-  });
-  D.dz.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); D.fi.click(); }
-  });
-
-  /* File input */
-  D.fi.addEventListener('change', () => {
-    if (D.fi.files.length) addFiles(D.fi.files);
-    D.fi.value = '';
-  });
-
-  /* Drag events on drop zone */
-  D.dz.addEventListener('dragenter', e => { e.preventDefault(); D.dz.classList.add('over'); });
-  D.dz.addEventListener('dragover',  e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
-  D.dz.addEventListener('dragleave', e => {
-    if (!D.dz.contains(e.relatedTarget)) D.dz.classList.remove('over');
-  });
-  D.dz.addEventListener('drop', e => {
-    e.preventDefault(); D.dz.classList.remove('over');
-    if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
-  });
-
-  /* Global drag-over indicator */
-  document.addEventListener('dragenter', e => {
-    if (e.dataTransfer?.types?.includes('Files') && D.globalDrag)
-      D.globalDrag.classList.add('on');
-  });
-  document.addEventListener('dragleave', e => {
-    if (D.globalDrag && (!e.relatedTarget || e.relatedTarget.nodeName === 'HTML'))
-      D.globalDrag.classList.remove('on');
-  });
-  document.addEventListener('dragover', e => e.preventDefault());
-  document.addEventListener('drop', e => {
-    e.preventDefault();
-    if (D.globalDrag) D.globalDrag.classList.remove('on');
-    if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
-  });
-}
-
-/* ════════ TOUCH SWIPE (mobile) ════════ */
-function addSwipe(card, id) {
-  const hint = card.querySelector('.swipe-reveal');
-  let tx0 = 0, dx = 0;
-  card.addEventListener('touchstart', e => {
-    tx0 = e.touches[0].clientX; dx = 0;
-  }, { passive:true });
-  card.addEventListener('touchmove', e => {
-    dx = e.touches[0].clientX - tx0;
-    if (dx < 0) {
-      card.style.transform = `translateX(${Math.max(dx, -115)}px)`;
-      if (hint) hint.style.opacity = String(Math.min(1, -dx / 60));
+/* ════════ CANVAS PARTICLES ════════ */
+function initCanvas() {
+  const cv = $('bgCanvas'); if (!cv) return;
+  const ctx = cv.getContext('2d');
+  let W, H, pts = [];
+  const resize = () => {
+    W = cv.width  = window.innerWidth;
+    H = cv.height = window.innerHeight;
+  };
+  resize();
+  window.addEventListener('resize', resize);
+  const N = Math.min(Math.floor(window.innerWidth / 14), 80);
+  for (let i = 0; i < N; i++) {
+    pts.push({
+      x: Math.random() * 1000, y: Math.random() * 1000,
+      vx: (Math.random() - .5) * .28, vy: (Math.random() - .5) * .28,
+      r: Math.random() * 1.4 + .4, a: Math.random(),
+    });
+  }
+  const theme = () => document.documentElement.dataset.theme === 'light';
+  const draw = () => {
+    ctx.clearRect(0, 0, W, H);
+    const col = theme() ? '99,102,241' : '139,92,246';
+    pts.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > W) p.vx *= -1;
+      if (p.y < 0 || p.y > H) p.vy *= -1;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${col},${p.a * .5})`;
+      ctx.fill();
+    });
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+        const d = Math.sqrt(dx*dx + dy*dy);
+        if (d < 110) {
+          ctx.strokeStyle = `rgba(${col},${(.12 - d/110*.12)})`;
+          ctx.lineWidth = .5;
+          ctx.beginPath();
+          ctx.moveTo(pts[i].x, pts[i].y);
+          ctx.lineTo(pts[j].x, pts[j].y);
+          ctx.stroke();
+        }
+      }
     }
-  }, { passive:true });
-  card.addEventListener('touchend', () => {
-    if (dx < -95) removeFile(id);
-    else { card.style.transform = ''; if (hint) hint.style.opacity = '0'; }
-    dx = 0;
-  }, { passive:true });
+    requestAnimationFrame(draw);
+  };
+  draw();
 }
 
-/* ════════ PDF.js LAZY LOAD ════════ */
+/* ════════ PDF.JS loader ════════ */
 function loadPdfJs() {
   if (typeof pdfjsLib !== 'undefined') return;
   const s = document.createElement('script');
   s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
   s.onload = () => {
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    FILES.filter(e => !e.imgConverted && e.pages === null)
-         .forEach(e => readPdfMeta(e));
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      FILES.filter(e => !e.imgConverted && !e.thumb && !e.enc)
+        .forEach(e => readPdfMeta(e));
+    }
   };
   document.head.appendChild(s);
 }
 
-/* ════════ CANVAS PARTICLES ════════ */
-function initCanvas() {
-  const cv = D.bgCanvas; if (!cv) return;
-  const cx = cv.getContext('2d');
-  let W, H;
-  const resize = () => { W = cv.width = innerWidth; H = cv.height = innerHeight; };
-  resize();
-  window.addEventListener('resize', resize, { passive:true });
-  const N = Math.min(52, Math.floor(innerWidth / 26));
-  const pts = Array.from({ length:N }, () => ({
-    x: Math.random() * 1920, y: Math.random() * 1080,
-    vx: (Math.random() - .5) * .22, vy: (Math.random() - .5) * .22,
-    r:  1 + Math.random() * 1.6, a: .05 + Math.random() * .13,
-  }));
-  const CONN = 125;
-  const frame = () => {
-    cx.clearRect(0, 0, W, H);
-    for (const p of pts) {
-      p.x += p.vx; p.y += p.vy;
-      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
-      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
-      cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      cx.fillStyle = `rgba(99,102,241,${p.a})`; cx.fill();
-    }
-    for (let i = 0; i < pts.length; i++) {
-      for (let j = i + 1; j < pts.length; j++) {
-        const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
-        const d = Math.hypot(dx, dy);
-        if (d < CONN) {
-          cx.beginPath(); cx.moveTo(pts[i].x, pts[i].y); cx.lineTo(pts[j].x, pts[j].y);
-          cx.strokeStyle = `rgba(99,102,241,${.046 * (1 - d / CONN)})`;
-          cx.lineWidth = .5; cx.stroke();
-        }
-      }
-    }
-    requestAnimationFrame(frame);
-  };
-  frame();
+/* ════════ DRAG DROP SETUP ════════ */
+function setupDrop() {
+  const dz = D.dz;
+  const pick = dz.querySelector('.dz-pick');
+
+  // Click on zone or "browse" text
+  const openPicker = () => D.fi.click();
+  dz.addEventListener('click', e => {
+    if (e.target === pick || e.target.closest('.dz-pick')) { D.fi.click(); return; }
+    openPicker();
+  });
+  dz.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPicker(); }
+  });
+
+  // Drag events on drop zone
+  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', e => { if (!dz.contains(e.relatedTarget)) dz.classList.remove('over'); });
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('over');
+    if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+  });
+
+  // Global drag
+  let dragCnt = 0;
+  document.addEventListener('dragenter', e => {
+    e.preventDefault(); dragCnt++;
+    D.globalDrag.classList.add('on');
+  });
+  document.addEventListener('dragleave', e => {
+    dragCnt--; if (dragCnt <= 0) { dragCnt = 0; D.globalDrag.classList.remove('on'); }
+  });
+  document.addEventListener('dragover', e => e.preventDefault());
+  document.addEventListener('drop', e => {
+    e.preventDefault(); dragCnt = 0; D.globalDrag.classList.remove('on');
+    if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+  });
+
+  // File input change
+  D.fi.addEventListener('change', () => {
+    if (D.fi.files.length) addFiles(D.fi.files);
+    D.fi.value = '';
+  });
 }
 
 /* ════════ ANIMATIONS ════════ */
 function initAnimations() {
-  if (typeof gsap === 'undefined') return;
-  if (typeof ScrollTrigger !== 'undefined') {
+  // GSAP hero elements
+  if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
     gsap.registerPlugin(ScrollTrigger);
-    [
-      { sel:'.hw-card',  trg:'.how-grid'  },
-      { sel:'.fc2',      trg:'.feat-grid' },
-      { sel:'.faq',      trg:'.faq-list'  },
-      { sel:'.rel-card', trg:'.rel-grid'  },
-    ].forEach(({ sel, trg }) =>
-      gsap.from(sel, {
-        y:32, duration:.64, stagger:.09, ease:'power3.out',
-        scrollTrigger:{ trigger:trg, start:'top 84%', once:true },
-      })
-    );
+    // Info sections reveal
+    gsap.utils.toArray('.info-section').forEach(sec => {
+      gsap.from(sec.querySelectorAll('.hw-card, .fc2, .rel-card, .faq'), {
+        scrollTrigger: { trigger: sec, start:'top 82%', toggleActions:'play none none none' },
+        y: 22, stagger: .06, duration: .6, ease:'power2.out',
+      });
+    });
   }
+
+  // Anime.js — navbar scroll glass effect
+  window.addEventListener('scroll', () => {
+    const nb = $('navbar');
+    if (nb) nb.classList.toggle('scrolled', window.scrollY > 18);
+  }, { passive: true });
 }
 
-/* ══════════════════════════════════════
-   INIT
-   ══════════════════════════════════════ */
+/* ════════ DOMContentLoaded ════════ */
 document.addEventListener('DOMContentLoaded', () => {
 
-  /* ── Populate DOM refs ── */
   D = {
-    sUp:$('secUpload'), sFi:$('secFiles'), sPr:$('secProgress'), sRe:$('secResult'),
-    dz:$('dropZone'), fi:$('fileInput'), addMoreBtn:$('addMoreBtn'),
-    addMore:$('addMoreInput'), clearBtn:$('clearBtn'),
-    fileBadge:$('fileBadge'), fList:$('fileList'), kbdBtn:$('kbdBtn'),
-    stFiles:$('stFiles'), stPages:$('stPages'), stSize:$('stSize'), stEst:$('stEst'),
-    largeBanner:$('largeBanner'), preTip:$('preTip'),
-    optsToggle:$('optsToggle'), optsBody:$('optsBody'), optsArr:$('optsArr'),
-    optMethod:$('optMethod'), optFilename:$('optFilename'),
-    optTitle:$('optTitle'), optAuthor:$('optAuthor'),
-    optToc:$('optToc'), optSep:$('optSep'), optBookmarks:$('optBookmarks'),
-    optCompress:$('optCompress'), optDedup:$('optDedup'),
-    optNorm:$('optNorm'), optTargetSize:$('optTargetSize'), normSzField:$('normSzField'),
-    mergeBtn:$('mergeBtn'), mCount:$('mCount'),
-    ring:$('ringFg'), pbar:$('pbar'), pbarWrap:$('pbarWrap'),
-    ringPct:$('ringPct'), progTitle:$('progTitle'), progSub:$('progSub'),
-    ps1:$('ps1'), ps2:$('ps2'), ps3:$('ps3'), ps4:$('ps4'),
-    progFileInfo:$('progFileInfo'),
-    resSub:$('resSub'), resFn:$('resFn'), resFnTx:$('resFnTx'),
-    rFiles:$('rFiles'), rPages:$('rPages'), rSize:$('rSize'),
-    rTime:$('rTime'), rEngine:$('rEngine'), rSaved:$('rSaved'),
-    dlBtn:$('dlBtn'), copyNameBtn:$('copyNameBtn'),
-    shareBtn:$('shareBtn'), mergeAgainBtn:$('mergeAgainBtn'),
-    recentMerges:$('recentMerges'),
-    kbdModal:$('kbdModal'), kbdClose:$('kbdClose'),
-    pvModal:$('pvModal'), pvClose:$('pvClose'), pvBody:$('pvBody'), pvTitle:$('pvTitle'),
-    toast:$('toast'), undoBar:$('undoBar'), undoName:$('undoName'), undoBtn:$('undoBtn'),
-    soundToggle:$('soundToggle'), soundIcon:$('soundIcon'),
-    themeToggle:$('themeToggle'), themeIcon:$('themeIcon'),
-    navbar:$('navbar'), bgCanvas:$('bgCanvas'), globalDrag:$('globalDrag'),
+    // Sections
+    sUp: $('secUpload'), sFi: $('secFiles'),
+    sPr: $('secProgress'), sRe: $('secResult'),
+    // Upload
+    dz: $('dropZone'), fi: $('fileInput'),
+    globalDrag: $('globalDrag'),
+    // Files
+    fList: $('fileList'), fileBadge: $('fileBadge'),
+    stPages: $('stPages'), stSize: $('stSize'), stEst: $('stEst'),
+    largeBanner: $('largeBanner'),
+    // Merge preview
+    mergePreview: $('mergePreview'), mpStrip: $('mpStrip'),
+    // Presets
+    preTip: $('preTip'),
+    // Options
+    optsToggle: $('optsToggle'), optsBody: $('optsBody'),
+    optMethod: $('optMethod'), optFilename: $('optFilename'),
+    optTitle: $('optTitle'), optAuthor: $('optAuthor'),
+    optToc: $('optToc'), optSep: $('optSep'),
+    optBookmarks: $('optBookmarks'), optCompress: $('optCompress'),
+    optDedup: $('optDedup'), optNorm: $('optNorm'),
+    optTargetSize: $('optTargetSize'), normSzField: $('normSzField'),
+    // Merge
+    mergeBtn: $('mergeBtn'), mCount: $('mCount'),
+    // Progress
+    ring: $('ringFg'), pbar: $('pbar'), pbarWrap: $('pbarWrap'),
+    ringPct: $('ringPct'), progTitle: $('progTitle'),
+    progSub: $('progSub'), progFileInfo: $('progFileInfo'),
+    ps1: $('ps1'), ps2: $('ps2'), ps3: $('ps3'), ps4: $('ps4'),
+    // Result
+    dlBtn: $('dlBtn'), copyNameBtn: $('copyNameBtn'),
+    shareBtn: $('shareBtn'), mergeAgainBtn: $('mergeAgainBtn'),
+    // Utils
+    toast: $('toast'),
+    undoBar: $('undoBar'), undoName: $('undoName'), undoBtn: $('undoBtn'),
+    addMoreBtn: $('addMoreBtn'), addMore: $('addMoreInput'), clearBtn: $('clearBtn'),
+    kbdBtn: $('kbdBtn'), kbdModal: $('kbdModal'), kbdClose: $('kbdClose'),
+    pvModal: $('pvModal'), pvClose: $('pvClose'), pvBody: $('pvBody'),
+    soundToggle: $('soundToggle'), soundIcon: $('soundIcon'),
+    themeToggle: $('themeToggle'), themeIcon: $('themeIcon'),
   };
 
-  /* ── Theme ── */
-  const savedTheme = localStorage.getItem('ishu-theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', savedTheme);
-  D.themeIcon.className = savedTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
-  D.themeToggle.addEventListener('click', () => {
-    const cur = document.documentElement.getAttribute('data-theme');
-    const nxt = cur === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', nxt);
-    localStorage.setItem('ishu-theme', nxt);
-    D.themeIcon.className = nxt === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+  /* ── Sort buttons ── */
+  document.querySelectorAll('.sb').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = btn.dataset.sort;
+      if (s === _sortMode) return;
+      _sortMode = s;
+      document.querySelectorAll('.sb').forEach(b => b.classList.toggle('active', b.dataset.sort === s));
+      if (s === 'name')  FILES.sort((a,b) => a.name.localeCompare(b.name));
+      if (s === 'size')  FILES.sort((a,b) => b.size - a.size);
+      if (s === 'order') {} // keep current order
+      if (s !== 'order') { rebuildList(); updatePreviewStrip(); window.SOUNDS?.playSortSound?.(); }
+    });
   });
 
   /* ── Sound toggle ── */
-  const refreshSoundBtn = () => {
+  const syncSound = () => {
     const on = window.SOUNDS?.isEnabled?.() ?? true;
     D.soundToggle.classList.toggle('muted', !on);
     D.soundIcon.className = on ? 'fas fa-volume-high' : 'fas fa-volume-xmark';
-    D.soundToggle.setAttribute('aria-label', on ? 'Mute sounds' : 'Enable sounds');
   };
+  syncSound();
   D.soundToggle.addEventListener('click', () => {
-    window.SOUNDS?.toggle?.(); refreshSoundBtn();
+    window.SOUNDS?.toggle?.(); syncSound();
   });
-  refreshSoundBtn();
 
-  /* ── Navbar scroll shadow ── */
-  window.addEventListener('scroll', () =>
-    D.navbar.classList.toggle('scrolled', scrollY > 40), { passive:true });
-
-  /* ── Sort buttons ── */
-  document.querySelectorAll('.sb').forEach(btn =>
-    btn.addEventListener('click', () => {
-      _sortMode = btn.dataset.sort;
-      document.querySelectorAll('.sb').forEach(b =>
-        b.classList.toggle('active', b.dataset.sort === _sortMode));
-      if (_sortMode === 'name') FILES.sort((a, b) => a.name.localeCompare(b.name));
-      else if (_sortMode === 'size') FILES.sort((a, b) => b.size - a.size);
-      rebuildList(); window.SOUNDS?.playSortSound?.();
-    })
-  );
+  /* ── Theme toggle ── */
+  const savedTheme = (() => { try { return localStorage.getItem('ishu-theme'); } catch (_) {} return null; })();
+  if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+  const syncTheme = () => {
+    const dark = document.documentElement.dataset.theme !== 'light';
+    D.themeIcon.className = dark ? 'fas fa-moon' : 'fas fa-sun';
+  };
+  syncTheme();
+  D.themeToggle.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('ishu-theme', next); } catch (_) {}
+    syncTheme();
+  });
 
   /* ── Presets ── */
   document.querySelectorAll('.pre-btn').forEach(btn => {
     btn.addEventListener('mouseenter', () => {
       const p = PRESETS[btn.dataset.p]; if (p) D.preTip.textContent = p.tip;
     });
-    btn.addEventListener('mouseleave', () => { D.preTip.textContent = '' });
+    btn.addEventListener('mouseleave', () => { D.preTip.textContent = ''; });
     btn.addEventListener('click', () => {
       document.querySelectorAll('.pre-btn').forEach(b => {
         b.classList.remove('on'); b.setAttribute('aria-pressed','false');
@@ -1047,7 +1030,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!FILES.length) return;
     const count = FILES.length;
     FILES.forEach((e, i) => _undoStack.push({ entry:e, idx:i }));
-    FILES.length = 0; rebuildList(); updateStats(); showSection('upload');
+    FILES.length = 0; rebuildList(); updateStats();
+    updatePreviewStrip(); showSection('upload');
     window.SOUNDS?.playFileRemoveSound?.();
     toast(`${count} file${count > 1 ? 's' : ''} cleared`, 'info', 2400);
   });
@@ -1058,10 +1042,45 @@ document.addEventListener('DOMContentLoaded', () => {
     FILES.splice(item.idx, 0, item.entry);
     D.undoBar.classList.remove('show');
     clearTimeout(_undoTimer);
-    rebuildList(); updateStats();
+    rebuildList(); updateStats(); updatePreviewStrip();
     if (D.sFi.hidden) showSection('files');
     window.SOUNDS?.playFileAddSound?.();
     toast(`Restored: ${item.entry.name}`, 'success', 2200);
+  });
+
+  /* ── Download ── */
+  D.dlBtn.addEventListener('click', doDownload);
+
+  /* ── Copy name ── */
+  D.copyNameBtn.addEventListener('click', async () => {
+    if (!_dlName) return;
+    try { await navigator.clipboard.writeText(_dlName); } catch (_) {}
+    window.SOUNDS?.playCopySound?.();
+    toast(`Copied: ${_dlName}`, 'success', 1800);
+  });
+
+  /* ── Share ── */
+  D.shareBtn.addEventListener('click', async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title:'Merge PDF — IshuTools.fun', url });
+      } catch (_) {}
+    } else {
+      try { await navigator.clipboard.writeText(url); } catch (_) {}
+      window.SOUNDS?.playCopySound?.();
+      toast('Link copied to clipboard!', 'success', 2200);
+    }
+  });
+
+  /* ── Merge Again ── */
+  D.mergeAgainBtn.addEventListener('click', () => {
+    // Revoke old blob
+    if (_dlUrl) { URL.revokeObjectURL(_dlUrl); _dlUrl = null; }
+    _dlBlob = null; _dlName = '';
+    document.querySelector('.res-box')?.classList.remove('ready');
+    window.SOUNDS?.playMergeAgainSound?.();
+    showSection('files');
   });
 
   /* ── Preview modal ── */
@@ -1073,36 +1092,23 @@ document.addEventListener('DOMContentLoaded', () => {
     D.kbdModal.removeAttribute('hidden');
     window.SOUNDS?.playExpandSound?.();
   });
-  D.kbdClose.addEventListener('click', () => { D.kbdModal.hidden = true });
+  D.kbdClose.addEventListener('click', () => { D.kbdModal.hidden = true; });
   D.kbdModal.addEventListener('click', e => {
     if (e.target === D.kbdModal) D.kbdModal.hidden = true;
   });
 
   /* ── Global keyboard shortcuts ── */
   document.addEventListener('keydown', e => {
-    const tag     = document.activeElement?.tagName;
+    const tag = document.activeElement?.tagName;
     const editing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' ||
                     document.activeElement?.contentEditable === 'true';
-    if (e.key === 'Escape') {
-      D.kbdModal.hidden = true; closePreview(); return;
-    }
+    if (e.key === 'Escape') { D.kbdModal.hidden = true; closePreview(); return; }
     if (editing) return;
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-      e.preventDefault(); D.undoBtn.click(); return;
-    }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
-      e.preventDefault(); D.fi.click(); return;
-    }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'm') {
-      e.preventDefault(); if (!D.mergeBtn.disabled) D.mergeBtn.click(); return;
-    }
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-      e.preventDefault(); if (_dlUrl) D.dlBtn?.click(); return;
-    }
-    if (e.key === '?') {
-      D.kbdModal.removeAttribute('hidden');
-      window.SOUNDS?.playExpandSound?.();
-    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); D.undoBtn.click(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'o') { e.preventDefault(); D.fi.click(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'm') { e.preventDefault(); if (!D.mergeBtn.disabled) D.mergeBtn.click(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); if (_dlUrl) doDownload(); return; }
+    if (e.key === '?') { D.kbdModal.removeAttribute('hidden'); window.SOUNDS?.playExpandSound?.(); }
   });
 
   /* ── FAQ accordion ── */
@@ -1121,10 +1127,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* ── Start ── */
+  /* ── Init ── */
   showSection('upload');
   setupDrop();
   initCanvas();
   loadPdfJs();
-  setTimeout(() => initAnimations(), 120);
+  setTimeout(() => initAnimations(), 150);
 });

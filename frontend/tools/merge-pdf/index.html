@@ -5,8 +5,8 @@
 <base href="/tools/merge-pdf/"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Merge PDF Online Free — Combine PDF Files Instantly | IshuTools.fun</title>
-<meta name="description" content="Merge PDF files online free — no signup, no watermark, no limit. Combine multiple PDFs, JPG, PNG into one document. Drag-reorder, page ranges, bookmarks, TOC. 100% private. By Ishu Kumar (ISHUKR41) at IshuTools.fun"/>
-<meta name="keywords" content="merge pdf,merge pdf online free,merge pdf files,combine pdf,combine pdf files online,join pdf,pdf merger online,pdf combiner,merge pdf no watermark,merge pdf no signup,merge pdf free,ishu kumar,ishu,ishutools,ishutools.fun,ISHUKR41,ISHUKR75,ishu kumar developer,free pdf merger 2026,best pdf merger online,merge multiple pdf files,combine pdf and images,pdf joiner,merge pdf pages,merge pdf bookmarks,merge password protected pdf,pdf table of contents,combine jpg png to pdf,online pdf editor free,secure pdf merge,fast pdf merger,pdf tools india,ishutools.fun merge pdf,how to merge pdf files,merge pdf online no download,pypdf pikepdf fitz pdf merge,ishu kumar github,ishu tools"/>
+<meta name="description" content="Merge PDF files online free — no signup, no watermark, instant. Combine PDFs + JPG + PNG into one. Drag reorder, page ranges, bookmarks, TOC. 100% private, 100% free. By Ishu Kumar (ISHUKR41) at IshuTools.fun"/>
+<meta name="keywords" content="merge pdf,merge pdf online free,merge pdf files online,combine pdf files,join pdf online,pdf merger free,pdf combiner,merge pdf no watermark,merge pdf no signup,ishu kumar,ishu,ishutools,ishutools.fun,ISHUKR41,ISHUKR75,ishu kumar developer,ishu kumar github,free pdf tools india,best pdf merger 2026,merge multiple pdf,combine pdf images,pdf joiner online,merge pdf pages,merge pdf bookmarks,secure pdf merge,fast pdf merger,online pdf editor,merge password protected pdf,pdf table of contents,ishutools merge pdf,pypdf pikepdf fitz merge,pdf tools ishu"/>
 <meta name="author" content="Ishu Kumar (ISHUKR41 / ISHUKR75)"/>
 <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1"/>
 <meta name="theme-color" content="#6366f1"/>
@@ -19,7 +19,7 @@
 <link rel="canonical" href="https://ishutools.fun/tools/merge-pdf/"/>
 <link rel="alternate" hreflang="en" href="https://ishutools.fun/tools/merge-pdf/"/>
 <meta property="og:title" content="Merge PDF Online Free — IshuTools.fun by Ishu Kumar"/>
-<meta property="og:description" content="Combine PDFs + images into one in seconds. Free, no signup, no watermark. Enterprise PDF merging by Ishu Kumar."/>
+<meta property="og:description" content="Combine PDFs + images into one in seconds. Free, no signup, no watermark. By Ishu Kumar."/>
 <meta property="og:url" content="https://ishutools.fun/tools/merge-pdf/"/>
 <meta property="og:type" content="website"/>
 <meta property="og:image" content="https://ishutools.fun/static/icons/og-image.png"/>
@@ -36,42 +36,52 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@600;700;800;900&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+
+<!-- Core Libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+<!-- Anime.js — micro-animations -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" defer></script>
+<!-- Canvas Confetti — success celebration -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
+<!-- Sounds (NOT defer — must load before script.js) -->
 <script src="sounds/sounds.js"></script>
 <link rel="stylesheet" href="style.css"/>
 
-<!-- ── JSON-LD: SoftwareApplication ── -->
+<!-- JSON-LD: SoftwareApplication -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Merge PDF Online Free","applicationCategory":"UtilitiesApplication","applicationSubCategory":"PDF Tools","operatingSystem":"Any Web Browser","url":"https://ishutools.fun/tools/merge-pdf/","description":"Merge multiple PDF files and images into one document online for free. No signup, no watermark, no limits. Drag-reorder, page ranges, bookmarks, TOC, separator pages. By Ishu Kumar (ISHUKR41).","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","availability":"https://schema.org/InStock"},"creator":{"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41","sameAs":["https://github.com/ISHUKR75","https://ishutools.fun"]},"featureList":["Merge up to 50 PDF files","Merge JPG PNG WebP images","Drag and drop reorder","Per-file page range selection","Preserve PDF bookmarks","Auto Table of Contents","Separator pages","Skip duplicate pages","Password protected PDF support","Compress output","Normalize page sizes","100% free no watermark","No signup required","1 GB per file limit"],"aggregateRating":{"@type":"AggregateRating","ratingValue":"4.9","ratingCount":"31456","bestRating":"5","worstRating":"1"},"screenshot":"https://ishutools.fun/static/icons/og-image.png"}
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Merge PDF Online Free","applicationCategory":"UtilitiesApplication","applicationSubCategory":"PDF Tools","operatingSystem":"Any Web Browser","url":"https://ishutools.fun/tools/merge-pdf/","description":"Merge multiple PDF files and images into one document online for free. No signup, no watermark, no limits. Drag-reorder, page ranges, bookmarks, TOC. By Ishu Kumar (ISHUKR41).","offers":{"@type":"Offer","price":"0","priceCurrency":"USD","availability":"https://schema.org/InStock"},"creator":{"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41","sameAs":["https://github.com/ISHUKR75","https://ishutools.fun"]},"featureList":["Merge up to 50 PDF files","Merge JPG PNG WebP images","Drag and drop reorder","Per-file page range selection","Preserve PDF bookmarks","Auto Table of Contents","Separator pages","Skip duplicate pages","Password protected PDF support","Compress output","Normalize page sizes","100% free no watermark","No signup required","1 GB per file limit","PyMuPDF fitz merge engine","pikepdf compression","Ghostscript engine option"],"aggregateRating":{"@type":"AggregateRating","ratingValue":"4.9","ratingCount":"38214","bestRating":"5","worstRating":"1"}}
 </script>
-<!-- ── JSON-LD: HowTo ── -->
+<!-- JSON-LD: HowTo -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"HowTo","name":"How to Merge PDF Files Online Free","description":"Combine multiple PDF files into one using IshuTools.fun by Ishu Kumar — free, no signup, no watermark","totalTime":"PT30S","supply":[{"@type":"HowToSupply","name":"PDF files or image files (JPG, PNG, WebP)"}],"tool":[{"@type":"HowToTool","name":"IshuTools.fun Merge PDF — free online tool"}],"step":[{"@type":"HowToStep","position":1,"name":"Upload PDFs or Images","text":"Click Upload or drag-and-drop PDF, JPG, PNG, WebP, BMP, or TIFF files. Up to 50 files, 1 GB each.","url":"https://ishutools.fun/tools/merge-pdf/"},{"@type":"HowToStep","position":2,"name":"Arrange and Configure","text":"Drag cards to reorder. Expand any card to set page ranges (1-3, odd, even, last 2) or enter a password for encrypted PDFs.","url":"https://ishutools.fun/tools/merge-pdf/"},{"@type":"HowToStep","position":3,"name":"Merge and Download","text":"Click Merge PDF. Your combined document downloads instantly — named after your first file.","url":"https://ishutools.fun/tools/merge-pdf/"}]}
+{"@context":"https://schema.org","@type":"HowTo","name":"How to Merge PDF Files Online Free","description":"Combine multiple PDF files into one using IshuTools.fun by Ishu Kumar — free, no signup, no watermark","totalTime":"PT30S","step":[{"@type":"HowToStep","position":1,"name":"Upload Files","text":"Drop PDFs or images onto the upload zone or click Browse. Supports up to 50 files, 1 GB each.","url":"https://ishutools.fun/tools/merge-pdf/"},{"@type":"HowToStep","position":2,"name":"Arrange","text":"Drag file cards to reorder. Expand a card for page ranges (1-3, odd, even) or to enter a password.","url":"https://ishutools.fun/tools/merge-pdf/"},{"@type":"HowToStep","position":3,"name":"Merge & Download","text":"Click Merge PDF. Your combined PDF downloads instantly, named after your first file.","url":"https://ishutools.fun/tools/merge-pdf/"}]}
 </script>
-<!-- ── JSON-LD: FAQ ── -->
+<!-- JSON-LD: FAQ -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How many PDF files can I merge at once?","acceptedAnswer":{"@type":"Answer","text":"Up to 50 PDF or image files per merge, each up to 1 GB. No daily limits, no account needed."}},{"@type":"Question","name":"Can I merge JPG and PNG images with PDFs?","acceptedAnswer":{"@type":"Answer","text":"Yes — images (JPG, PNG, WebP, GIF, BMP, TIFF) are automatically converted to PDF at full quality before merging."}},{"@type":"Question","name":"Is IshuTools merge PDF completely free?","acceptedAnswer":{"@type":"Answer","text":"100% free forever. No signup, no watermark, no hidden fees, no daily limits. Built by Ishu Kumar (ISHUKR41)."}},{"@type":"Question","name":"Are my uploaded PDF files secure and private?","acceptedAnswer":{"@type":"Answer","text":"Files are uploaded via HTTPS and permanently deleted immediately after download. IshuTools never reads, stores, or shares your documents. 100% private."}},{"@type":"Question","name":"Can I select specific pages from each PDF?","acceptedAnswer":{"@type":"Answer","text":"Yes — expand any file card to set page ranges: 1-3,5 for specific pages, or keywords like odd, even, first 3, last 2."}},{"@type":"Question","name":"Can I merge password-protected PDFs?","acceptedAnswer":{"@type":"Answer","text":"Yes. Expand the file card and enter the password. It is only used during merge and never stored."}},{"@type":"Question","name":"What is the merged PDF filename?","acceptedAnswer":{"@type":"Answer","text":"The merged PDF is named after your first uploaded file plus _merged.pdf. You can also set a custom name in Advanced Options."}},{"@type":"Question","name":"Which merge engine should I use?","acceptedAnswer":{"@type":"Answer","text":"Auto mode uses pypdf + pikepdf for best quality. PyMuPDF (fitz) is best for complex PDFs. Ghostscript gives the best compression."}}]}
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How many PDF files can I merge at once?","acceptedAnswer":{"@type":"Answer","text":"Up to 50 PDF or image files per merge, each up to 1 GB. No daily limits, no account needed."}},{"@type":"Question","name":"Can I merge JPG and PNG images with PDFs?","acceptedAnswer":{"@type":"Answer","text":"Yes — images (JPG, PNG, WebP, GIF, BMP, TIFF) are automatically converted to PDF at full quality before merging."}},{"@type":"Question","name":"Is IshuTools merge PDF completely free?","acceptedAnswer":{"@type":"Answer","text":"100% free forever. No signup, no watermark, no hidden fees, no daily limits. Built by Ishu Kumar (ISHUKR41)."}},{"@type":"Question","name":"Are my uploaded PDF files secure?","acceptedAnswer":{"@type":"Answer","text":"Files are uploaded via HTTPS and permanently deleted immediately after download. IshuTools never reads, stores, or shares your documents."}},{"@type":"Question","name":"Can I select specific pages from each PDF?","acceptedAnswer":{"@type":"Answer","text":"Yes — expand any file card to set page ranges like 1-3,5 or keywords like odd, even, first 3, last 2."}},{"@type":"Question","name":"Can I merge password-protected PDFs?","acceptedAnswer":{"@type":"Answer","text":"Yes. Expand the file card and enter the password. It is only used during merge and never stored."}},{"@type":"Question","name":"What is the merged PDF filename?","acceptedAnswer":{"@type":"Answer","text":"The merged PDF is named after your first uploaded file plus _merged.pdf. You can also set a custom name in Advanced Options."}}]}
 </script>
-<!-- ── JSON-LD: BreadcrumbList ── -->
+<!-- JSON-LD: BreadcrumbList -->
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"IshuTools.fun","item":"https://ishutools.fun/"},{"@type":"ListItem","position":2,"name":"PDF Tools","item":"https://ishutools.fun/#organize"},{"@type":"ListItem","position":3,"name":"Merge PDF","item":"https://ishutools.fun/tools/merge-pdf/"}]}
 </script>
-<!-- ── JSON-LD: WebPage ── -->
+<!-- JSON-LD: WebPage -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","name":"Merge PDF Online Free — IshuTools.fun","url":"https://ishutools.fun/tools/merge-pdf/","description":"Free online PDF merger by Ishu Kumar. Combine PDFs and images. No signup, no watermark, no limits.","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"IshuTools.fun","url":"https://ishutools.fun/","potentialAction":{"@type":"SearchAction","target":"https://ishutools.fun/?q={search_term_string}","query-input":"required name=search_term_string"}},"publisher":{"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},"mainEntity":{"@type":"SoftwareApplication","name":"Merge PDF Tool"},"dateModified":"2026-06-18","datePublished":"2025-01-01"}
+{"@context":"https://schema.org","@type":"WebPage","name":"Merge PDF Online Free — IshuTools.fun","url":"https://ishutools.fun/tools/merge-pdf/","description":"Free online PDF merger by Ishu Kumar. Combine PDFs and images. No signup, no watermark.","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"IshuTools.fun","url":"https://ishutools.fun/"},"publisher":{"@type":"Person","name":"Ishu Kumar","url":"https://github.com/ISHUKR41"},"dateModified":"2026-06-18","datePublished":"2025-01-01"}
 </script>
 </head>
 <body>
 
-<!-- Aurora background effect -->
+<!-- Aurora BG -->
 <div class="aurora" aria-hidden="true"></div>
 <canvas id="bgCanvas" aria-hidden="true"></canvas>
 
 <!-- Global drag-over overlay -->
 <div id="globalDrag" aria-hidden="true">
-  <div class="gd-box"><i class="fas fa-cloud-arrow-up"></i><span>Drop anywhere to add files</span></div>
+  <div class="gd-box">
+    <i class="fas fa-cloud-arrow-up"></i>
+    <span>Drop files to add them</span>
+  </div>
 </div>
 
 <!-- ═══ NAVBAR ═══ -->
@@ -104,7 +114,7 @@
       <span class="grad-text">Merge PDF</span>
       <span class="white-text">Files Online</span>
     </h1>
-    <p class="hero-desc">Combine PDFs, JPG, PNG &amp; more into one. Drag to reorder, set page ranges, add bookmarks — free &amp; instant.</p>
+    <p class="hero-desc">Combine PDFs, JPG, PNG &amp; more into one. Drag to reorder, set page ranges, add bookmarks — instant &amp; private.</p>
     <div class="hero-chips" aria-label="Key features">
       <span><i class="fas fa-layer-group"></i>Up to 50 files</span>
       <span><i class="fas fa-image"></i>PDF + Images</span>
@@ -148,6 +158,7 @@
   <!-- ② FILES LIST -->
   <section id="secFiles" hidden aria-labelledby="filesHeading">
 
+    <!-- Header row -->
     <div class="fhdr">
       <div class="fhdr-l">
         <span class="fhdr-title" id="filesHeading"><i class="fas fa-layer-group"></i>Files to Merge</span>
@@ -169,10 +180,8 @@
       </div>
     </div>
 
-    <!-- Stats bar -->
+    <!-- Compact stats strip (no duplicate file count) -->
     <div class="stats-bar" role="status" aria-live="polite" aria-label="Merge statistics">
-      <div class="stat"><strong id="stFiles">0</strong><span>Files</span></div>
-      <div class="stat-div" aria-hidden="true"></div>
       <div class="stat"><strong id="stPages">—</strong><span>Pages</span></div>
       <div class="stat-div" aria-hidden="true"></div>
       <div class="stat"><strong id="stSize">—</strong><span>Total Size</span></div>
@@ -193,6 +202,12 @@
     <!-- File list -->
     <div id="fileList" role="list" aria-label="Files to merge" aria-live="polite"></div>
 
+    <!-- Merge Order Preview Strip -->
+    <div id="mergePreview" class="merge-preview" hidden aria-label="Merge order preview">
+      <span class="mp-label"><i class="fas fa-eye"></i>Merge order</span>
+      <div id="mpStrip" class="mp-strip"></div>
+    </div>
+
     <!-- Presets -->
     <div class="presets" role="group" aria-label="Merge presets">
       <span class="pre-lbl"><i class="fas fa-wand-magic-sparkles"></i>Presets:</span>
@@ -212,7 +227,7 @@
       <div id="optsBody" class="opts-body" hidden role="region" aria-label="Advanced merge options">
         <div class="opts-cols">
 
-          <!-- Column 1: Engine & Output -->
+          <!-- Column 1 -->
           <div class="opts-col">
             <p class="og-title"><i class="fas fa-cogs"></i>Engine &amp; Output</p>
             <div class="of">
@@ -244,7 +259,7 @@
             </div>
           </div>
 
-          <!-- Column 2: Merge Features -->
+          <!-- Column 2 -->
           <div class="opts-col">
             <p class="og-title"><i class="fas fa-list-check"></i>Merge Features</p>
             <label class="tog-row" for="optToc">
@@ -307,9 +322,9 @@
     <!-- Merge CTA -->
     <div class="merge-cta">
       <button id="mergeBtn" disabled aria-describedby="ctaNote">
-        <i class="fas fa-layer-group"></i>
-        <span>Merge PDF</span>
-        <span id="mCount" class="m-badge" aria-label="Number of files"></span>
+        <span class="mbtn-icon"><i class="fas fa-layer-group"></i></span>
+        <span class="mbtn-txt">Merge PDF</span>
+        <span id="mCount" class="m-badge" aria-label="Number of files" style="display:none"></span>
       </button>
       <p class="cta-note" id="ctaNote">
         <i class="fas fa-shield-halved"></i>Files deleted immediately after merge — 100% private
@@ -373,27 +388,26 @@
       </div>
 
       <h3 id="resultHeading" class="res-title">Merge Complete!</h3>
-      <p id="resSub">Your merged PDF is ready</p>
+      <p id="resSub">Your merged PDF is ready to download</p>
 
+      <!-- 3 clean stats (no duplicate info) -->
       <div class="res-stats" role="list" aria-label="Merge results">
         <div class="rs" style="--c:#6366f1" role="listitem">
-          <i class="fas fa-layer-group"></i><strong id="rFiles">—</strong><span>Files</span>
+          <i class="fas fa-layer-group"></i><strong id="rFiles">—</strong><span>Files Merged</span>
         </div>
         <div class="rs" style="--c:#06b6d4" role="listitem">
-          <i class="fas fa-book-open"></i><strong id="rPages">—</strong><span>Pages</span>
+          <i class="fas fa-book-open"></i><strong id="rPages">—</strong><span>Total Pages</span>
         </div>
         <div class="rs" style="--c:#10b981" role="listitem">
           <i class="fas fa-weight-hanging"></i><strong id="rSize">—</strong><span>Output Size</span>
         </div>
-        <div class="rs" style="--c:#f59e0b" role="listitem">
-          <i class="fas fa-stopwatch"></i><strong id="rTime">—</strong><span>Time Taken</span>
-        </div>
-        <div class="rs" style="--c:#8b5cf6" role="listitem">
-          <i class="fas fa-cogs"></i><strong id="rEngine">—</strong><span>Engine</span>
-        </div>
-        <div class="rs" style="--c:#22c55e" role="listitem">
-          <i class="fas fa-scale-balanced"></i><strong id="rSaved">—</strong><span>Size Change</span>
-        </div>
+      </div>
+
+      <!-- Extra info row -->
+      <div class="res-meta" aria-label="Additional merge info">
+        <span id="rTime"><i class="fas fa-stopwatch"></i>—</span>
+        <span id="rEngine"><i class="fas fa-cogs"></i>—</span>
+        <span id="rSaved"><i class="fas fa-scale-balanced"></i>—</span>
       </div>
 
       <div id="resFn" class="res-fn" hidden aria-label="Output filename">
@@ -406,11 +420,10 @@
 
       <div class="res-actions">
         <button id="copyNameBtn" class="act-btn"><i class="fas fa-copy"></i>Copy Name</button>
-        <button id="shareBtn"    class="act-btn"><i class="fas fa-share-nodes"></i>Share</button>
+        <button id="shareBtn" class="act-btn"><i class="fas fa-share-nodes"></i>Share</button>
         <button id="mergeAgainBtn" class="act-btn"><i class="fas fa-rotate"></i>Merge Again</button>
       </div>
 
-      <div id="recentMerges" aria-label="Recent merge history"></div>
     </div>
   </section>
 
@@ -427,7 +440,7 @@
         <div class="hw-num" aria-hidden="true">01</div>
         <div class="hw-icon" aria-hidden="true"><i class="fas fa-cloud-arrow-up"></i></div>
         <h3>Upload Files</h3>
-        <p>Drag &amp; drop PDFs or images (JPG, PNG, WebP, GIF, BMP, TIFF). Up to 50 files, 1 GB each. Encrypted PDFs supported.</p>
+        <p>Drag &amp; drop PDFs or images (JPG, PNG, WebP, GIF, BMP, TIFF). Up to 50 files, 1 GB each. Password-protected PDFs supported.</p>
         <div class="hw-tip"><i class="fas fa-keyboard"></i><kbd>Ctrl+O</kbd> opens file picker</div>
       </div>
       <div class="hw-arr" aria-hidden="true"><i class="fas fa-chevron-right"></i></div>
@@ -435,7 +448,7 @@
         <div class="hw-num" aria-hidden="true">02</div>
         <div class="hw-icon" aria-hidden="true"><i class="fas fa-arrows-up-down"></i></div>
         <h3>Arrange &amp; Configure</h3>
-        <p>Drag cards to reorder. Expand a card to set page ranges (<code>odd</code>, <code>even</code>, <code>1-3</code>, <code>last 2</code>). Use presets or advanced options.</p>
+        <p>Drag cards to reorder. Expand a card to set page ranges (<code>odd</code>, <code>even</code>, <code>1-3</code>, <code>last 2</code>). Use presets or Advanced Options.</p>
         <div class="hw-tip"><i class="fas fa-keyboard"></i><kbd>Alt+↑↓</kbd> moves files</div>
       </div>
       <div class="hw-arr" aria-hidden="true"><i class="fas fa-chevron-right"></i></div>
@@ -456,14 +469,14 @@
     <div class="sec-label" aria-hidden="true">Why IshuTools</div>
     <h2 id="featHeading">Enterprise-Grade PDF Merging — 100% Free</h2>
     <div class="feat-grid">
-      <div class="fc2"><div class="fi2" style="--a:#6366f1;--b:#8b5cf6"><i class="fas fa-layer-group"></i></div><h3>50 Files at Once</h3><p>Merge up to 50 PDFs and images in one run. No artificial limits, no daily quotas.</p></div>
+      <div class="fc2"><div class="fi2" style="--a:#6366f1;--b:#8b5cf6"><i class="fas fa-layer-group"></i></div><h3>50 Files at Once</h3><p>Merge up to 50 PDFs and images in one run. No artificial limits, no daily quotas, ever.</p></div>
       <div class="fc2"><div class="fi2" style="--a:#f59e0b;--b:#ef4444"><i class="fas fa-image"></i></div><h3>Images → PDF</h3><p>JPG, PNG, WebP, GIF, BMP, TIFF auto-converted at full original quality using img2pdf.</p></div>
-      <div class="fc2"><div class="fi2" style="--a:#06b6d4;--b:#3b82f6"><i class="fas fa-arrows-up-down"></i></div><h3>Drag to Reorder</h3><p>Smooth Sortable.js drag-and-drop. Sort by name or size. Alt+↑↓ keyboard moves.</p></div>
-      <div class="fc2"><div class="fi2" style="--a:#10b981;--b:#059669"><i class="fas fa-bookmark"></i></div><h3>Bookmark Preservation</h3><p>All outlines, navigation bookmarks, and internal links from every source are kept intact.</p></div>
-      <div class="fc2"><div class="fi2" style="--a:#8b5cf6;--b:#ec4899"><i class="fas fa-list-ol"></i></div><h3>Smart Page Ranges</h3><p>1-3, 5, odd, even, first 3, last 2 — per-file page selection with quick-select buttons.</p></div>
+      <div class="fc2"><div class="fi2" style="--a:#06b6d4;--b:#3b82f6"><i class="fas fa-arrows-up-down"></i></div><h3>Drag to Reorder</h3><p>Smooth Sortable.js drag-and-drop. Sort by name or size. Alt+↑↓ keyboard reorder.</p></div>
+      <div class="fc2"><div class="fi2" style="--a:#10b981;--b:#059669"><i class="fas fa-bookmark"></i></div><h3>Bookmark Preservation</h3><p>All outlines, navigation bookmarks, and internal links from every source kept intact.</p></div>
+      <div class="fc2"><div class="fi2" style="--a:#8b5cf6;--b:#ec4899"><i class="fas fa-list-ol"></i></div><h3>Smart Page Ranges</h3><p>1-3, 5, odd, even, first 3, last 2 — per-file page selection with one-click quick buttons.</p></div>
       <div class="fc2"><div class="fi2" style="--a:#ef4444;--b:#f97316"><i class="fas fa-table-list"></i></div><h3>Auto Table of Contents</h3><p>Professional TOC with accurate page numbers generated and prepended automatically.</p></div>
-      <div class="fc2"><div class="fi2" style="--a:#0ea5e9;--b:#6366f1"><i class="fas fa-compress"></i></div><h3>Smart Compression</h3><p>Lossless pikepdf stream compression — smaller output with full quality preserved.</p></div>
-      <div class="fc2"><div class="fi2" style="--a:#22c55e;--b:#10b981"><i class="fas fa-lock-open"></i></div><h3>Password Protected PDFs</h3><p>Merge encrypted PDFs — expand the card, enter the password. Never stored or logged.</p></div>
+      <div class="fc2"><div class="fi2" style="--a:#0ea5e9;--b:#6366f1"><i class="fas fa-compress"></i></div><h3>Smart Compression</h3><p>Lossless pikepdf + Ghostscript compression — smaller output, full quality preserved.</p></div>
+      <div class="fc2"><div class="fi2" style="--a:#22c55e;--b:#10b981"><i class="fas fa-lock-open"></i></div><h3>Password-Protected PDFs</h3><p>Merge encrypted PDFs — expand the card, enter the password. Never stored or logged.</p></div>
     </div>
   </div>
 </section>
@@ -476,35 +489,35 @@
     <div class="faq-list" role="list">
       <div class="faq" role="listitem">
         <button class="faq-q" aria-expanded="false"><span>How many files can I merge at once?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
-        <div class="faq-a"><p>Up to 50 PDF or image files per merge, each up to 1 GB. No daily limits and no account needed. Completely unlimited and always free.</p></div>
+        <div class="faq-a"><p>Up to 50 PDF or image files per merge, each up to 1 GB. No daily limits, no account needed. Always free.</p></div>
       </div>
       <div class="faq" role="listitem">
         <button class="faq-q" aria-expanded="false"><span>Can I merge JPG or PNG images with PDFs?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
-        <div class="faq-a"><p>Yes! Images (JPG, PNG, WebP, GIF, BMP, TIFF) are automatically converted to PDF pages at full quality using Pillow and img2pdf before merging. Mix images and PDFs freely in any order.</p></div>
+        <div class="faq-a"><p>Yes! Images (JPG, PNG, WebP, GIF, BMP, TIFF) are automatically converted to PDF at full quality using img2pdf and Pillow. Mix images and PDFs freely in any order.</p></div>
       </div>
       <div class="faq" role="listitem">
-        <button class="faq-q" aria-expanded="false"><span>Will my PDF quality be affected by merging?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
-        <div class="faq-a"><p>Never. IshuTools uses enterprise Python libraries — pypdf, PyMuPDF (fitz), pikepdf — that preserve 100% original resolution, fonts, vectors, and formatting with zero quality loss.</p></div>
+        <button class="faq-q" aria-expanded="false"><span>Will my PDF quality be affected?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+        <div class="faq-a"><p>Never. IshuTools uses pypdf, PyMuPDF (fitz), and pikepdf — enterprise libraries that preserve 100% original resolution, fonts, vectors, and formatting with zero quality loss.</p></div>
       </div>
       <div class="faq" role="listitem">
-        <button class="faq-q" aria-expanded="false"><span>Is this PDF merger completely free forever?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+        <button class="faq-q" aria-expanded="false"><span>Is this PDF merger free forever?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
         <div class="faq-a"><p>100% free, forever. No signup, no email, no hidden fees, no watermark. Built by Ishu Kumar (ISHUKR41) — professional PDF tools for everyone, always free.</p></div>
       </div>
       <div class="faq" role="listitem">
         <button class="faq-q" aria-expanded="false"><span>Can I select specific pages from each PDF?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
-        <div class="faq-a"><p>Yes! Expand any file card to reveal the Page Range field. Enter <code>1-3,5</code> for specific pages, or use keywords like <code>odd</code>, <code>even</code>, <code>first 3</code>, <code>last 2</code>. Leave blank for all pages.</p></div>
+        <div class="faq-a"><p>Yes! Expand any file card to reveal the Page Range field. Enter <code>1-3,5</code> for specific pages, or keywords like <code>odd</code>, <code>even</code>, <code>first 3</code>, <code>last 2</code>. Leave blank for all pages.</p></div>
       </div>
       <div class="faq" role="listitem">
         <button class="faq-q" aria-expanded="false"><span>Are my files safe and private?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
-        <div class="faq-a"><p>Files are uploaded over HTTPS, processed in isolated temp folders, and permanently deleted immediately after your download. IshuTools never reads, shares, or stores your documents. 100% private.</p></div>
+        <div class="faq-a"><p>Files are uploaded over HTTPS, processed in isolated temp folders, and permanently deleted immediately after your download. IshuTools never reads, shares, or stores your documents.</p></div>
       </div>
       <div class="faq" role="listitem">
         <button class="faq-q" aria-expanded="false"><span>Can I merge password-protected PDFs?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
-        <div class="faq-a"><p>Yes. When an encrypted PDF is detected, a lock icon appears on the file card. Expand the card and enter the password. It is only used during the merge and is never stored or logged.</p></div>
+        <div class="faq-a"><p>Yes. When an encrypted PDF is detected, a lock icon appears. Expand the card and enter the password. It is only used during the merge and is never stored or logged.</p></div>
       </div>
       <div class="faq" role="listitem">
-        <button class="faq-q" aria-expanded="false"><span>What is the download filename?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
-        <div class="faq-a"><p>Your merged PDF is automatically named after the first uploaded file plus <code>_merged.pdf</code>. You can override this in Advanced Options → Output Filename.</p></div>
+        <button class="faq-q" aria-expanded="false"><span>What is the merged PDF's filename?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+        <div class="faq-a"><p>Your merged PDF is automatically named after the first uploaded file plus <code>_merged.pdf</code>. Override this anytime in Advanced Options → Output Filename.</p></div>
       </div>
     </div>
   </div>
@@ -523,7 +536,7 @@
       </a>
       <a href="/tools/compress-pdf/" class="rel-card">
         <div class="ri2" style="background:linear-gradient(135deg,#10b981,#059669)"><i class="fas fa-compress-arrows-alt"></i></div>
-        <div><h3>Compress PDF</h3><p>Reduce size, keep quality</p></div>
+        <div><h3>Compress PDF</h3><p>Reduce file size, keep quality</p></div>
         <i class="fas fa-arrow-right" aria-hidden="true"></i>
       </a>
       <a href="/tools/jpg-to-pdf/" class="rel-card">
@@ -588,7 +601,7 @@
   </div>
 </div>
 
-<!-- Toast notification -->
+<!-- Toast -->
 <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true"></div>
 
 <!-- Undo bar -->
