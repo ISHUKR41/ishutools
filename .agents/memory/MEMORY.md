@@ -16,3 +16,5 @@
 - [Tool .py file scale](tool-py-scale.md) — All 34 tool .py files have 28-42 functions each (953 total, 41k+ lines); append new functions at bottom; always syntax-check with compile() before restart
 - [API route naming](api-routes.md) — Route names differ from UI names: page-numbers→add-page-numbers, watermark→add-watermark, pdf-to-jpg→pdf-to-img; always verify in app.py before testing
 - [Merge PDF enterprise features](merge-pdf-enterprise.md) — pdf_merge.py has validate_for_merge(), generate_thumbnail_b64(), smart_postprocess(); merge_pdfs() accepts file_names for TOC/separator titles; display_names parsed in app.py and passed through
+- [Web Audio sound effects](web-audio-sounds.md) — Use Web Audio API (no CDN) for success chime (C5-E5-G5-C6 arpeggio) and download whoosh (sawtooth+lowpass); _getAudioCtx() singleton; functions defined after init but hoisted fine since they're function declarations not arrow functions
+- [Merge presets pattern](merge-presets.md) — MERGE_PRESETS const + applyPreset(key) fires change events on both qOpt chips AND opt checkboxes; querySelector preset-btn forEach wired after definition; preset.active class for visual state

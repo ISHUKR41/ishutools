@@ -19,7 +19,8 @@ const FILE_COLORS = ['#6366f1','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6'
 let files = [];           // Array of { id, file, pageRange, password, info }
 let sortable = null;
 let pdfjsLib = null;
-let mergeResult = null;
+let mergeResult    = null;
+let mergeStartTime = null;
 let downloadUrl = null;
 let currentSort = 'order';
 let originalOrder = []; // store original file order for "order" sort
@@ -802,8 +803,14 @@ function setProgressStep(step) {
 function completeProgress() {
   if (progressTimer) clearInterval(progressTimer);
   progressBar.style.width = '100%';
-  setProgressStep(3);
-  $('pstep3') && $('pstep3').classList.replace('active', 'done');
+  ['pstep1','pstep2','pstep3'].forEach(id => {
+    const el = $(id);
+    if (el) { el.classList.remove('active'); el.classList.add('done'); }
+  });
+  const p4 = $('pstep4');
+  if (p4) { p4.classList.remove('done'); p4.classList.add('active'); }
+  if (progressTitle) progressTitle.textContent = 'Complete!';
+  if (progressSub) progressSub.textContent = 'Preparing your download…';
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -815,6 +822,7 @@ async function doMerge() {
     return;
   }
 
+  mergeStartTime = Date.now();
   showProgress();
 
   const formData = new FormData();
@@ -878,13 +886,12 @@ async function doMerge() {
     if (downloadUrl) URL.revokeObjectURL(downloadUrl);
     downloadUrl = URL.createObjectURL(blob);
 
-    // Smart download filename — prefer display names, fall back to file names
-    const nameSources = files.slice(0, 3).map(e =>
-      (e.displayName || e.file.name).replace(/\.pdf$/i, '').replace(/\s+/g, '_')
-    );
-    const smartStem = nameSources.join('_').slice(0, 60);
+    // Download filename — use FIRST/topmost file's name
+    const firstEntry = files[0];
+    const firstStem = (firstEntry.displayName || firstEntry.file.name)
+      .replace(/\.pdf$/i, '').replace(/[\s/\\:*?"<>|]+/g, '_').slice(0, 60);
     mergeResult = {
-      filename: `${smartStem}_merged.pdf`,
+      filename: `${firstStem}_merged.pdf`,
       totalPages,
       sourceCount,
       outputSize,
@@ -893,23 +900,78 @@ async function doMerge() {
     };
 
     // Fill result stats
-    $('rstatFiles').textContent = sourceCount;
-    $('rstatPages').textContent = totalPages;
-    $('rstatSize').textContent  = outputSize > 0 ? formatBytes(outputSize) : '—';
-    $('rstatMethod').textContent = method.replace('pypdf+pikepdf', 'pypdf').replace('ghostscript', 'Ghostscript').replace('fitz', 'PyMuPDF');
+    $('rstatFiles').textContent  = sourceCount;
+    $('rstatPages').textContent  = totalPages;
+    $('rstatSize').textContent   = outputSize > 0 ? formatBytes(outputSize) : '—';
+    $('rstatMethod').textContent = method
+      .replace('pypdf+pikepdf', 'pypdf')
+      .replace('ghostscript', 'Ghostscript')
+      .replace('fitz', 'PyMuPDF');
+
+    // Time elapsed
+    const elapsedMs  = Date.now() - (mergeStartTime || Date.now());
+    const elapsedSec = (elapsedMs / 1000).toFixed(1);
+    const timeEl = $('rstatTime');
+    if (timeEl) timeEl.textContent = `${elapsedSec}s`;
+
+    // Size change badge
+    const inputTotal = files.reduce((s, f) => s + f.file.size, 0);
+    const sizeRatio  = inputTotal > 0 ? outputSize / inputTotal : 1;
+    const savedPct   = Math.round((1 - sizeRatio) * 100);
+    const savedEl    = $('rstatSaved');
+    if (savedEl) {
+      if (savedPct > 5) {
+        savedEl.textContent  = `↓${savedPct}% smaller`;
+        savedEl.className    = 'rstat-val size-positive';
+      } else if (savedPct < -5) {
+        savedEl.textContent  = `↑${Math.abs(savedPct)}% larger`;
+        savedEl.className    = 'rstat-val size-negative';
+      } else {
+        savedEl.textContent  = 'Optimal';
+        savedEl.className    = 'rstat-val size-neutral';
+      }
+    }
+
+    // Quality badge
+    const qualityEl = $('qualityBadge');
+    if (qualityEl) {
+      if (savedPct >= 15) {
+        qualityEl.textContent = '★ Excellent — Size Reduced by ' + savedPct + '%';
+        qualityEl.className   = 'quality-badge excellent';
+      } else if (savedPct >= 0) {
+        qualityEl.textContent = '✓ Good Quality Output';
+        qualityEl.className   = 'quality-badge good';
+      } else {
+        qualityEl.textContent = '↑ Slightly Larger Than Input';
+        qualityEl.className   = 'quality-badge fair';
+      }
+    }
+
+    // Reading time estimate (avg 1.5 min per page, 250 words)
+    const pageCount  = parseInt(totalPages) || 0;
+    const readMins   = Math.max(1, Math.round(pageCount * 1.5));
+    const readTimeEl = $('readingTime');
+    if (readTimeEl) {
+      readTimeEl.textContent = readMins < 60
+        ? `📖 ~${readMins} min read`
+        : `📖 ~${Math.floor(readMins / 60)}h ${readMins % 60}m read`;
+    }
+    const qRow = $('qualityBadgeRow');
+    if (qRow) qRow.style.display = 'flex';
 
     const extras = [];
     if (tocAdded) extras.push('with TOC');
     if (optSeparators.checked) extras.push('with separators');
-    $('resultSubtitle').textContent = `${sourceCount} files → ${totalPages} pages merged ${extras.length ? '(' + extras.join(', ') + ')' : 'successfully'}`;
+    $('resultSubtitle').textContent =
+      `${sourceCount} files → ${totalPages} pages merged ${extras.length ? '(' + extras.join(', ') + ')' : 'successfully'}`;
 
     // Save to recent merges history
     saveRecentMerge(mergeResult);
 
     setTimeout(() => {
       showResult();
+      playSuccessChime();
       launchConfetti();
-      // Show recent merges
       renderRecentMerges();
     }, 300);
 
@@ -932,6 +994,7 @@ function triggerDownload() {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+  playDownloadSound();
   showToast('Download started!', 'success');
 }
 
@@ -1385,6 +1448,27 @@ document.addEventListener('keydown', e => {
     const id = card?.getAttribute('data-id');
     if (id) removeFile(id);
   }
+
+  // Alt+Up / Alt+Down — reorder focused file card
+  if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && !inInput) {
+    const focusedCard = document.activeElement.closest('.file-card');
+    if (!focusedCard) return;
+    e.preventDefault();
+    const id  = focusedCard.getAttribute('data-id');
+    const idx = files.findIndex(f => f.id === id);
+    if (idx === -1) return;
+    const newIdx = e.key === 'ArrowUp' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= files.length) return;
+    [files[idx], files[newIdx]] = [files[newIdx], files[idx]];
+    originalOrder = files.map(f => f.id);
+    renderFileList();
+    updateCounts();
+    setTimeout(() => {
+      const moved = document.querySelector(`[data-id="${id}"]`);
+      if (moved) { moved.focus(); moved.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+    }, 50);
+    showToast(e.key === 'ArrowUp' ? '↑ Moved up' : '↓ Moved down', 'info');
+  }
 });
 
 /* ══════════════════════════════════════════════════════════
@@ -1405,3 +1489,130 @@ setupQuickOptSync();
 
 // Initial state
 updateCounts();
+
+/* ══════════════════════════════════════════════════════════
+   WEB AUDIO SOUND EFFECTS  (no CDN — pure Web Audio API)
+══════════════════════════════════════════════════════════ */
+let _audioCtx = null;
+function _getAudioCtx() {
+  try {
+    if (!_audioCtx || _audioCtx.state === 'closed') {
+      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return _audioCtx;
+  } catch (_) { return null; }
+}
+
+function playSuccessChime() {
+  const ctx = _getAudioCtx();
+  if (!ctx) return;
+  const notes = [
+    [523.25, 0,    0.55, 0.20],  // C5
+    [659.25, 0.11, 0.50, 0.18],  // E5
+    [783.99, 0.22, 0.45, 0.16],  // G5
+    [1046.5, 0.31, 0.60, 0.22],  // C6  ← satisfying high note
+  ];
+  const now = ctx.currentTime;
+  notes.forEach(([freq, dt, dur, vol]) => {
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now + dt);
+    gain.gain.setValueAtTime(0, now + dt);
+    gain.gain.linearRampToValueAtTime(vol, now + dt + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + dt + dur);
+    osc.start(now + dt);
+    osc.stop(now + dt + dur + 0.05);
+  });
+}
+
+function playDownloadSound() {
+  const ctx = _getAudioCtx();
+  if (!ctx) return;
+  const now  = ctx.currentTime;
+  const osc  = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const filt = ctx.createBiquadFilter();
+  osc.connect(filt); filt.connect(gain); gain.connect(ctx.destination);
+  osc.type = 'sawtooth';
+  filt.type = 'lowpass';
+  filt.frequency.setValueAtTime(1800, now);
+  filt.frequency.exponentialRampToValueAtTime(180, now + 0.3);
+  osc.frequency.setValueAtTime(520, now);
+  osc.frequency.exponentialRampToValueAtTime(90, now + 0.35);
+  gain.gain.setValueAtTime(0.10, now);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
+  osc.start(now); osc.stop(now + 0.45);
+}
+
+/* ══════════════════════════════════════════════════════════
+   MERGE PRESETS
+══════════════════════════════════════════════════════════ */
+const MERGE_PRESETS = {
+  quick: {
+    label: 'Quick Merge',
+    toc: false, sep: false, bookmarks: true, dupes: false, compress: false, linear: false, method: 'auto',
+  },
+  report: {
+    label: 'Professional Report',
+    toc: true, sep: true, bookmarks: true, dupes: true, compress: false, linear: false, method: 'auto',
+  },
+  compact: {
+    label: 'Compact Output',
+    toc: false, sep: false, bookmarks: false, dupes: true, compress: true, linear: true, method: 'gs',
+  },
+  archive: {
+    label: 'Full Archive',
+    toc: true, sep: true, bookmarks: true, dupes: true, compress: true, linear: false, method: 'fitz',
+  },
+};
+
+function applyPreset(key) {
+  const p = MERGE_PRESETS[key];
+  if (!p) return;
+
+  // Helper: set checkbox + fire change for sync
+  const set = (id, val) => {
+    const el = $(id);
+    if (!el) return;
+    el.checked = val;
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  // Advanced options
+  set('optToc',        p.toc);
+  set('optSeparators', p.sep);
+  set('optBookmarks',  p.bookmarks);
+  set('optSkipDupes',  p.dupes);
+  set('optCompress',   p.compress);
+
+  // Quick chips
+  set('qOptToc',     p.toc);
+  set('qOptSep',     p.sep);
+  set('qOptBmarks',  p.bookmarks);
+  set('qOptCompress',p.compress);
+  set('qOptLinear',  p.linear);
+
+  // Sync chip classes manually (in case change events don't bubble fast enough)
+  ['qOptToc','qOptSep','qOptBmarks','qOptCompress','qOptLinear'].forEach(id => {
+    const el = $(id);
+    el?.closest('label')?.classList.toggle('qopt-checked', el.checked);
+  });
+
+  // Merge engine
+  const mEl = $('optMethod');
+  if (mEl) mEl.value = p.method;
+
+  // Highlight active preset button
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.preset === key);
+  });
+
+  showToast(`"${p.label}" preset applied`, 'success');
+}
+
+// Wire preset buttons
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+});

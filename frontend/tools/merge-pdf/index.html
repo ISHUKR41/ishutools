@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Merge PDF Free Online — Combine Multiple PDFs Into One | IshuTools.fun</title>
   <meta name="description" content="Merge PDF files online for free. Combine multiple PDF documents into one in seconds. Drag-to-reorder, page ranges, TOC, separator pages, bookmark preservation. No signup, no watermark. Best free PDF merger by Ishu Kumar — ishutools.fun." />
-  <meta name="keywords" content="merge pdf, combine pdf, join pdf online free, merge pdf files, pdf merger, pdf combiner, ishu, ishu kumar, ishutools, ishutools.fun, ISHUKR41, ISHUKR75, free pdf tools online, merge multiple pdfs, pdf joiner, combine pdf pages, merge pdf without losing quality, free online pdf merger 2025" />
+  <meta name="keywords" content="merge pdf, combine pdf, join pdf online free, merge pdf files, pdf merger, pdf combiner, combine multiple pdf into one, ishu, ishu kumar, ishu kumar developer, ishutools, ishutools.fun, ISHUKR41, ISHUKR75, free pdf tools online, merge multiple pdfs, pdf joiner, combine pdf pages, merge pdf without losing quality, free online pdf merger 2025, 2026, best pdf merger online, pdf combine tool, online pdf joiner no watermark, merge pdf free no sign up, drag drop pdf merger, pdf merger with page range, pdf combiner with table of contents, free pdf combiner tool, ishu kumar pdf tools, ishu kumar free tools, professional pdf merger, enterprise pdf merge, bulk pdf combine, pdf merge open source, combine scanned pdfs, merge password protected pdfs, pdf merge unlimited, fast pdf merger, secure pdf merge, pdf merge compress, pdf merge with bookmarks, free pdf merge tool india, ishu tools pdf merger" />
   <meta name="author" content="Ishu Kumar" />
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
   <meta name="googlebot" content="index, follow" />
@@ -224,6 +224,23 @@
 
     <div class="file-list" id="fileList" role="list" aria-label="PDF files to merge"></div>
 
+    <!-- ── MERGE PRESETS ── -->
+    <div class="presets-row" id="presetsRow">
+      <span class="presets-label"><i class="fas fa-wand-magic-sparkles"></i> Presets:</span>
+      <button class="preset-btn" data-preset="quick" title="Fast merge with default settings — no extras">
+        <i class="fas fa-bolt"></i><span>Quick</span>
+      </button>
+      <button class="preset-btn" data-preset="report" title="Professional report with TOC and separator pages">
+        <i class="fas fa-briefcase"></i><span>Report</span>
+      </button>
+      <button class="preset-btn" data-preset="compact" title="Compress and de-duplicate for smallest output">
+        <i class="fas fa-compress"></i><span>Compact</span>
+      </button>
+      <button class="preset-btn" data-preset="archive" title="All features enabled — highest quality archival">
+        <i class="fas fa-box-archive"></i><span>Archive</span>
+      </button>
+    </div>
+
     <!-- ── QUICK OPTIONS ── -->
     <div class="quick-opts-row" id="quickOptsRow">
       <span class="qopts-label"><i class="fas fa-bolt"></i> Quick:</span>
@@ -380,6 +397,7 @@
         <div class="pstep active" id="pstep1"><i class="fas fa-upload"></i> Uploading</div>
         <div class="pstep" id="pstep2"><i class="fas fa-cogs"></i> Merging</div>
         <div class="pstep" id="pstep3"><i class="fas fa-download"></i> Preparing</div>
+        <div class="pstep" id="pstep4"><i class="fas fa-circle-check"></i> Complete</div>
       </div>
     </div>
   </section>
@@ -425,6 +443,25 @@
             <div class="rstat-label">Engine used</div>
           </div>
         </div>
+        <div class="rstat">
+          <i class="fas fa-stopwatch"></i>
+          <div>
+            <div class="rstat-val" id="rstatTime">—</div>
+            <div class="rstat-label">Merge time</div>
+          </div>
+        </div>
+        <div class="rstat">
+          <i class="fas fa-scale-balanced"></i>
+          <div>
+            <div class="rstat-val" id="rstatSaved">—</div>
+            <div class="rstat-label">Size change</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="quality-badge-row" id="qualityBadgeRow" style="display:none">
+        <span class="quality-badge" id="qualityBadge"></span>
+        <span class="reading-time" id="readingTime"></span>
       </div>
 
       <div class="result-actions">
@@ -608,6 +645,34 @@
           <i class="fas fa-chevron-down faq-chevron"></i>
         </button>
         <div class="faq-a"><strong>Auto</strong> works best for most files. <strong>PyMuPDF</strong> is best for PDFs with complex links and annotations. <strong>Ghostscript</strong> produces the smallest file size for print-quality PDFs.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          <span>What are the Merge Presets (Quick, Report, Compact, Archive)?</span>
+          <i class="fas fa-chevron-down faq-chevron"></i>
+        </button>
+        <div class="faq-a"><strong>Quick</strong> — fast merge with bookmark preservation only. <strong>Report</strong> — professional output with Table of Contents and separator pages. <strong>Compact</strong> — compress + deduplicate for smallest file size. <strong>Archive</strong> — all features enabled for complete, high-quality document archival.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          <span>How do I reorder files before merging?</span>
+          <i class="fas fa-chevron-down faq-chevron"></i>
+        </button>
+        <div class="faq-a">Drag and drop file cards to reorder them. You can also use the Sort buttons (by name, size, or date) or press <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd> on a focused card to move it up or down. The final merge order matches the displayed order.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          <span>Can I rename the output filename before downloading?</span>
+          <i class="fas fa-chevron-down faq-chevron"></i>
+        </button>
+        <div class="faq-a">Yes. The output filename is automatically based on the first file's name. You can also double-click any file name in a card to rename it — the renamed display name is used in TOC entries, separator pages, and the final output filename.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          <span>How many PDFs can I merge at once?</span>
+          <i class="fas fa-chevron-down faq-chevron"></i>
+        </button>
+        <div class="faq-a">IshuTools supports merging up to 50 PDF files at once, with up to 1 GB per file. There are no daily limits, no account required, and no watermarks added. Use it as many times as you need — it's 100% free forever.</div>
       </div>
     </div>
   </div>
