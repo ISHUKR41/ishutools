@@ -2,77 +2,89 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
 
-  <!-- IshuTools.fun — 36+ Free PDF Tools by Ishu Kumar (ISHUKR41 / ISHUKR75) -->
+  <!--
+    IshuTools.fun — 36+ Free PDF Tools
+    Built by Ishu Kumar (ISHUKR41 / ISHUKR75) — GitHub: ISHUKR41
+    Sitemap last updated: 2026-06-18
+  -->
 
   <!-- ═══ Homepage ═══ -->
   <url>
     <loc>https://ishutools.fun/</loc>
-    <lastmod>2026-06-17</lastmod>
+    <lastmod>2026-06-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://ishutools.fun/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ishutools.fun/"/>
     <image:image>
       <image:loc>https://ishutools.fun/static/icons/og-image.png</image:loc>
-      <image:title>IshuTools — 36+ Free Online PDF Tools by Ishu Kumar</image:title>
-      <image:caption>Free PDF tools at ishutools.fun — Merge, Split, Compress, Convert, OCR, Sign, Translate PDF — by Ishu Kumar (ISHUKR41 / ISHUKR75)</image:caption>
+      <image:title>IshuTools.fun — 36+ Free Online PDF Tools by Ishu Kumar (ISHUKR41)</image:title>
+      <image:caption>Free PDF tools: Merge, Split, Compress, Convert, OCR, Sign, Translate PDF — by Ishu Kumar (ISHUKR41 / ISHUKR75) at ishutools.fun. No signup, no watermark.</image:caption>
     </image:image>
   </url>
 
-  <!-- ═══ Organize PDF Tools ═══ -->
+  <!-- ═══ MERGE PDF — highest priority tool ═══ -->
   <url>
     <loc>https://ishutools.fun/tools/merge-pdf/</loc>
     <lastmod>2026-06-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://ishutools.fun/tools/merge-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-IN" href="https://ishutools.fun/tools/merge-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ishutools.fun/tools/merge-pdf/"/>
     <image:image>
       <image:loc>https://ishutools.fun/static/icons/og-image.png</image:loc>
       <image:title>Merge PDF Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41)</image:title>
-      <image:caption>Combine PDF files online free. No signup, no watermark. By Ishu Kumar. Up to 50 files, password-protected PDFs, drag-reorder, page ranges, TOC.</image:caption>
+      <image:caption>Merge PDF files online free — no signup, no watermark, zero quality loss. Combine PDFs + images. Drag to reorder, page ranges, TOC, bookmarks. By Ishu Kumar (ISHUKR41) at ishutools.fun.</image:caption>
     </image:image>
   </url>
-  <url><loc>https://ishutools.fun/tools/split-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
-  <url><loc>https://ishutools.fun/tools/compress-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
-  <url><loc>https://ishutools.fun/tools/remove-pages/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
-  <url><loc>https://ishutools.fun/tools/extract-pages/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
-  <url><loc>https://ishutools.fun/tools/organize-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
-  <url><loc>https://ishutools.fun/tools/scan-to-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
-  <url><loc>https://ishutools.fun/tools/optimize-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
-  <url><loc>https://ishutools.fun/tools/repair-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>
-  <url><loc>https://ishutools.fun/tools/ocr-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
+
+  <!-- ═══ Organize PDF Tools ═══ -->
+  <url><loc>https://ishutools.fun/tools/split-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://ishutools.fun/tools/compress-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://ishutools.fun/tools/remove-pages/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
+  <url><loc>https://ishutools.fun/tools/extract-pages/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
+  <url><loc>https://ishutools.fun/tools/organize-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://ishutools.fun/tools/scan-to-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://ishutools.fun/tools/optimize-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://ishutools.fun/tools/repair-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://ishutools.fun/tools/ocr-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
 
   <!-- ═══ Convert to PDF ═══ -->
-  <url><loc>https://ishutools.fun/tools/jpg-to-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
-  <url><loc>https://ishutools.fun/tools/word-to-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
-  <url><loc>https://ishutools.fun/tools/excel-to-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
-  <url><loc>https://ishutools.fun/tools/pptx-to-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
-  <url><loc>https://ishutools.fun/tools/html-to-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
+  <url><loc>https://ishutools.fun/tools/jpg-to-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
+  <url><loc>https://ishutools.fun/tools/word-to-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
+  <url><loc>https://ishutools.fun/tools/excel-to-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
+  <url><loc>https://ishutools.fun/tools/pptx-to-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
+  <url><loc>https://ishutools.fun/tools/html-to-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
 
   <!-- ═══ Convert from PDF ═══ -->
-  <url><loc>https://ishutools.fun/tools/pdf-to-jpg/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
-  <url><loc>https://ishutools.fun/tools/pdf-to-word/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
-  <url><loc>https://ishutools.fun/tools/pdf-to-excel/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
-  <url><loc>https://ishutools.fun/tools/pdf-to-pptx/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
-  <url><loc>https://ishutools.fun/tools/pdf-to-pdfa/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://ishutools.fun/tools/pdf-to-jpg/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
+  <url><loc>https://ishutools.fun/tools/pdf-to-word/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
+  <url><loc>https://ishutools.fun/tools/pdf-to-excel/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
+  <url><loc>https://ishutools.fun/tools/pdf-to-pptx/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://ishutools.fun/tools/pdf-to-pdfa/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>
 
   <!-- ═══ Edit PDF ═══ -->
-  <url><loc>https://ishutools.fun/tools/rotate-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
-  <url><loc>https://ishutools.fun/tools/add-page-numbers/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
-  <url><loc>https://ishutools.fun/tools/add-watermark/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
-  <url><loc>https://ishutools.fun/tools/crop-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>
-  <url><loc>https://ishutools.fun/tools/edit-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
-  <url><loc>https://ishutools.fun/tools/pdf-forms/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://ishutools.fun/tools/rotate-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://ishutools.fun/tools/add-page-numbers/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://ishutools.fun/tools/add-watermark/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://ishutools.fun/tools/crop-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://ishutools.fun/tools/edit-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://ishutools.fun/tools/pdf-forms/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>
 
   <!-- ═══ PDF Security ═══ -->
-  <url><loc>https://ishutools.fun/tools/unlock-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
-  <url><loc>https://ishutools.fun/tools/protect-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
-  <url><loc>https://ishutools.fun/tools/sign-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
-  <url><loc>https://ishutools.fun/tools/redact-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
-  <url><loc>https://ishutools.fun/tools/compare-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://ishutools.fun/tools/unlock-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
+  <url><loc>https://ishutools.fun/tools/protect-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
+  <url><loc>https://ishutools.fun/tools/sign-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
+  <url><loc>https://ishutools.fun/tools/redact-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
+  <url><loc>https://ishutools.fun/tools/compare-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>
 
   <!-- ═══ AI Tools ═══ -->
-  <url><loc>https://ishutools.fun/tools/summarize-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
-  <url><loc>https://ishutools.fun/tools/translate-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://ishutools.fun/tools/summarize-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.93</priority></url>
+  <url><loc>https://ishutools.fun/tools/translate-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
 
 </urlset>
