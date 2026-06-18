@@ -576,36 +576,37 @@ def api_merge_pdf_thumbnail():
 
 @app.route('/api/split-pdf', methods=['POST'])
 def api_split_pdf():
-    """Split a PDF — supports 7 modes with SSE progress and response headers."""
+    """Split a PDF — 7 modes, lossless quality, SSE progress, rich response headers."""
     try:
         file = request.files.get('file')
         if not file:
             return error_response('No file uploaded.')
 
-        split_mode      = request.form.get('mode', 'all')
-        ranges          = request.form.get('ranges', '')
-        every_n         = max(1, int(request.form.get('every_n', 1) or 1))
-        password        = request.form.get('password', '')
-        max_size_mb     = float(request.form.get('max_size_mb', 5.0) or 5.0)
-        remove_blanks   = request.form.get('remove_blanks', 'false').lower() == 'true'
-        naming_pattern  = request.form.get('naming_pattern', 'page_{n:04d}') or 'page_{n:04d}'
-        job_id          = request.form.get('job_id', '')
+        split_mode     = request.form.get('mode', 'all')
+        ranges         = request.form.get('ranges', '')
+        every_n        = max(1, int(request.form.get('every_n', 1) or 1))
+        password       = request.form.get('password', '')
+        max_size_mb    = float(request.form.get('max_size_mb', 5.0) or 5.0)
+        remove_blanks  = request.form.get('remove_blanks', 'false').lower() == 'true'
+        naming_pattern = request.form.get('naming_pattern', 'page_{n:04d}') or 'page_{n:04d}'
+        job_id         = request.form.get('job_id', '')
 
         VALID_MODES = {'all', 'range', 'every_n', 'bookmarks', 'blank_pages', 'size_limit', 'odd_even'}
         if split_mode not in VALID_MODES:
             split_mode = 'all'
 
-        stem       = file_stem(file)
-        path       = save_uploaded_file(file)
-        out_dir    = tempfile.mkdtemp()
-        result_zip = output_path('split_pages.zip')
-
-        _push_progress(job_id, 10, 'Reading PDF…', 'Analyzing document structure')
-
         if split_mode == 'range' and not ranges.strip():
-            return error_response('No page ranges specified for range mode.')
+            return error_response('No page ranges specified. Please select pages using the grid.')
 
-        _push_progress(job_id, 30, 'Splitting PDF…', f'Mode: {split_mode}')
+        stem            = file_stem(file)
+        orig_filename   = secure_filename(file.filename) if file.filename else ''
+        path            = save_uploaded_file(file)
+        out_dir         = tempfile.mkdtemp()
+        result_zip      = output_path('split_pages.zip')
+
+        _push_progress(job_id, 10, 'Reading PDF…', 'Analysing document structure')
+
+        _push_progress(job_id, 28, 'Splitting…', f'Mode: {split_mode.replace("_", " ").title()}')
 
         result = split_pdf(
             path, out_dir, result_zip,
@@ -616,28 +617,34 @@ def api_split_pdf():
             max_size_mb=max_size_mb,
             remove_blanks=remove_blanks,
             naming_pattern=naming_pattern,
-            compress_output=True,
+            compress_output=False,   # lossless — never re-encode
             use_pikepdf=True,
+            source_filename=orig_filename,
         )
 
-        _push_progress(job_id, 92, 'Creating ZIP…', f'Packaging {result["file_count"]} files')
+        _push_progress(job_id, 92, 'Building ZIP…', f'Packaging {result["file_count"]} files')
 
-        resp = send_result(result_zip, f'{stem}_split.zip', 'application/zip')
-        resp.headers['X-File-Count']      = str(result.get('file_count', 0))
-        resp.headers['X-Total-Pages']     = str(result.get('total_pages', 0))
-        resp.headers['X-Skipped-Blanks']  = str(result.get('skipped_blanks', 0))
-        resp.headers['X-Mode-Used']       = result.get('mode_used', split_mode)
-        resp.headers['Access-Control-Expose-Headers'] = \
-            'X-File-Count,X-Total-Pages,X-Skipped-Blanks,X-Mode-Used'
+        download_name = f'{stem}_split.zip'
+        resp = send_result(result_zip, download_name, 'application/zip')
+        resp.headers['X-File-Count']     = str(result.get('file_count', 0))
+        resp.headers['X-Total-Pages']    = str(result.get('total_pages', 0))
+        resp.headers['X-Skipped-Blanks'] = str(result.get('skipped_blanks', 0))
+        resp.headers['X-Mode-Used']      = result.get('mode_used', split_mode)
+        resp.headers['X-Zip-Size-KB']    = str(result.get('zip_size_kb', 0))
+        resp.headers['X-Download-Name']  = download_name
+        resp.headers['Access-Control-Expose-Headers'] = (
+            'X-File-Count,X-Total-Pages,X-Skipped-Blanks,'
+            'X-Mode-Used,X-Zip-Size-KB,X-Download-Name'
+        )
 
-        _push_progress(job_id, 100, 'Done!', '', done=True)
+        _push_progress(job_id, 100, 'Done! ✓', '', done=True)
         return resp
 
     except ValueError as e:
-        logger.warning("split-pdf validation: %s", e)
+        logger.warning('split-pdf validation: %s', e)
         return error_response(str(e))
     except Exception as e:
-        logger.exception("split-pdf error")
+        logger.exception('split-pdf error')
         return error_response(str(e))
 
 
