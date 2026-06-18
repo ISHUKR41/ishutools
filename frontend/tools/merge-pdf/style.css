@@ -232,6 +232,16 @@ code {
 .tmh-creator a:hover { background: rgba(99,102,241,0.2); text-decoration: none; }
 .tmh-creator a i { font-size: 0.68rem; }
 
+/* ── Star rating bar in mini-header ─────────────────────── */
+.tmh-rating {
+  display: flex; align-items: center; gap: 0.35rem;
+  justify-content: center; margin-top: 0.35rem;
+  flex-wrap: wrap;
+}
+.tmh-stars { color: #f59e0b; font-size: 1.05rem; letter-spacing: 0.04em; line-height: 1; }
+.tmh-rv    { font-weight: 800; color: var(--t1); font-size: 0.9rem; }
+.tmh-rcount{ font-size: 0.77rem; color: var(--t3); }
+
 /* ── Compact Tool Mini-Header (H1 — above the fold) ─────── */
 .tool-mini-hdr {
   width: 100%;
