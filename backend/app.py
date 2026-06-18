@@ -591,11 +591,12 @@ def api_split_pdf():
         naming_pattern = request.form.get('naming_pattern', 'page_{n:04d}') or 'page_{n:04d}'
         job_id         = request.form.get('job_id', '')
 
-        VALID_MODES = {'all', 'range', 'every_n', 'bookmarks', 'blank_pages', 'size_limit', 'odd_even'}
+        VALID_MODES = {'all', 'range', 'every_n', 'bookmarks', 'blank_pages',
+                       'size_limit', 'odd_even', 'range_groups'}
         if split_mode not in VALID_MODES:
             split_mode = 'all'
 
-        if split_mode == 'range' and not ranges.strip():
+        if split_mode in ('range', 'range_groups') and not ranges.strip():
             return error_response('No page ranges specified. Please select pages using the grid.')
 
         stem            = file_stem(file)
@@ -605,22 +606,33 @@ def api_split_pdf():
         result_zip      = output_path('split_pages.zip')
 
         _push_progress(job_id, 10, 'Reading PDF…', 'Analysing document structure')
-
         _push_progress(job_id, 28, 'Splitting…', f'Mode: {split_mode.replace("_", " ").title()}')
 
-        result = split_pdf(
-            path, out_dir, result_zip,
-            mode=split_mode,
-            ranges=ranges,
-            every_n=every_n,
-            password=password,
-            max_size_mb=max_size_mb,
-            remove_blanks=remove_blanks,
-            naming_pattern=naming_pattern,
-            compress_output=False,   # lossless — never re-encode
-            use_pikepdf=True,
-            source_filename=orig_filename,
-        )
+        # Range Groups: each comma-separated range → its own output PDF
+        if split_mode == 'range_groups':
+            from tools.pdf_split import split_ranges_to_multiple
+            result = split_ranges_to_multiple(
+                path, out_dir, result_zip,
+                ranges_str=ranges,
+                password=password,
+                remove_blanks=remove_blanks,
+                naming_pattern=naming_pattern,
+                source_filename=orig_filename,
+            )
+        else:
+            result = split_pdf(
+                path, out_dir, result_zip,
+                mode=split_mode,
+                ranges=ranges,
+                every_n=every_n,
+                password=password,
+                max_size_mb=max_size_mb,
+                remove_blanks=remove_blanks,
+                naming_pattern=naming_pattern,
+                compress_output=False,   # lossless — never re-encode
+                use_pikepdf=True,
+                source_filename=orig_filename,
+            )
 
         _push_progress(job_id, 92, 'Building ZIP…', f'Packaging {result["file_count"]} files')
 

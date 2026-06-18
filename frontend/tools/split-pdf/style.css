@@ -1325,3 +1325,161 @@ img { display:block; max-width:100%; }
   .sp-rec-apply-btn { width:100%; justify-content:center; }
   .sp-toast { bottom:14px; right:14px; left:14px; max-width:none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   v5.0 — TOOL-FIRST LAYOUT + ISHU KUMAR SEO IMPROVEMENTS
+   ================================================================= */
+
+/* ── TOOL-FIRST: main is now at the TOP of the page ────────────── */
+.sp-main-top {
+  padding-top: calc(var(--sp-nav-h) + 24px);
+}
+
+/* ── COMPACT TOOL TOPBAR (H1 + breadcrumb + desc inside tool) ──── */
+.sp-tool-topbar {
+  padding: 16px 4px 4px;
+}
+.sp-tool-h1 {
+  font-family: var(--sp-font2);
+  font-size: clamp(1.55rem, 4.5vw, 2.6rem);
+  font-weight: 900;
+  line-height: 1.12;
+  letter-spacing: -.022em;
+  color: var(--sp-text);
+  margin: 10px 0 8px;
+}
+.sp-tool-desc {
+  font-size: .88rem;
+  color: var(--sp-text2);
+  margin-bottom: 12px;
+  line-height: 1.55;
+}
+.sp-tool-desc a { color: var(--sp-accent); }
+.sp-tool-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+.sp-tool-pills span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .74rem;
+  font-weight: 500;
+  color: var(--sp-text2);
+  background: var(--sp-card);
+  border: 1px solid var(--sp-card-border);
+  padding: 4px 11px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+.sp-tool-pills span i { color: var(--sp-green); font-size: .68rem; }
+
+/* ── HERO ALT (below the tool, for branding + SEO) ─────────────── */
+.sp-hero-alt {
+  padding-top: 52px !important;
+}
+
+/* ── LOSSLESS CHIP in file stats ───────────────────────────────── */
+.sp-lossless-chip {
+  border-color: rgba(16,185,129,.35) !important;
+  color: var(--sp-green) !important;
+  background: rgba(16,185,129,.08) !important;
+}
+.sp-lossless-chip i { color: var(--sp-green) !important; }
+
+/* ── QUALITY BADGE in results action hint ───────────────────────── */
+.sp-action-hint {
+  font-size: .74rem;
+  color: var(--sp-text3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.sp-action-hint kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  background: var(--sp-bg3);
+  border: 1px solid var(--sp-card-border);
+  border-radius: 4px;
+  font-size: .67rem;
+  font-family: monospace;
+  color: var(--sp-text2);
+}
+
+/* ── BOOKMARK ITEM — better layout ─────────────────────────────── */
+.sp-bk-num {
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--sp-text3);
+  min-width: 20px;
+  flex-shrink: 0;
+}
+.sp-bk-title {
+  flex: 1;
+  font-size: .78rem;
+  color: var(--sp-text2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-bk-page {
+  font-size: .7rem;
+  color: var(--sp-text3);
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-left: 8px;
+}
+.sp-bk-more {
+  font-size: .72rem;
+  color: var(--sp-text3);
+  padding: 4px 10px;
+  font-style: italic;
+}
+
+/* ── TOOL TOPBAR RESPONSIVE ─────────────────────────────────────── */
+@media (max-width: 600px) {
+  .sp-tool-topbar { padding: 12px 2px 4px; }
+  .sp-tool-h1 { font-size: clamp(1.35rem, 6vw, 2rem); }
+  .sp-tool-pills { gap: 5px; }
+  .sp-tool-pills span { font-size: .7rem; padding: 3px 9px; }
+  .sp-hero-alt { padding-top: 36px !important; }
+}
+@media (max-width: 400px) {
+  .sp-tool-h1 { font-size: 1.3rem; }
+}
+
+/* ── IMPROVED PROGRESS BAR ANIMATION (override) ─────────────────── */
+.sp-progress-fill {
+  transition: width .5s cubic-bezier(.4,0,.2,1);
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4, #6366f1);
+  background-size: 300% 100%;
+  animation: sp-bar-flow 2s linear infinite;
+}
+@keyframes sp-bar-flow {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 300% 0; }
+}
+
+/* ── ENHANCED RESULTS CARD ──────────────────────────────────────── */
+.sp-res-info {
+  font-size: .76rem;
+  color: var(--sp-text3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  text-align: center;
+}
+
+/* ── MODE CARD — tighter on small screens ───────────────────────── */
+@media (max-width: 480px) {
+  .sp-mode-card { padding: 14px 10px; }
+  .sp-mode-icon { font-size: 1.35rem; margin-bottom: 6px; }
+  .sp-mode-title { font-size: .78rem; }
+  .sp-mode-desc  { font-size: .66rem; }
+}

@@ -1364,3 +1364,203 @@ def get_page_analytics(input_path: str, password: str = '') -> List[dict]:
     except Exception as e:
         logger.warning('get_page_analytics failed: %s', e)
     return out
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ── Fast PDF quick-info using pikepdf (no fitz rendering needed)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def get_pdf_quick_info(input_path: str, password: str = '') -> dict:
+    """
+    Fast PDF metadata extraction using pikepdf only.
+    Returns page count, encryption status, version, title, author, bookmark count.
+    No page rendering — ideal for instant display on file load.
+    """
+    info = {
+        'total_pages':    0,
+        'is_encrypted':   False,
+        'pdf_version':    '',
+        'file_size_kb':   0.0,
+        'has_bookmarks':  False,
+        'bookmark_count': 0,
+        'title':          '',
+        'author':         '',
+        'creator':        '',
+        'has_forms':      False,
+    }
+    try:
+        info['file_size_kb'] = round(os.path.getsize(input_path) / 1024, 1)
+        with pikepdf.open(input_path, password=(password or ''), suppress_warnings=True) as pdf:
+            info['is_encrypted'] = pdf.is_encrypted
+            info['total_pages']  = len(pdf.pages)
+            info['pdf_version']  = str(pdf.pdf_version)
+            try:
+                meta = pdf.open_metadata()
+                info['title']   = str(meta.get('{http://purl.org/dc/elements/1.1/}title',   ''))
+                info['author']  = str(meta.get('{http://purl.org/dc/elements/1.1/}creator', ''))
+                info['creator'] = str(meta.get('{http://ns.adobe.com/pdf/1.3/}Producer',    ''))
+            except Exception:
+                pass
+            try:
+                if '/AcroForm' in pdf.Root:
+                    info['has_forms'] = True
+            except Exception:
+                pass
+            try:
+                outlines = pdf.open_outline()
+                if outlines.root:
+                    info['has_bookmarks']  = True
+                    info['bookmark_count'] = len(list(outlines.root))
+            except Exception:
+                pass
+    except Exception as e:
+        logger.warning('get_pdf_quick_info failed: %s', e)
+    return info
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ── Range Groups: one output PDF per comma-separated range token
+# ══════════════════════════════════════════════════════════════════════════════
+
+def split_ranges_to_multiple(
+    input_path: str,
+    out_dir: str,
+    result_zip: str,
+    ranges_str: str,
+    password: str = '',
+    remove_blanks: bool = False,
+    naming_pattern: str = 'part_{n:03d}',
+    source_filename: str = '',
+) -> dict:
+    """
+    Split a PDF so that EACH comma-separated range becomes its OWN output PDF.
+
+    Unlike 'range' mode (which merges all specified pages into one file),
+    'range_groups' creates one file per comma-separated token:
+
+      ranges_str = "1-5, 8, 12-15"
+        → part_001.pdf   (pages 1–5, 5 pages)
+        → part_002.pdf   (page 8,    1 page)
+        → part_003.pdf   (pages 12–15, 4 pages)
+
+    Lossless: uses _write_pages (pikepdf cascade) — zero re-encoding.
+    """
+    results: List[dict] = []
+    os.makedirs(out_dir, exist_ok=True)
+    skipped_blanks = 0
+
+    reader = PdfReader(input_path)
+    if reader.is_encrypted:
+        reader.decrypt(password or '')
+    total = len(reader.pages)
+
+    if total == 0:
+        raise ValueError('PDF has no pages.')
+
+    # Open fitz doc once for blank detection (only if needed)
+    fitz_doc = None
+    if remove_blanks:
+        try:
+            fitz_doc = fitz.open(input_path)
+            if fitz_doc.is_encrypted:
+                fitz_doc.authenticate(password or '')
+        except Exception:
+            fitz_doc = None
+
+    try:
+        # Parse each comma/semicolon-separated token as an independent range
+        raw_groups = re.split(r'[,，；;]+', ranges_str.strip())
+
+        for raw in raw_groups:
+            raw = raw.strip()
+            if not raw:
+                continue
+
+            # Resolve pages for this token (0-indexed)
+            pages: List[int] = _parse_range(raw, total)
+
+            if not pages:
+                logger.debug('range_groups: skipping empty token %r', raw)
+                continue
+
+            # Optionally drop blank pages within this group
+            if remove_blanks and fitz_doc:
+                before = len(pages)
+                pages = [idx for idx in pages if not _is_blank_page(fitz_doc[idx])]
+                skipped_blanks += before - len(pages)
+
+            if not pages:
+                continue
+
+            n = len(results) + 1
+            safe_label = _safe_name(raw.replace('-', 'to').replace(' ', ''))[:20]
+            pattern_vars = {
+                'n':     n,
+                'label': safe_label,
+                'start': pages[0] + 1,
+                'end':   pages[-1] + 1,
+                'date':  datetime.date.today().strftime('%Y%m%d'),
+            }
+            try:
+                base = naming_pattern.format(**pattern_vars)
+            except Exception:
+                base = f'part_{n:03d}_pg{pages[0]+1}'
+            out_name = base if base.lower().endswith('.pdf') else base + '.pdf'
+            out_path = os.path.join(out_dir, out_name)
+
+            _write_pages(input_path, pages, out_path, reader)
+            results.append({
+                'filename':   out_name,
+                'path':       out_path,
+                'page_count': len(pages),
+                'range':      raw,
+                'page_start': pages[0] + 1,
+                'page_end':   pages[-1] + 1,
+            })
+
+    finally:
+        if fitz_doc:
+            fitz_doc.close()
+
+    if not results:
+        raise ValueError('No valid pages found in the specified ranges.')
+
+    # Package into ZIP with manifest
+    total_pages_out = sum(r['page_count'] for r in results)
+    zip_size_kb = 0.0
+    with zipfile.ZipFile(result_zip, 'w', zipfile.ZIP_DEFLATED, compresslevel=1) as zf:
+        for r in results:
+            if os.path.exists(r['path']):
+                zf.write(r['path'], r['filename'])
+        manifest = {
+            'tool':       'IshuTools Split PDF — Range Groups Mode',
+            'mode':       'range_groups',
+            'created_by': 'Ishu Kumar — ishutools.fun (ISHUKR41)',
+            'created_at': datetime.datetime.utcnow().isoformat() + 'Z',
+            'source':     source_filename or os.path.basename(input_path),
+            'groups':     len(results),
+            'lossless':   True,
+            'files': [
+                {
+                    'filename':   r['filename'],
+                    'range':      r['range'],
+                    'pages':      r['page_count'],
+                    'page_start': r['page_start'],
+                    'page_end':   r['page_end'],
+                }
+                for r in results
+            ],
+        }
+        zf.writestr('manifest.json', json.dumps(manifest, indent=2, ensure_ascii=False))
+
+    if os.path.exists(result_zip):
+        zip_size_kb = round(os.path.getsize(result_zip) / 1024, 1)
+
+    return {
+        'file_count':     len(results),
+        'total_pages':    total_pages_out,
+        'skipped_blanks': skipped_blanks,
+        'zip_size_kb':    zip_size_kb,
+        'mode_used':      'range_groups',
+        'files':          results,
+    }

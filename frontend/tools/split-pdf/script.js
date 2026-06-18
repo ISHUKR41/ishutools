@@ -304,6 +304,7 @@ async function callAutoDetect() {
       };
     }
 
+    if ((data.confidence || 0) < 0.78) return;   // only show high-confidence recommendations
     D.recommendBanner.hidden = false;
     if (typeof gsap !== 'undefined')
       gsap.from(D.recommendBanner, { y: -10, duration: .3, ease: 'power2.out' });
@@ -559,35 +560,27 @@ function initModes() {
     });
   });
 
-  // Auto-detect button
-  if (D.detectBtn) {
-    D.detectBtn.addEventListener('click', async () => {
-      if (!FILE) { showToast('Upload a PDF first', 'warn'); return; }
-      D.detectBtn.disabled = true;
-      D.detectBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Detecting…';
-      await callAutoDetect();
-      D.detectBtn.disabled = false;
-      D.detectBtn.innerHTML = '<i class="fa fa-magic"></i> Auto-Detect';
-    });
-  }
+  // Auto-detect runs silently on file load (detectBtn is hidden — no manual trigger needed)
 }
 
 function showModeOptions(mode) {
   if (!D.optsCard) return;
-  D.optsCard.hidden = false;
   D.optsCard.querySelectorAll('[data-mode-opt]').forEach(el => el.hidden = true);
 
   const MAP = {
-    all:         ['opt-split-preview'],
+    all:         [],                                                   // badge shows count; no duplicate needed
     range:       ['opt-range', 'opt-qs-bar', 'opt-pgrid', 'opt-split-preview'],
     every_n:     ['opt-every-n', 'opt-split-preview'],
-    bookmarks:   ['opt-bookmarks', 'opt-split-preview'],
-    blank_pages: ['opt-blank-info', 'opt-split-preview'],
+    bookmarks:   ['opt-bookmarks'],                                    // chapter list already shows detail
+    blank_pages: ['opt-blank-info'],                                   // info banner + badge is sufficient
     size_limit:  ['opt-size', 'opt-split-preview'],
-    odd_even:    ['opt-odd-even-info', 'opt-split-preview'],
+    odd_even:    ['opt-odd-even-info'],                                // "→ 2 files" badge says it all
   };
 
-  (MAP[mode] || ['opt-split-preview']).forEach(id => {
+  const opts = MAP[mode] || [];
+  D.optsCard.hidden = (opts.length === 0);   // hide card entirely when no options needed
+
+  opts.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.hidden = false;
   });
@@ -722,9 +715,16 @@ function updateSplitPreview() {
       break;
     case 'range': {
       const pages = parseRangeStr(D.rangeInput?.value || '', TOTAL_PAGES);
+      const estKB = (FILE && TOTAL_PAGES && pages.length)
+        ? Math.round((FILE.size / 1024) * (pages.length / TOTAL_PAGES)) : 0;
+      const sizeStr = estKB
+        ? (estKB < 1024
+          ? ` · est. <strong>${estKB} KB</strong>`
+          : ` · est. <strong>${(estKB / 1024).toFixed(1)} MB</strong>`)
+        : '';
       html += pages.length
-        ? `Will create <strong>1 file</strong> with <strong>${pages.length}</strong> page${pages.length !== 1 ? 's' : ''}`
-        : '<em style="color:var(--sp-text3)">Select pages using the grid or type a range above</em>';
+        ? `Extracting <strong>${pages.length} page${pages.length !== 1 ? 's' : ''}</strong> → 1 lossless PDF${sizeStr}`
+        : '<em style="color:var(--sp-text3)">Click pages below or type ranges above (e.g. 1-5, 8, 12-15)</em>';
       break;
     }
     case 'every_n': {
@@ -1064,12 +1064,10 @@ function initFAQ() {
 /* ── GSAP ANIMATIONS ────────────────────────────────────────────── */
 function initGSAP() {
   if (typeof gsap === 'undefined') return;
-  gsap.from('.sp-hero-h1',    { y: 24, duration: .65, ease: 'power3.out' });
-  gsap.from('.sp-hero-sub',   { y: 18, duration: .55, delay: .12, ease: 'power2.out' });
-  gsap.from('.sp-hero-pills', { y: 14, duration: .45, delay: .22, ease: 'power2.out' });
-  gsap.from('.sp-hero-badge', { y: -12, duration: .45, delay: .08, ease: 'power2.out' });
-  gsap.from('.sp-proof-strip',{ y: 12, duration: .4,  delay: .35, ease: 'power2.out' });
-  gsap.from('.sp-upload-card',{ y: 20, duration: .5,  delay: .45, ease: 'power2.out' });
+  gsap.from('.sp-tool-topbar', { y: -18, duration: .5, ease: 'power2.out' });
+  gsap.from('.sp-upload-card', { y: 20, duration: .5, delay: .1, ease: 'power2.out' });
+  gsap.from('.sp-hero-alt',    { y: 16, duration: .5, delay: .25, ease: 'power2.out', scrollTrigger: null });
+  gsap.from('.sp-proof-strip', { y: 12, duration: .4, delay: .3, ease: 'power2.out' });
 }
 
 /* ── PARTICLES ──────────────────────────────────────────────────── */
