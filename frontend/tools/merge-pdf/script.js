@@ -111,6 +111,7 @@ function addFiles(fileList) {
   if (skipped > 0) toast(`${skipped} duplicate${skipped > 1 ? 's' : ''} skipped`, 'info', 2200);
   if (bigFile) window.SOUNDS?.playWarningSound?.();
   if (added > 0) {
+    bumpBadge();
     showSection('files');
     rebuildList();
     updateStats();
@@ -136,12 +137,38 @@ async function readPdfMeta(entry) {
     await pg1.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
     entry.thumb = cv.toDataURL('image/jpeg', .76);
     refreshCard(entry); updateStats(); updatePreviewStrip();
+    // Kick off server-side validation in background (non-blocking)
+    validateFile(entry);
   } catch (err) {
     const isPass = err?.name === 'PasswordException' ||
       String(err).toLowerCase().includes('password');
     if (isPass) entry.enc = true;
     refreshCard(entry);
   }
+}
+
+async function validateFile(entry) {
+  if (entry.imgConverted || entry._validated) return;
+  entry._validated = true;
+  try {
+    const fd = new FormData();
+    fd.append('file', entry.file);
+    if (entry.pwd) fd.append('password', entry.pwd);
+    const r = await fetch('/api/merge-pdf/validate', { method:'POST', body: fd });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d.success) return;
+    entry.hasForms   = d.has_forms   || false;
+    entry.hasAnnots  = d.has_annotations || false;
+    entry.pdfTitle   = (d.title || '').trim();
+    entry.pdfAuthor  = (d.author || '').trim();
+    entry.pdfVersion = d.version || '';
+    entry.warnings   = d.warnings || [];
+    refreshCard(entry);
+    // Show warning toast for forms
+    if (d.has_forms)
+      toast(`"${entry.name.slice(0,28)}" has form fields — they may not merge perfectly`, 'warn', 5000);
+  } catch (_) { /* silent — network validation is best-effort */ }
 }
 
 async function genImgThumb(entry) {
@@ -226,9 +253,22 @@ function buildCard(entry, idx) {
   let pills = `<span class="fp"><i class="fas fa-database"></i>${fmtSize(entry.size)}</span>`;
   if (entry.pages !== null)  pills += `<span class="fp"><i class="fas fa-book-open"></i>${entry.pages}p</span>`;
   if (entry.enc)             pills += `<span class="fp enc"><i class="fas fa-lock"></i>Locked</span>`;
-  if (entry.imgConverted)    pills += `<span class="fp" style="color:var(--wrn);border-color:rgba(245,158,11,.22)"><i class="fas fa-image"></i>→PDF</span>`;
+  if (entry.imgConverted)    pills += `<span class="fp fp-img"><i class="fas fa-image"></i>→PDF</span>`;
+  if (entry.hasForms)        pills += `<span class="fp fp-warn" title="Has fillable form fields"><i class="fas fa-wpforms"></i>Forms</span>`;
+  if (entry.hasAnnots && !entry.hasForms)
+    pills += `<span class="fp fp-info" title="Has comments or annotations"><i class="fas fa-comment"></i>Annots</span>`;
+  if (entry.pdfVersion)      pills += `<span class="fp fp-ver" title="PDF version"><i class="fas fa-tag"></i>v${entry.pdfVersion}</span>`;
   if (entry.pages !== null && !entry.enc)
     pills += `<span class="fp ok"><i class="fas fa-circle-check"></i>Ready</span>`;
+
+  // PDF title/author subtitle (show only if title differs from filename)
+  const stem = entry.name.replace(/\.[^.]+$/, '').toLowerCase();
+  const titleSub = (entry.pdfTitle && entry.pdfTitle.toLowerCase() !== stem)
+    ? `<div class="fc-meta-sub" title="${entry.pdfTitle}${entry.pdfAuthor ? ' · ' + entry.pdfAuthor : ''}">
+        <i class="fas fa-circle-info" style="font-size:.68rem;opacity:.5"></i>
+        ${entry.pdfTitle.slice(0,42)}${entry.pdfTitle.length > 42 ? '…' : ''}
+        ${entry.pdfAuthor ? `<span style="opacity:.55"> · ${entry.pdfAuthor.slice(0,28)}</span>` : ''}
+       </div>` : '';
 
   const rangeHtml = entry.imgConverted
     ? `<div class="img-note"><i class="fas fa-info-circle"></i> Image auto-converted to PDF at full quality.</div>`
@@ -258,6 +298,7 @@ function buildCard(entry, idx) {
     </div>
     <div class="fc-info">
       <div class="fc-name" title="${entry.name}">${entry.displayName || entry.name}</div>
+      ${titleSub}
       <div class="fc-pills">${pills}</div>
       <div class="fc-expand">
         <div class="fc-row">
@@ -439,6 +480,7 @@ function removeFile(id) {
   const idx = FILES.findIndex(x => x.id === id); if (idx === -1) return;
   const [entry] = FILES.splice(idx, 1);
   pushUndo(entry, idx);
+  bumpBadge();
   window.SOUNDS?.playFileRemoveSound?.();
   const card = D.fList.querySelector(`[data-id="${id}"]`);
   if (card) {
@@ -478,6 +520,12 @@ function updateMergeBtn() {
   D.mergeBtn.classList.toggle('ready', can);
   D.mCount.textContent   = can ? `${FILES.length} files` : '';
   D.mCount.style.display = can ? '' : 'none';
+  if (D.mobileFab) D.mobileFab.hidden = FILES.length < 1;
+}
+
+function bumpBadge() {
+  const b = $('fileBadge'); if (!b) return;
+  b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump');
 }
 
 /* ════════ SECTIONS ════════ */
@@ -491,6 +539,9 @@ function showSection(which) {
   if (which === 'upload' || which === 'files') {
     if (_sizeChart) { _sizeChart.destroy(); _sizeChart = null; }
     const cw = $('chartWrap'); if (cw) cw.hidden = true;
+    const qs = $('qScore');    if (qs) qs.hidden = true;
+    const rd = $('rDupes');    if (rd) rd.hidden = true;
+    const rf = $('resFn');     if (rf) rf.hidden = true;
   }
 }
 
@@ -518,6 +569,59 @@ function stepProg(n) {
     s.classList.toggle('active', i === n);
     if (i > n) s.classList.remove('active', 'done');
   });
+}
+
+/* ════════ SETTINGS PERSISTENCE ════════ */
+const OPTS_KEY = 'ishu-merge-opts-v2';
+function saveSettings() {
+  try {
+    const s = {
+      toc:       D.optToc?.checked,
+      sep:       D.optSep?.checked,
+      bm:        D.optBookmarks?.checked,
+      comp:      D.optCompress?.checked,
+      dd:        D.optDedup?.checked,
+      norm:      D.optNorm?.checked,
+      method:    D.optMethod?.value,
+      tgtSz:     D.optTargetSize?.value,
+    };
+    localStorage.setItem(OPTS_KEY, JSON.stringify(s));
+  } catch (_) {}
+}
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem(OPTS_KEY) || 'null');
+    if (!s) return;
+    if (D.optToc      && s.toc      != null) D.optToc.checked      = s.toc;
+    if (D.optSep      && s.sep      != null) D.optSep.checked       = s.sep;
+    if (D.optBookmarks&& s.bm       != null) D.optBookmarks.checked = s.bm;
+    if (D.optCompress && s.comp     != null) D.optCompress.checked  = s.comp;
+    if (D.optDedup    && s.dd       != null) D.optDedup.checked     = s.dd;
+    if (D.optNorm     && s.norm     != null) {
+      D.optNorm.checked = s.norm;
+      if (D.normSzField) D.normSzField.hidden = !s.norm;
+    }
+    if (D.optMethod   && s.method)           D.optMethod.value      = s.method;
+    if (D.optTargetSize && s.tgtSz)         D.optTargetSize.value  = s.tgtSz;
+  } catch (_) {}
+}
+
+/* ════════ MERGE COUNTER ════════ */
+const CNT_KEY = 'ishu-merge-count';
+function getMergeCount() {
+  try { return parseInt(localStorage.getItem(CNT_KEY) || '0', 10); } catch (_) { return 0; }
+}
+function incMergeCount() {
+  try {
+    const n = getMergeCount() + 1;
+    localStorage.setItem(CNT_KEY, String(n));
+    return n;
+  } catch (_) { return 1; }
+}
+function updateHeroCnt() {
+  const n = getMergeCount();
+  const el = $('heroCnt'), num = $('heroCntN');
+  if (el && num && n > 0) { num.textContent = n.toLocaleString(); el.hidden = false; }
 }
 
 /* ════════ MERGE ════════ */
@@ -563,26 +667,40 @@ async function startMerge() {
       try { const j = await resp.json(); msg = j.error || msg; } catch (_) {}
       throw new Error(msg);
     }
-    const totalPages  = parseInt(resp.headers.get('X-Total-Pages')  || '0') || 0;
-    const srcCount    = parseInt(resp.headers.get('X-Source-Count')  || '0') || FILES.length;
-    const methodUsed  = resp.headers.get('X-Method-Used')            || 'pypdf';
-    const outputSize  = parseInt(resp.headers.get('X-Output-Size')   || '0') || 0;
-    const skippedDups = parseInt(resp.headers.get('X-Skipped-Dupes') || '0') || 0;
+    const totalPages   = parseInt(resp.headers.get('X-Total-Pages')   || '0') || 0;
+    const srcCount     = parseInt(resp.headers.get('X-Source-Count')  || '0') || FILES.length;
+    const methodUsed   = resp.headers.get('X-Method-Used')            || 'pypdf';
+    const outputSize   = parseInt(resp.headers.get('X-Output-Size')   || '0') || 0;
+    const skippedDups  = parseInt(resp.headers.get('X-Skipped-Dupes') || '0') || 0;
+    const qualityScore = parseInt(resp.headers.get('X-Quality-Score') || '100', 10);
+    const qualityGrade = resp.headers.get('X-Quality-Grade')          || 'A+';
 
     _dlBlob = await resp.blob();
     if (_dlUrl) URL.revokeObjectURL(_dlUrl);
     _dlUrl  = URL.createObjectURL(_dlBlob);
     _dlName = smartName();
 
+    incMergeCount();
+    saveSettings();
     setProg(100, 'Done!', 'Merge complete — ready to download');
     stepProg(3);
     await new Promise(r => setTimeout(r, 350));
-    showResult(totalPages, srcCount, methodUsed, outputSize, skippedDups, _dlBlob.size);
+    showResult(totalPages, srcCount, methodUsed, outputSize, skippedDups, _dlBlob.size, qualityScore, qualityGrade);
   } catch (err) {
     closeSSE();
     window.SOUNDS?.playErrorSound?.();
-    const msg = err.message || 'Merge failed — check your files and try again';
-    toast(msg, 'error', 9000);
+    const raw = err.message || '';
+    let msg = raw || 'Merge failed — check your files and try again';
+    // Smart recovery hint
+    let hint = '';
+    if (/password/i.test(raw))     hint = 'Expand the locked file card and enter its password.';
+    else if (/corrupt/i.test(raw)) hint = 'Try the "Repair" merge method in Advanced Options.';
+    else if (/encrypt/i.test(raw)) hint = 'Expand the file card → enter PDF password.';
+    else if (/memory|ram/i.test(raw)) hint = 'Try compressing files first, or merge in smaller batches.';
+    else if (/timeout/i.test(raw)) hint = 'Large files may time out. Try splitting into smaller batches.';
+    else if (/unsupported|format/i.test(raw)) hint = 'Try re-saving the PDF with your PDF reader before uploading.';
+    if (hint) msg += ` · ${hint}`;
+    toast(msg, 'error', 11000);
     showSection('files');
     D.mergeBtn.disabled = FILES.length < 2;
     D.mergeBtn.classList.toggle('ready', FILES.length >= 2);
@@ -639,7 +757,7 @@ function simProgress() {
 }
 
 /* ════════ RESULT ════════ */
-function showResult(totalPages, srcCount, methodUsed, outputSize, skippedDups, blobSize) {
+function showResult(totalPages, srcCount, methodUsed, outputSize, skippedDups, blobSize, qualityScore = 100, qualityGrade = 'A+') {
   window.SOUNDS?.playSuccessChime?.();
   showSection('result');
   $('secResult')?.scrollIntoView({ behavior:'smooth', block:'start' });
@@ -688,6 +806,19 @@ function showResult(totalPages, srcCount, methodUsed, outputSize, skippedDups, b
     : chg < -1 ? `${Math.abs(chg).toFixed(1)}% smaller`
     : 'Same size';
   $('rSaved').innerHTML = `<i class="fas fa-scale-balanced"></i>${chgStr}`;
+
+  // Quality score badge
+  const qEl = $('qScore'), qGr = $('qGrade'), qNm = $('qNum'), qLb = $('qLabel');
+  if (qEl && qGr && qNm) {
+    const GRADE_COLOR = { 'A+':'#22c55e','A':'#22c55e','B+':'#84cc16','B':'#eab308','C':'#f97316','D':'#ef4444','F':'#ef4444' };
+    qGr.textContent = qualityGrade;
+    qNm.textContent = `${qualityScore}/100`;
+    qEl.style.setProperty('--qc', GRADE_COLOR[qualityGrade] || '#22c55e');
+    qEl.hidden = false;
+    if (typeof anime !== 'undefined') {
+      anime({ targets: qEl, opacity:[0,1], scale:[0.85,1], duration:600, easing:'easeOutBack', delay:500 });
+    }
+  }
 
   // Filename display
   const fn = $('resFn'), fnTx = $('resFnTx');
@@ -744,6 +875,21 @@ function showResult(totalPages, srcCount, methodUsed, outputSize, skippedDups, b
     if (typeof anime !== 'undefined') {
       anime({ targets: cw, opacity: [0, 1], translateY: [10, 0], duration: 600, easing:'easeOutCubic', delay: 300 });
     }
+  }
+
+  // Show result tip
+  const tipEl = $('resToolTip');
+  if (tipEl) {
+    const tips = [
+      'Tip: Use <kbd>Ctrl+S</kbd> to download anytime after merging.',
+      'Tip: Click "Merge Again" to add more files to your next merge.',
+      'Tip: Share this tool with a friend using the WhatsApp button!',
+      'Tip: Enable "Table of Contents" for professional report merges.',
+      'Tip: Use page ranges like <kbd>1-3, odd</kbd> for custom selections.',
+      'Tip: Password-protected PDFs? Expand the file card to enter passwords.',
+    ];
+    $('resToolTipTx').innerHTML = tips[Math.floor(Math.random() * tips.length)];
+    tipEl.hidden = false;
   }
 
   // Animate the result box in with GSAP
@@ -961,6 +1107,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Sections
     sUp: $('secUpload'), sFi: $('secFiles'),
     sPr: $('secProgress'), sRe: $('secResult'),
+    mobileFab: $('mobileFab'),
     // Upload
     dz: $('dropZone'), fi: $('fileInput'),
     globalDrag: $('globalDrag'),
@@ -1132,6 +1279,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  /* ── Print PDF ── */
+  const printBtn = $('printBtn');
+  if (printBtn) {
+    printBtn.addEventListener('click', () => {
+      if (!_dlUrl) return;
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none';
+      iframe.src = _dlUrl;
+      document.body.appendChild(iframe);
+      iframe.onload = () => {
+        try { iframe.contentWindow.print(); } catch (_) {
+          // Fallback: open in new tab so user can print from there
+          window.open(_dlUrl, '_blank', 'noopener');
+          toast('Opened in new tab — use Ctrl+P to print', 'info', 4000);
+        }
+        setTimeout(() => document.body.removeChild(iframe), 3000);
+      };
+      window.SOUNDS?.playExpandSound?.();
+    });
+  }
+
+  /* ── WhatsApp share ── */
+  const waBtn = $('waShareBtn');
+  if (waBtn) {
+    waBtn.addEventListener('click', () => {
+      const txt = encodeURIComponent(
+        `🔥 I just merged my PDFs using IshuTools.fun — FREE Merge PDF tool by Ishu Kumar!\n` +
+        `✅ No signup, no watermark, works on phone too!\n` +
+        `👉 https://ishutools.fun/tools/merge-pdf/`
+      );
+      window.open(`https://wa.me/?text=${txt}`, '_blank', 'noopener');
+      window.SOUNDS?.playCopySound?.();
+    });
+  }
+
+  /* ── Mobile FAB ── */
+  if (D.mobileFab) {
+    D.mobileFab.addEventListener('click', () => {
+      if (!D.mergeBtn.disabled) D.mergeBtn.click();
+      else { D.fi.click(); }
+    });
+  }
+
   /* ── Merge Again ── */
   D.mergeAgainBtn.addEventListener('click', () => {
     // Revoke old blob
@@ -1193,24 +1383,33 @@ document.addEventListener('DOMContentLoaded', () => {
   loadPdfJs();
   setTimeout(() => initAnimations(), 150);
 
-  // Typed.js — hero trust cycling
+  // Typed.js — hero unique cycling facts (not repeating the badge)
   setTimeout(() => {
     if (typeof Typed !== 'undefined' && $('heroTyped')) {
       if (_typedInst) _typedInst.destroy();
       _typedInst = new Typed('#heroTyped', {
         strings: [
-          '100% Free. Always.',
-          'No signup needed.',
-          'No watermark, ever.',
-          'Files deleted instantly.',
-          'Works on any device.',
-          'Up to 50 files at once.',
-          '1 GB per file supported.',
-          'Zero quality loss.',
+          'Merge up to 50 PDFs at once.',
+          'Mix PDFs + JPG + PNG freely.',
+          'Page ranges per file: <code>1-3, odd</code>.',
+          'Password-protected PDFs? Supported.',
+          'Smart auto Table of Contents.',
+          'Zero quality loss. Guaranteed.',
+          'Named after your first file.',
+          'Works on phone, tablet, desktop.',
+          'Ghostscript + pypdf + PyMuPDF.',
+          'Enterprise-grade. 100% free.',
         ],
-        typeSpeed: 46, backSpeed: 26, loop: true, backDelay: 2600,
+        typeSpeed: 44, backSpeed: 24, loop: true, backDelay: 2400,
         smartBackspace: true, showCursor: true, cursorChar: '|',
+        contentType: 'html',
       });
     }
   }, 800);
+
+  // Hero counter update
+  updateHeroCnt();
+
+  // Persist settings on load
+  loadSettings();
 });

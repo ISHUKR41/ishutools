@@ -21,7 +21,17 @@
   </url>
 
   <!-- ═══ Organize PDF Tools ═══ -->
-  <url><loc>https://ishutools.fun/tools/merge-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url>
+    <loc>https://ishutools.fun/tools/merge-pdf/</loc>
+    <lastmod>2026-06-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://ishutools.fun/static/icons/og-image.png</image:loc>
+      <image:title>Merge PDF Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41)</image:title>
+      <image:caption>Combine PDF files online free. No signup, no watermark. By Ishu Kumar. Up to 50 files, password-protected PDFs, drag-reorder, page ranges, TOC.</image:caption>
+    </image:image>
+  </url>
   <url><loc>https://ishutools.fun/tools/split-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
   <url><loc>https://ishutools.fun/tools/compress-pdf/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
   <url><loc>https://ishutools.fun/tools/remove-pages/</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>

@@ -1356,3 +1356,172 @@ footer {
   .chart-wrap canvas { height:52px!important }
   .hero-typed-wrap { font-size:.78rem; margin-bottom:18px }
 }
+
+/* ── Quality score badge ─────────────────────────────────── */
+.q-score {
+  display:flex; align-items:center; justify-content:center;
+  gap:10px; padding:10px 18px; margin-bottom:14px;
+  border:1px solid color-mix(in srgb,var(--qc,#22c55e) 30%,transparent);
+  border-radius:12px;
+  background:color-mix(in srgb,var(--qc,#22c55e) 7%,transparent);
+}
+.q-grade {
+  font-size:1.4rem; font-weight:900; font-family:'Poppins',sans-serif;
+  color:var(--qc,#22c55e); min-width:34px; text-align:center;
+  line-height:1; letter-spacing:-.01em;
+}
+.q-score .q-label { font-size:.72rem; color:var(--tx3); text-transform:uppercase; letter-spacing:.06em; }
+.q-num { font-size:.82rem; font-weight:700; color:var(--qc,#22c55e); margin-left:auto; }
+
+/* ── Hero merge counter ──────────────────────────────────── */
+.hero-cnt {
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  font-size:.78rem; color:var(--p3); font-weight:600;
+  margin:-4px 0 20px; letter-spacing:.01em;
+  animation: fadeSlideUp .6s ease both;
+}
+.hero-cnt i { color:#22c55e; font-size:.8em }
+.hero-cnt span { color:var(--p1); font-weight:800 }
+
+/* ── FAQ enhancements ───────────────────────────────────── */
+.faq-a code {
+  background:var(--sf); border:1px solid var(--bd);
+  padding:1px 6px; border-radius:4px;
+  font-family:'JetBrains Mono','Courier New',monospace;
+  font-size:.82em; color:var(--p3);
+}
+.faq-a a { color:var(--p3) }
+.faq-a a:hover { color:var(--p1) }
+
+/* ── Responsive quality score ────────────────────────────── */
+@media(max-width:500px) {
+  .q-score { flex-wrap:wrap; gap:6px; padding:8px 12px }
+  .q-grade { font-size:1.1rem }
+  .q-num { margin-left:0 }
+  .hero-cnt { font-size:.72rem }
+}
+
+/* ── Fix [hidden] attribute override by display:flex ─────── */
+.hero-cnt[hidden], .q-score[hidden], #chartWrap[hidden],
+#rDupes[hidden], #resFn[hidden], .modal[hidden],
+#pvModal[hidden], #kbdModal[hidden], #undoBar[hidden],
+#largeBanner[hidden], #secFiles[hidden], #secProgress[hidden],
+#secResult[hidden], #secUpload[hidden], #normSzField[hidden] {
+  display: none !important;
+}
+
+/* ── WhatsApp action button ──────────────────────────────── */
+.act-btn--wa {
+  background:rgba(37,211,102,.12)!important;
+  border-color:rgba(37,211,102,.3)!important;
+  color:#25d366!important;
+}
+.act-btn--wa:hover { background:rgba(37,211,102,.22)!important; transform:translateY(-2px) }
+.act-btn--wa i { color:#25d366!important }
+
+/* ── Mobile FAB ─────────────────────────────────────────── */
+.mobile-fab {
+  position:fixed; bottom:22px; right:18px; z-index:900;
+  display:flex; align-items:center; gap:8px;
+  padding:13px 20px; border-radius:50px;
+  background:linear-gradient(135deg,var(--p1),var(--p2));
+  color:#fff; font-weight:700; font-size:.88rem;
+  border:none; cursor:pointer;
+  box-shadow:0 8px 28px rgba(99,102,241,.45);
+  transition:all .22s; will-change:transform;
+  animation: fabPop .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+.mobile-fab:hover { transform:translateY(-3px) scale(1.04); box-shadow:0 12px 36px rgba(99,102,241,.55) }
+.mobile-fab:active { transform:scale(.96) }
+.mobile-fab[hidden] { display:none!important }
+.mobile-fab i { font-size:1rem }
+@keyframes fabPop { from { transform:scale(0) translateY(30px); opacity:0 } to { transform:scale(1) translateY(0); opacity:1 } }
+
+/* ── Only show FAB on mobile (touch) devices ─────────────── */
+@media(hover:hover) and (pointer:fine) {
+  .mobile-fab { display:none!important }
+}
+
+/* ── Download button pulse animation on result ───────────── */
+.dl-btn {
+  animation: dlPulse 2.5s ease infinite;
+}
+@keyframes dlPulse {
+  0%,100% { box-shadow:0 0 0 0 rgba(99,102,241,.4) }
+  50% { box-shadow:0 0 0 10px rgba(99,102,241,0) }
+}
+.dl-btn:hover { animation:none }
+
+/* ── Animated file count badge ───────────────────────────── */
+#fileBadge {
+  transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+}
+#fileBadge.bump { animation: badgeBump .32s cubic-bezier(.34,1.56,.64,1) }
+@keyframes badgeBump { 0%,100%{transform:scale(1)} 50%{transform:scale(1.26)} }
+
+/* ── Better toast for errors ────────────────────────────── */
+#toast.error { border-left:3px solid #ef4444 }
+#toast.warn  { border-left:3px solid #f59e0b }
+#toast.success { border-left:3px solid #22c55e }
+#toast.info  { border-left:3px solid var(--p1) }
+
+/* ── Validation badge pill variants ─────────────────────── */
+.fp-img  { color:var(--wrn)!important; border-color:rgba(245,158,11,.22)!important }
+.fp-warn { color:#f97316!important; border-color:rgba(249,115,22,.22)!important;
+           cursor:default; font-size:.66rem!important }
+.fp-info { color:var(--p1)!important; border-color:rgba(99,102,241,.22)!important;
+           font-size:.66rem!important }
+.fp-ver  { color:#64748b!important; border-color:rgba(100,116,139,.18)!important;
+           font-size:.62rem!important; opacity:.72 }
+
+/* ── PDF title/author sub line on card ───────────────────── */
+.fc-meta-sub {
+  font-size:.68rem; color:var(--muted); margin-top:3px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  max-width:100%; display:flex; align-items:center; gap:4px;
+}
+
+/* ── Result section WhatsApp pill ─────────────────────────── */
+
+/* ── Print button ─────────────────────────────────────────── */
+#printBtn { background:rgba(14,165,233,.11)!important; border-color:rgba(14,165,233,.3)!important; color:#0ea5e9!important }
+#printBtn:hover { background:rgba(14,165,233,.2)!important; transform:translateY(-2px) }
+
+/* ── Result tip / keyboard hint ──────────────────────────── */
+.res-tool-tip {
+  display:flex; align-items:center; gap:7px;
+  margin-top:14px; font-size:.78rem; color:var(--muted);
+  animation: tipFade 0.6s ease .8s both;
+}
+.res-tool-tip[hidden] { display:none!important }
+@keyframes tipFade { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+.res-tool-tip kbd {
+  background:rgba(99,102,241,.12); border:1px solid rgba(99,102,241,.25);
+  border-radius:4px; padding:1px 5px; font-size:.74rem; font-family:monospace;
+}
+
+/* ── Download button — shine sweep on ready ────────────────── */
+.dl-btn {
+  position:relative; overflow:hidden;
+}
+.dl-btn::after {
+  content:''; position:absolute; top:0; left:-70%; width:40%; height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);
+  animation: dlShine 2.8s ease-in-out infinite;
+}
+@keyframes dlShine { 0%,100%{left:-70%} 50%{left:130%} }
+.dl-btn:hover::after { animation:none }
+
+/* ── File list sort/clear toolbar improvements ───────────── */
+.files-toolbar { position:sticky; top:60px; z-index:10 }
+
+/* ── Improved merge button glow ─────────────────────────── */
+#mergeBtn.ready {
+  box-shadow:0 0 0 0 rgba(99,102,241,.5);
+  animation: mergePulse 2.4s ease infinite;
+}
+@keyframes mergePulse {
+  0%,100% { box-shadow:0 6px 32px rgba(99,102,241,.35) }
+  50% { box-shadow:0 6px 42px rgba(99,102,241,.65), 0 0 0 6px rgba(99,102,241,.12) }
+}
+#mergeBtn.ready:hover { animation:none; transform:translateY(-2px) scale(1.01) }

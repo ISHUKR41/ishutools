@@ -18,6 +18,7 @@
 <meta name="geo.placename" content="India"/>
 <link rel="canonical" href="https://ishutools.fun/tools/merge-pdf/"/>
 <link rel="alternate" hreflang="en" href="https://ishutools.fun/tools/merge-pdf/"/>
+<link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml"/>
 <meta property="og:title" content="Merge PDF Online Free — IshuTools.fun by Ishu Kumar"/>
 <meta property="og:description" content="Combine PDFs + images into one in seconds. Free, no signup, no watermark. By Ishu Kumar."/>
 <meta property="og:url" content="https://ishutools.fun/tools/merge-pdf/"/>
@@ -130,11 +131,9 @@
       <span><i class="fas fa-bolt"></i>Instant</span>
       <span><i class="fas fa-database"></i>1 GB/file</span>
     </div>
-    <div class="hero-trust" aria-label="Trust indicators">
-      <span><i class="fas fa-lock"></i>HTTPS</span>
-      <span><i class="fas fa-trash-alt"></i>Auto-deleted</span>
-      <span><i class="fas fa-eye-slash"></i>100% Private</span>
-      <span><i class="fas fa-infinity"></i>Always Free</span>
+    <div id="heroCnt" class="hero-cnt" hidden aria-live="polite">
+      <i class="fas fa-check-circle" aria-hidden="true"></i>
+      <span id="heroCntN">0</span> merges completed on this device
     </div>
   </div>
 </header>
@@ -425,6 +424,13 @@
         <canvas id="sizeChart" height="68" aria-label="Before vs after file size"></canvas>
       </div>
 
+      <!-- Quality score badge -->
+      <div id="qScore" class="q-score" hidden aria-label="Merge quality score">
+        <span id="qGrade" class="q-grade">A+</span>
+        <span id="qLabel">Quality Score</span>
+        <span id="qNum" class="q-num">100/100</span>
+      </div>
+
       <div id="resFn" class="res-fn" hidden aria-label="Output filename">
         <i class="fas fa-file-pdf" aria-hidden="true"></i><span id="resFnTx"></span>
       </div>
@@ -435,8 +441,18 @@
 
       <div class="res-actions">
         <button id="copyNameBtn" class="act-btn"><i class="fas fa-copy"></i>Copy Name</button>
+        <button id="printBtn" class="act-btn" title="Print merged PDF" aria-label="Print merged PDF">
+          <i class="fas fa-print"></i>Print
+        </button>
         <button id="shareBtn" class="act-btn"><i class="fas fa-share-nodes"></i>Share</button>
+        <button id="waShareBtn" class="act-btn act-btn--wa" title="Share on WhatsApp" aria-label="Share on WhatsApp">
+          <i class="fab fa-whatsapp"></i>WhatsApp
+        </button>
         <button id="mergeAgainBtn" class="act-btn"><i class="fas fa-rotate"></i>Merge Again</button>
+      </div>
+      <div id="resToolTip" class="res-tool-tip" hidden>
+        <i class="fas fa-lightbulb"></i>
+        <span id="resToolTipTx">Tip: Use <kbd>Ctrl+S</kbd> to download anytime.</span>
       </div>
 
     </div>
@@ -567,6 +583,26 @@
         <button class="faq-q" aria-expanded="false"><span>What is the merged PDF's filename?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
         <div class="faq-a"><p>Your merged PDF is automatically named after the first uploaded file plus <code>_merged.pdf</code>. Override this anytime in Advanced Options → Output Filename.</p></div>
       </div>
+      <div class="faq" role="listitem">
+        <button class="faq-q" aria-expanded="false"><span>Does merge PDF work on mobile phones?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+        <div class="faq-a"><p>Yes, IshuTools Merge PDF is fully responsive and works perfectly on Android and iPhone browsers (Chrome, Safari, Firefox). Upload from your gallery or files app, arrange the order, and download the merged PDF — all on your phone.</p></div>
+      </div>
+      <div class="faq" role="listitem">
+        <button class="faq-q" aria-expanded="false"><span>How does IshuTools protect my PDF files?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+        <div class="faq-a"><p>All uploads use HTTPS encryption. Files are processed in isolated temporary directories on the server and permanently deleted immediately after you download the result. No file is ever stored, logged, or shared. Not even Ishu Kumar can see your documents.</p></div>
+      </div>
+      <div class="faq" role="listitem">
+        <button class="faq-q" aria-expanded="false"><span>What is the difference between merge and combine PDF?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+        <div class="faq-a"><p>Merge PDF and combine PDF mean the same thing — joining multiple PDF files into one single document. IshuTools Merge PDF combines, joins, concatenates, and collates multiple PDFs (and images) into one perfectly structured PDF output.</p></div>
+      </div>
+      <div class="faq" role="listitem">
+        <button class="faq-q" aria-expanded="false"><span>Who built IshuTools.fun?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+        <div class="faq-a"><p>IshuTools.fun was designed and built by <strong>Ishu Kumar</strong> (GitHub: <a href="https://github.com/ISHUKR41" target="_blank" rel="noopener">ISHUKR41</a>), an Indian developer. All 36+ tools are 100% free, require no account, and include no watermarks — professional PDF tools for everyone.</p></div>
+      </div>
+      <div class="faq" role="listitem">
+        <button class="faq-q" aria-expanded="false"><span>Can I add a Table of Contents to the merged PDF?</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+        <div class="faq-a"><p>Yes! Enable "Table of Contents" in Advanced Options before merging. IshuTools auto-generates a beautifully styled TOC page with each source document listed with its page number, prepended to the beginning of the merged file.</p></div>
+      </div>
     </div>
   </div>
 </section>
@@ -616,6 +652,12 @@
     </div>
   </div>
 </footer>
+
+<!-- ═══ MOBILE FAB — Merge Button ═══ -->
+<button id="mobileFab" class="mobile-fab" hidden aria-label="Merge PDF files">
+  <i class="fas fa-compress-arrows-alt"></i>
+  <span>Merge</span>
+</button>
 
 <!-- ═══ KEYBOARD SHORTCUTS MODAL ═══ -->
 <div class="modal" id="kbdModal" hidden role="dialog" aria-modal="true" aria-labelledby="kbdTitle">

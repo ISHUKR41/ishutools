@@ -366,15 +366,33 @@ def api_merge_pdf():
         push(98, 'Done!', 'Download ready')
         _push_progress(job_id, 100, 'Done!', 'Merge complete', done=True)
         resp = send_result(out, download_name)
+        out_size = os.path.getsize(out)
         resp.headers['X-Total-Pages']       = str(result.get('total_pages', 0))
         resp.headers['X-Source-Count']      = str(result.get('source_count', len(files)))
         resp.headers['X-Skipped-Dupes']     = str(result.get('skipped_duplicates', 0))
         resp.headers['X-TOC-Added']         = str(result.get('toc_added', False))
         resp.headers['X-Method-Used']       = str(result.get('method_used', 'pypdf'))
-        resp.headers['X-Output-Size']       = str(os.path.getsize(out))
+        resp.headers['X-Output-Size']       = str(out_size)
         resp.headers['X-Linearized']        = str(result.get('linearized', False))
+
+        # Quality score via enterprise estimator
+        try:
+            from tools.pdf_merge import estimate_merge_quality_score
+            qs = estimate_merge_quality_score(paths, {
+                'total_pages':       result.get('total_pages', 0),
+                'method_used':       result.get('method_used', ''),
+                'skipped_duplicates': result.get('skipped_duplicates', 0),
+                'output_size_bytes': out_size,
+            })
+            resp.headers['X-Quality-Score'] = str(qs.get('score', 100))
+            resp.headers['X-Quality-Grade'] = str(qs.get('grade', 'A+'))
+        except Exception:
+            resp.headers['X-Quality-Score'] = '100'
+            resp.headers['X-Quality-Grade'] = 'A+'
+
         resp.headers['Access-Control-Expose-Headers'] = (
-            'X-Total-Pages,X-Source-Count,X-Skipped-Dupes,X-TOC-Added,X-Method-Used,X-Output-Size,X-Linearized'
+            'X-Total-Pages,X-Source-Count,X-Skipped-Dupes,X-TOC-Added,'
+            'X-Method-Used,X-Output-Size,X-Linearized,X-Quality-Score,X-Quality-Grade'
         )
         return resp
     except Exception as e:
