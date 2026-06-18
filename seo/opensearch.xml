@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription
+  xmlns="http://a9.com/-/spec/opensearch/1.1/"
+  xmlns:moz="http://www.mozilla.org/2006/browser/search/">
+
+  <ShortName>IshuTools by Ishu Kumar</ShortName>
+  <Description>Search IshuTools.fun — 36+ Free PDF Tools by Ishu Kumar (ISHUKR41). Merge PDF, Split PDF, Compress PDF, OCR, AI Summarize, Translate, and more. 100% free, no signup, no watermark. India's #1 free PDF toolkit at ishutools.fun.</Description>
+  <Tags>merge pdf combine pdf ishu kumar ISHUKR41 ISHUKR75 free pdf tools ishutools india pdf merger no watermark no signup</Tags>
+  <Contact>ishutools.fun</Contact>
+
+  <Url type="text/html"
+       method="GET"
+       template="https://ishutools.fun/?q={searchTerms}"/>
+
+  <Url type="application/opensearchdescription+xml"
+       rel="self"
+       template="https://ishutools.fun/opensearch.xml"/>
+
+  <LongName>IshuTools.fun — 36+ Free PDF Tools by Ishu Kumar (ISHUKR41 / ISHUKR75)</LongName>
+
+  <Image height="16" width="16" type="image/svg+xml">https://ishutools.fun/static/icons/favicon.svg</Image>
+  <Image height="64" width="64" type="image/svg+xml">https://ishutools.fun/static/icons/favicon.svg</Image>
+
+  <Developer>Ishu Kumar (ISHUKR41 / ISHUKR75) — github.com/ISHUKR41 — ishutools.fun</Developer>
+  <Attribution>Built with ❤️ by Ishu Kumar (ISHUKR41). Hosted at ishutools.fun. All tools 100% free, no watermark, no signup.</Attribution>
+  <SyndicationRight>open</SyndicationRight>
+  <AdultContent>false</AdultContent>
+
+  <Language>en-IN</Language>
+  <Language>en</Language>
+  <Language>hi-IN</Language>
+  <Language>hi</Language>
+
+  <OutputEncoding>UTF-8</OutputEncoding>
+  <InputEncoding>UTF-8</InputEncoding>
+
+  <!-- Suggested queries — helps browsers suggest IshuTools for PDF searches -->
+  <Query role="example" searchTerms="merge pdf online free ishu kumar"/>
+  <Query role="example" searchTerms="ISHUKR41 merge pdf"/>
+  <Query role="example" searchTerms="ishu tools free pdf"/>
+  <Query role="example" searchTerms="combine pdf no signup ishutools"/>
+</OpenSearchDescription>

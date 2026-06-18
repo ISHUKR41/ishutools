@@ -215,6 +215,15 @@ def robots():
     """Serve robots.txt for SEO crawlers."""
     return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'robots.txt')
 
+@app.route('/opensearch.xml')
+def opensearch():
+    """Serve OpenSearch description — allows browsers to add IshuTools as a search engine."""
+    return send_from_directory(
+        os.path.join(os.path.dirname(__file__), '..', 'seo'),
+        'opensearch.xml',
+        mimetype='application/opensearchdescription+xml'
+    )
+
 # ── Health Check ─────────────────────────────────────────────────────────────
 @app.route('/api/health')
 def health():
