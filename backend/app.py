@@ -470,6 +470,33 @@ def api_merge_progress(job_id):
     )
 
 
+@app.route('/api/progress/<job_id>')
+def api_progress(job_id):
+    """Generic SSE progress stream — works for split-pdf, compress, OCR, and all tools."""
+    job_id = job_id[:64]
+    def generate():
+        q = _get_or_create_queue(job_id)
+        deadline = time.time() + 300
+        while time.time() < deadline:
+            try:
+                msg = q.get(timeout=1.5)
+                yield f"data: {json.dumps(msg)}\n\n"
+                if msg.get('done'):
+                    break
+            except queue.Empty:
+                yield "data: {\"ping\":true}\n\n"
+        _cleanup_queue(job_id)
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no',
+            'Access-Control-Allow-Origin': '*',
+        }
+    )
+
+
 @app.route('/api/merge-pdf/info', methods=['POST'])
 def api_merge_pdf_info():
     """Get PDF info (pages, size, metadata) for a single file — used for previews."""
@@ -536,22 +563,113 @@ def api_merge_pdf_thumbnail():
 
 @app.route('/api/split-pdf', methods=['POST'])
 def api_split_pdf():
-    """Split a PDF into pages or custom ranges."""
+    """Split a PDF — supports 7 modes with SSE progress and response headers."""
     try:
         file = request.files.get('file')
         if not file:
             return error_response('No file uploaded.')
-        split_mode = request.form.get('mode', 'all')   # all | range | every_n
-        ranges     = request.form.get('ranges', '')
-        every_n    = int(request.form.get('every_n', 1))
-        stem = file_stem(file)
+
+        split_mode      = request.form.get('mode', 'all')
+        ranges          = request.form.get('ranges', '')
+        every_n         = max(1, int(request.form.get('every_n', 1) or 1))
+        password        = request.form.get('password', '')
+        max_size_mb     = float(request.form.get('max_size_mb', 5.0) or 5.0)
+        remove_blanks   = request.form.get('remove_blanks', 'false').lower() == 'true'
+        naming_pattern  = request.form.get('naming_pattern', 'page_{n:04d}') or 'page_{n:04d}'
+        job_id          = request.form.get('job_id', '')
+
+        VALID_MODES = {'all', 'range', 'every_n', 'bookmarks', 'blank_pages', 'size_limit', 'odd_even'}
+        if split_mode not in VALID_MODES:
+            split_mode = 'all'
+
+        stem       = file_stem(file)
         path       = save_uploaded_file(file)
         out_dir    = tempfile.mkdtemp()
         result_zip = output_path('split_pages.zip')
-        split_pdf(path, out_dir, result_zip, mode=split_mode, ranges=ranges, every_n=every_n)
-        return send_result(result_zip, f'{stem}_split.zip', 'application/zip')
+
+        _push_progress(job_id, 10, 'Reading PDF…', 'Analyzing document structure')
+
+        if split_mode == 'range' and not ranges.strip():
+            return error_response('No page ranges specified for range mode.')
+
+        _push_progress(job_id, 30, 'Splitting PDF…', f'Mode: {split_mode}')
+
+        result = split_pdf(
+            path, out_dir, result_zip,
+            mode=split_mode,
+            ranges=ranges,
+            every_n=every_n,
+            password=password,
+            max_size_mb=max_size_mb,
+            remove_blanks=remove_blanks,
+            naming_pattern=naming_pattern,
+            compress_output=True,
+            use_pikepdf=True,
+        )
+
+        _push_progress(job_id, 92, 'Creating ZIP…', f'Packaging {result["file_count"]} files')
+
+        resp = send_result(result_zip, f'{stem}_split.zip', 'application/zip')
+        resp.headers['X-File-Count']      = str(result.get('file_count', 0))
+        resp.headers['X-Total-Pages']     = str(result.get('total_pages', 0))
+        resp.headers['X-Skipped-Blanks']  = str(result.get('skipped_blanks', 0))
+        resp.headers['X-Mode-Used']       = result.get('mode_used', split_mode)
+        resp.headers['Access-Control-Expose-Headers'] = \
+            'X-File-Count,X-Total-Pages,X-Skipped-Blanks,X-Mode-Used'
+
+        _push_progress(job_id, 100, 'Done!', '', done=True)
+        return resp
+
+    except ValueError as e:
+        logger.warning("split-pdf validation: %s", e)
+        return error_response(str(e))
     except Exception as e:
         logger.exception("split-pdf error")
+        return error_response(str(e))
+
+
+@app.route('/api/split-pdf/info', methods=['POST'])
+def api_split_pdf_info():
+    """Return PDF metadata: page count, bookmarks, blank pages, file size."""
+    try:
+        from tools.pdf_split import get_split_preview
+        file = request.files.get('file')
+        if not file:
+            return error_response('No file uploaded.')
+        password = request.form.get('password', '')
+        path = save_uploaded_file(file)
+        info = get_split_preview(path, password=password)
+        return jsonify({'success': True, **info})
+    except Exception as e:
+        logger.exception("split-pdf/info error")
+        return error_response(str(e))
+
+
+@app.route('/api/split-pdf/thumbnails', methods=['POST'])
+def api_split_pdf_thumbnails():
+    """Return base64 thumbnail images for the first N pages of a PDF."""
+    try:
+        import base64
+        from tools.pdf_split import generate_page_thumbnails
+        file = request.files.get('file')
+        if not file:
+            return error_response('No file uploaded.')
+        count    = min(20, int(request.form.get('count', 12) or 12))
+        dpi      = int(request.form.get('dpi', 72) or 72)
+        password = request.form.get('password', '')
+        path     = save_uploaded_file(file)
+        thumb_dir = tempfile.mkdtemp()
+        pages = list(range(count))
+        thumbs = generate_page_thumbnails(path, thumb_dir, pages=pages, dpi=dpi, password=password)
+        result = []
+        for tp in thumbs:
+            if os.path.exists(tp):
+                with open(tp, 'rb') as f:
+                    b64 = base64.b64encode(f.read()).decode()
+                result.append({'page': os.path.basename(tp), 'data': f'data:image/jpeg;base64,{b64}'})
+        return jsonify({'success': True, 'thumbnails': result, 'count': len(result)})
+    except Exception as e:
+        logger.exception("split-pdf/thumbnails error")
         return error_response(str(e))
 
 @app.route('/api/compress-pdf', methods=['POST'])
