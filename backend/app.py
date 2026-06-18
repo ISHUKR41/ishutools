@@ -176,18 +176,111 @@ def health():
 
 @app.route('/api/merge-pdf', methods=['POST'])
 def api_merge_pdf():
-    """Merge multiple PDFs into one combined document."""
+    """Merge multiple PDFs into one combined document with advanced options."""
     try:
         files = request.files.getlist('files')
         if len(files) < 2:
             return error_response('Please upload at least 2 PDF files.')
+
+        # Parse advanced options from form
+        import json as _json
+        add_separators   = request.form.get('add_separators', 'false').lower() == 'true'
+        add_toc          = request.form.get('add_toc', 'false').lower() == 'true'
+        skip_duplicates  = request.form.get('skip_duplicates', 'false').lower() == 'true'
+        preserve_bmarks  = request.form.get('preserve_bookmarks', 'true').lower() == 'true'
+        normalize_size   = request.form.get('normalize_page_size', 'false').lower() == 'true'
+        target_size      = request.form.get('target_page_size', 'A4')
+        compress_out     = request.form.get('compress_output', 'false').lower() == 'true'
+        merge_method     = request.form.get('merge_method', 'auto')
+        out_title        = request.form.get('output_title', '')
+        out_author       = request.form.get('output_author', '')
+
+        # Parse per-file page ranges (JSON array or comma-separated strings)
+        try:
+            page_ranges_raw = request.form.get('page_ranges', '[]')
+            page_ranges = _json.loads(page_ranges_raw) if page_ranges_raw else []
+        except Exception:
+            page_ranges = []
+
+        # Parse per-file passwords
+        try:
+            passwords_raw = request.form.get('passwords', '[]')
+            passwords = _json.loads(passwords_raw) if passwords_raw else []
+        except Exception:
+            passwords = []
+
         paths = save_uploaded_files(files)
-        out   = output_path('merged.pdf')
-        merge_pdfs(paths, out)
+
+        # Pad lists to match file count
+        while len(page_ranges) < len(paths):
+            page_ranges.append('all')
+        while len(passwords) < len(paths):
+            passwords.append(None)
+
+        out = output_path('merged.pdf')
+
+        output_metadata = {}
+        if out_title:
+            output_metadata['title'] = out_title
+        if out_author:
+            output_metadata['author'] = out_author
+
+        # Choose merge method
+        if merge_method == 'gs':
+            from tools.pdf_merge import merge_pdfs_gs
+            result = merge_pdfs_gs(paths, out)
+        elif merge_method == 'fitz':
+            from tools.pdf_merge import merge_pdfs_fitz
+            result = merge_pdfs_fitz(paths, out, passwords=passwords, page_ranges=page_ranges)
+        else:
+            result = merge_pdfs(
+                paths, out,
+                passwords=passwords,
+                page_ranges=page_ranges,
+                add_separators=add_separators,
+                add_toc=add_toc,
+                skip_duplicates=skip_duplicates,
+                preserve_bookmarks=preserve_bmarks,
+                normalize_page_size=normalize_size,
+                target_page_size=target_size,
+                compress_output=compress_out,
+                output_metadata=output_metadata if output_metadata else None,
+            )
+
         stems = '_'.join(file_stem(f) for f in files[:3])
-        return send_result(out, f'{stems}_merged.pdf')
+        download_name = f'{stems}_merged.pdf'
+        resp = send_result(out, download_name)
+        resp.headers['X-Total-Pages']       = str(result.get('total_pages', 0))
+        resp.headers['X-Source-Count']      = str(result.get('source_count', len(files)))
+        resp.headers['X-Skipped-Dupes']     = str(result.get('skipped_duplicates', 0))
+        resp.headers['X-TOC-Added']         = str(result.get('toc_added', False))
+        resp.headers['X-Method-Used']       = str(result.get('method_used', 'pypdf'))
+        resp.headers['X-Output-Size']       = str(os.path.getsize(out))
+        resp.headers['Access-Control-Expose-Headers'] = (
+            'X-Total-Pages,X-Source-Count,X-Skipped-Dupes,X-TOC-Added,X-Method-Used,X-Output-Size'
+        )
+        return resp
     except Exception as e:
         logger.exception("merge-pdf error")
+        return error_response(str(e))
+
+
+@app.route('/api/merge-pdf/info', methods=['POST'])
+def api_merge_pdf_info():
+    """Get PDF info (pages, size, metadata) for a single file — used for previews."""
+    try:
+        file = request.files.get('file')
+        if not file:
+            return error_response('No file provided.')
+        password = request.form.get('password', '')
+        path = save_uploaded_file(file)
+        from tools.pdf_merge import get_pdf_info
+        info = get_pdf_info(path, password=password)
+        info['filename'] = secure_filename(file.filename)
+        info['file_size'] = os.path.getsize(path)
+        return jsonify({'success': True, 'info': info})
+    except Exception as e:
+        logger.exception("merge-pdf/info error")
         return error_response(str(e))
 
 @app.route('/api/split-pdf', methods=['POST'])
