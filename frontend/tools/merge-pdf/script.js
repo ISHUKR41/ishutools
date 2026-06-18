@@ -350,7 +350,7 @@ function mkFileCard(entry,idx){
 
   const isImage=entry.type==='img';
   const name=trunc(entry.displayName||entry.file.name, 36);
-  const thumbHtml=`<div class="fc-thumb"><div class="fc-thumb-spinner"></div></div>`;
+  const thumbHtml=`<div class="fc-thumb" role="button" tabindex="0" title="Click to preview" aria-label="Preview ${(entry.displayName||entry.file.name).replace(/"/g,'&quot;')}"><div class="fc-thumb-spinner"></div><div class="fc-thumb-eye"><i class="fas fa-eye"></i></div></div>`;
   const typeLabel=isImage
     ?`<span class="fc-type-badge img">IMG</span>`
     :`<span class="fc-type-badge pdf">PDF</span>`;
@@ -394,9 +394,10 @@ function mkFileCard(entry,idx){
       <div class="fc-num">#${idx+1}</div>
       <div class="fc-btns">
         <button class="fc-btn expand-btn" title="Options"><i class="fas fa-sliders"></i></button>
-        <button class="fc-btn remove-btn" title="Remove"><i class="fas fa-trash"></i></button>
+        <button class="fc-btn remove-btn" title="Remove (or swipe ←)"><i class="fas fa-trash"></i></button>
       </div>
     </div>
+    <div class="swipe-hint" aria-hidden="true"><i class="fas fa-trash"></i> Delete</div>
     ${typeLabel}
   `;
 
@@ -427,11 +428,21 @@ function mkFileCard(entry,idx){
   });
   card.querySelector('.remove-btn').addEventListener('click',()=>removeFile(entry.id));
 
+  // Thumbnail click / keyboard → preview modal
+  const thumb = card.querySelector('.fc-thumb');
+  if (thumb) {
+    thumb.addEventListener('click', () => openPreview(entry));
+    thumb.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();openPreview(entry);} });
+  }
+
   // Double-click name → expand + focus display name
   card.querySelector('.fc-name').addEventListener('dblclick',()=>{
     card.classList.add('expanded');
     dnIn&&(dnIn.focus(), dnIn.select());
   });
+
+  // Touch swipe-to-delete on mobile
+  addTouchSwipe(card, entry.id);
 
   return card;
 }
@@ -442,9 +453,11 @@ function syncPrBtns(card,val){
 
 function removeFile(id){
   const idx=files.findIndex(f=>f.id===id); if(idx===-1) return;
+  const entry=files[idx];
   const card=document.querySelector(`[data-id="${id}"]`);
   window.SOUNDS?.playFileRemoveSound();
   const doRemove=()=>{
+    pushUndo(entry, idx);
     files.splice(idx,1);
     originalOrder=originalOrder.filter(i=>i!==id);
     renderFileList(); updateCounts(); checkDuplicates();
@@ -833,8 +846,11 @@ document.addEventListener('drop',e=>{
 ══════════════════════════════════════════════════════ */
 mergeBtn?.addEventListener('click',doMerge);
 downloadBtn?.addEventListener('click',triggerDownload);
-mergeAgainBtn?.addEventListener('click',()=>{ window.SOUNDS?.playMergeAgainSound(); goUpload(); });
+mergeAgainBtn?.addEventListener('click',()=>{ window.SOUNDS?.playMergeAgainSound(); hideUndoBar(); goUpload(); });
 $('copyNameBtn')?.addEventListener('click',copyFilename);
+$('undoBtn')?.addEventListener('click', undoLastDelete);
+$('previewClose')?.addEventListener('click', closePreview);
+$('previewModal')?.addEventListener('click', e=>{ if(e.target.id==='previewModal') closePreview(); });
 
 // Options panel
 $('optionsToggle')?.addEventListener('click',()=>{
@@ -866,7 +882,9 @@ $$('.faq-q').forEach(btn=>{
 document.addEventListener('keydown',e=>{
   const inp=e.target.matches('input,textarea,[contenteditable]');
   if(e.key==='?'&&!inp){showSCM();return;}
-  if(e.key==='Escape'){hideSCM();return;}
+  if(e.key==='Escape'){hideSCM(); closePreview(); return;}
+  if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault(); if(downloadUrl) triggerDownload(); return;}
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!inp){e.preventDefault(); undoLastDelete(); return;}
   if((e.ctrlKey||e.metaKey)&&e.key==='o'){e.preventDefault();filesSec&&!filesSec.hidden?addMoreInput.click():fileInput.click();return;}
   if((e.ctrlKey||e.metaKey)&&e.key==='m'){e.preventDefault();files.length>=2?doMerge():showToast('Add at least 2 files','warn');return;}
   if(e.key==='Delete'&&!inp){
@@ -918,3 +936,225 @@ loadPDFJS();
 setupQuickSync();
 updateCounts();
 renderRecent();
+
+/* ══════════════════════════════════════════════════════
+   PREVIEW MODAL
+   Click any file thumbnail to see rendered pages
+══════════════════════════════════════════════════════ */
+function openPreview(entry) {
+  const modal = $('previewModal'); if (!modal) return;
+  const title = modal.querySelector('.pv-title');
+  const body  = $('previewBody');
+  if (title) title.textContent = trunc(entry.displayName || entry.file.name, 54);
+  if (body)  body.innerHTML = '<div class="pv-loading"><i class="fas fa-spinner fa-spin"></i> Loading preview…</div>';
+  modal.removeAttribute('hidden');
+  document.body.style.overflow = 'hidden';
+  if (typeof gsap !== 'undefined') gsap.from(modal.querySelector('.pv-card'), {duration:.3, y:-20, ease:'power2.out'});
+  window.SOUNDS?.playExpandSound();
+  renderPreviewContent(entry, body);
+}
+
+async function renderPreviewContent(entry, container) {
+  if (!container) return;
+
+  // Image preview
+  if (entry.type === 'img') {
+    const url = URL.createObjectURL(entry.file);
+    const escaped = (entry.displayName || entry.file.name).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    container.innerHTML = `
+      <div class="pv-img-wrap">
+        <img src="${url}" alt="${escaped}" loading="lazy" onload="URL.revokeObjectURL(this.src)" />
+        <p class="pv-img-meta"><i class="fas fa-image"></i> ${escaped} &bull; ${fmtB(entry.file.size)}</p>
+      </div>`;
+    return;
+  }
+
+  // PDF preview via PDF.js
+  const lib = await loadPDFJS();
+  if (!lib) {
+    container.innerHTML = '<div class="pv-error"><i class="fas fa-exclamation-circle"></i> PDF.js not loaded — preview unavailable</div>';
+    return;
+  }
+
+  try {
+    const buf    = await entry.file.arrayBuffer();
+    const pdfDoc = await lib.getDocument({data: buf, password: entry.password || ''}).promise;
+    const total  = pdfDoc.numPages;
+    const show   = Math.min(total, 10);
+
+    const escaped = (entry.displayName || entry.file.name).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    container.innerHTML = `
+      <div class="pv-doc-meta">
+        <span><i class="fas fa-file-pdf"></i> ${escaped}</span>
+        <span><i class="fas fa-book-open"></i> ${total} page${total !== 1 ? 's' : ''}</span>
+        <span><i class="fas fa-database"></i> ${fmtB(entry.file.size)}</span>
+      </div>`;
+
+    const grid = document.createElement('div');
+    grid.className = 'pv-pages-grid';
+    container.appendChild(grid);
+
+    for (let i = 1; i <= show; i++) {
+      const page = await pdfDoc.getPage(i);
+      const vp   = page.getViewport({scale: 0.65});
+      const cv   = document.createElement('canvas');
+      cv.width = vp.width; cv.height = vp.height;
+      const ctx  = cv.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+      await page.render({canvasContext: ctx, viewport: vp}).promise;
+      const wrap = document.createElement('div');
+      wrap.className = 'pv-page';
+      wrap.innerHTML = `<div class="pv-page-num">p${i}</div>`;
+      wrap.insertBefore(cv, wrap.firstChild);
+      grid.appendChild(wrap);
+    }
+
+    if (total > show) {
+      const more = document.createElement('p');
+      more.className = 'pv-more';
+      more.textContent = `+ ${total - show} more page${total - show !== 1 ? 's' : ''} — open full document to see all`;
+      container.appendChild(more);
+    }
+  } catch (err) {
+    const msg = err?.message || 'Render error';
+    container.innerHTML = `<div class="pv-error"><i class="fas fa-exclamation-circle"></i> Cannot render: ${msg.replace(/</g,'&lt;')}</div>`;
+  }
+}
+
+function closePreview() {
+  const modal = $('previewModal'); if (!modal) return;
+  if (typeof gsap !== 'undefined') {
+    gsap.to(modal.querySelector('.pv-card'), {duration:.2, y:-12, ease:'power2.in', onComplete:()=>{
+      modal.setAttribute('hidden',''); document.body.style.overflow='';
+    }});
+  } else {
+    modal.setAttribute('hidden',''); document.body.style.overflow='';
+  }
+  window.SOUNDS?.playCollapseSound();
+}
+
+/* ══════════════════════════════════════════════════════
+   UNDO LAST DELETE  (up to 5 levels)
+══════════════════════════════════════════════════════ */
+let _deletedStack = [];
+let _undoTimer    = null;
+
+function pushUndo(entry, idx) {
+  _deletedStack.unshift({entry, idx});
+  if (_deletedStack.length > 5) _deletedStack.length = 5;
+  showUndoBar(entry.displayName || entry.file.name);
+}
+
+function undoLastDelete() {
+  const item = _deletedStack.shift(); if (!item) return;
+  const pos = Math.min(item.idx, files.length);
+  // Restore file
+  files.splice(pos, 0, item.entry);
+  originalOrder.splice(pos, 0, item.entry.id);
+  renderFileList(); updateCounts();
+  // Ensure files section is visible
+  if (uploadSec && !uploadSec.hidden) { uploadSec.hidden = true; if(filesSec) filesSec.hidden = false; }
+  showToast(`"${trunc(item.entry.displayName || item.entry.file.name, 28)}" restored`, 'success');
+  hideUndoBar();
+  window.SOUNDS?.playSuccessChime();
+}
+
+function showUndoBar(name) {
+  const bar = $('undoBar'); if (!bar) return;
+  const lbl = bar.querySelector('.undo-name'); if (lbl) lbl.textContent = trunc(name, 30);
+  bar.classList.add('show');
+  clearTimeout(_undoTimer);
+  _undoTimer = setTimeout(hideUndoBar, 4500);
+}
+
+function hideUndoBar() {
+  $('undoBar')?.classList.remove('show');
+  clearTimeout(_undoTimer);
+}
+
+/* ══════════════════════════════════════════════════════
+   TOUCH SWIPE-TO-DELETE  (mobile / tablet)
+   Swipe left ≥140px → auto-delete
+   Swipe left ≥72px  → reveal delete snap
+══════════════════════════════════════════════════════ */
+function addTouchSwipe(card, entryId) {
+  if (!('ontouchstart' in window)) return;
+  let sx = 0, sy = 0, dx = 0, swiping = false;
+  const SNAP = 72, AUTO = 140;
+
+  card.addEventListener('touchstart', e => {
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; swiping = false;
+    card.style.transition = '';
+  }, {passive: true});
+
+  card.addEventListener('touchmove', e => {
+    if (!sx) return;
+    dx = e.touches[0].clientX - sx;
+    const dy = Math.abs(e.touches[0].clientY - sy);
+    if (dy > Math.abs(dx) + 10) { swiping = false; return; }
+    if (dx < -10) {
+      swiping = true;
+      const clamped = Math.max(dx, -AUTO * 1.1);
+      card.style.transform = `translateX(${clamped}px)`;
+      const pct = Math.min(Math.abs(dx) / AUTO, 1);
+      const sh  = card.querySelector('.swipe-hint');
+      if (sh) sh.style.opacity = String(Math.min(pct * 1.6, 1));
+    }
+  }, {passive: true});
+
+  card.addEventListener('touchend', () => {
+    if (!swiping) { sx = 0; dx = 0; return; }
+    card.style.transition = 'transform .22s cubic-bezier(.4,0,.2,1), opacity .22s';
+
+    if (Math.abs(dx) >= AUTO) {
+      // Auto-delete with slide animation
+      card.style.transform = 'translateX(-110%)';
+      card.style.opacity   = '0';
+      setTimeout(() => { removeFile(entryId); card.style.transition = ''; }, 240);
+    } else if (Math.abs(dx) >= SNAP) {
+      // Snap-open: keep exposed at SNAP px; tap card to dismiss
+      card.style.transform = `translateX(-${SNAP}px)`;
+      const dismiss = () => {
+        card.style.transition = 'transform .18s ease';
+        card.style.transform  = '';
+        const sh = card.querySelector('.swipe-hint'); if (sh) sh.style.opacity = '0';
+        setTimeout(() => card.style.transition = '', 200);
+        card.removeEventListener('touchstart', dismiss);
+      };
+      setTimeout(() => card.addEventListener('touchstart', dismiss, {once: true, passive: true}), 80);
+    } else {
+      // Snap back
+      card.style.transform = '';
+      const sh = card.querySelector('.swipe-hint'); if (sh) sh.style.opacity = '0';
+      setTimeout(() => card.style.transition = '', 230);
+    }
+    sx = 0; dx = 0; swiping = false;
+  }, {passive: true});
+}
+
+/* ══════════════════════════════════════════════════════
+   PRESET HOVER HINTS
+══════════════════════════════════════════════════════ */
+(function wirePresetHints() {
+  const HINTS = {
+    quick:   'Fastest — bookmarks preserved, no extra pages added',
+    report:  'Business-ready — auto TOC + separator pages between documents',
+    compact: 'Smallest file — compress output and remove duplicate content',
+    archive: 'Maximum quality — all features: TOC, separators, bookmarks, compress',
+  };
+  $$('.preset-btn').forEach(btn => {
+    btn.addEventListener('mouseenter', () => {
+      const h = $('presetHint');
+      if (h) { h.textContent = HINTS[btn.dataset.preset] || ''; h.classList.add('visible'); }
+    });
+    btn.addEventListener('mouseleave', () => {
+      const h = $('presetHint');
+      if (h) h.classList.remove('visible');
+    });
+    btn.addEventListener('focus', () => {
+      const h = $('presetHint');
+      if (h) { h.textContent = HINTS[btn.dataset.preset] || ''; h.classList.add('visible'); }
+    });
+    btn.addEventListener('blur', () => { $('presetHint')?.classList.remove('visible'); });
+  });
+})();

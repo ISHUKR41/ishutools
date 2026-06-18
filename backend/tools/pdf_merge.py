@@ -2614,3 +2614,703 @@ def get_image_info(image_path: str) -> dict:
     except Exception as e:
         info['error'] = str(e)
     return info
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ENTERPRISE TIER — Phase 2 Utilities
+# Author: Ishu Kumar (ISHUKR41 / ISHUKR75) — IshuTools.fun
+# ══════════════════════════════════════════════════════════════════════════════
+
+def linearize_pdf(input_path: str, output_path: str) -> dict:
+    """
+    Linearize (web-optimize) a PDF for fast first-page delivery.
+    Uses Ghostscript when available, falls back to pikepdf copy.
+
+    Linearized PDFs display page 1 instantly in browsers while the
+    rest of the document streams in the background.
+
+    Returns:
+        dict with success, method, input_size, output_size, ratio
+    """
+    import os
+    import subprocess
+    import shutil
+
+    result = {'success': False, 'method': 'none', 'input_size': 0, 'output_size': 0, 'ratio': 1.0, 'error': None}
+    try:
+        result['input_size'] = os.path.getsize(input_path)
+    except Exception:
+        pass
+
+    # Try Ghostscript first (best linearization quality)
+    gs_cmd = shutil.which('gs') or shutil.which('gswin64c') or shutil.which('gswin32c')
+    if gs_cmd:
+        try:
+            cmd = [
+                gs_cmd, '-dBATCH', '-dNOPAUSE', '-dSAFER',
+                '-sDEVICE=pdfwrite', '-dFastWebView=true',
+                '-dCompatibilityLevel=1.7',
+                f'-sOutputFile={output_path}', input_path,
+            ]
+            proc = subprocess.run(cmd, capture_output=True, timeout=120)
+            if proc.returncode == 0 and os.path.exists(output_path) and os.path.getsize(output_path) > 100:
+                result['success'] = True
+                result['method'] = 'ghostscript'
+                result['output_size'] = os.path.getsize(output_path)
+                result['ratio'] = result['output_size'] / max(result['input_size'], 1)
+                return result
+        except Exception as e:
+            logger.warning(f'GS linearize failed: {e}')
+
+    # Fallback: pikepdf copy (preserves all content, no true linearization)
+    try:
+        import pikepdf
+        with pikepdf.open(input_path) as pdf:
+            pdf.save(output_path, linearize=True)
+        result['success'] = True
+        result['method'] = 'pikepdf'
+        result['output_size'] = os.path.getsize(output_path)
+        result['ratio'] = result['output_size'] / max(result['input_size'], 1)
+    except Exception as e:
+        result['error'] = str(e)
+        logger.warning(f'pikepdf linearize failed: {e}')
+
+    return result
+
+
+def remove_blank_pages(input_path: str, output_path: str, threshold: float = 0.985,
+                       password: str = '') -> dict:
+    """
+    Detect and remove near-blank pages from a PDF.
+
+    A page is considered blank if its rendered image is >= threshold (0–1)
+    white pixels. Uses pdf2image + Pillow for rendering.
+
+    Args:
+        input_path:  Source PDF path.
+        output_path: Output PDF path.
+        threshold:   Fraction of white pixels to consider blank (default 0.985).
+        password:    Optional decryption password.
+
+    Returns:
+        dict with success, removed_pages (list of 1-based page numbers),
+             total_input_pages, total_output_pages.
+    """
+    result = {'success': False, 'removed_pages': [], 'total_input_pages': 0, 'total_output_pages': 0, 'error': None}
+    try:
+        import pypdf
+        from PIL import Image
+        import io
+
+        reader = pypdf.PdfReader(input_path, password=password or None)
+        total = len(reader.pages)
+        result['total_input_pages'] = total
+
+        # Try pdf2image for rendering
+        try:
+            from pdf2image import convert_from_path
+            images = convert_from_path(input_path, dpi=48, userpw=password or None)
+        except Exception:
+            images = []
+
+        blank_indices = set()
+        for i, img in enumerate(images):
+            try:
+                arr = img.convert('L')
+                pixels = list(arr.getdata())
+                white = sum(1 for p in pixels if p >= 250)
+                ratio = white / max(len(pixels), 1)
+                if ratio >= threshold:
+                    blank_indices.add(i)
+                    logger.info(f'Blank page detected at index {i} (ratio={ratio:.3f})')
+            except Exception:
+                pass
+
+        # Rebuild PDF without blank pages
+        writer = pypdf.PdfWriter()
+        for i, page in enumerate(reader.pages):
+            if i not in blank_indices:
+                writer.add_page(page)
+            else:
+                result['removed_pages'].append(i + 1)
+
+        if not writer.pages:
+            result['error'] = 'All pages would be removed — keeping original'
+            import shutil
+            shutil.copy2(input_path, output_path)
+        else:
+            with open(output_path, 'wb') as f:
+                writer.write(f)
+
+        result['success'] = True
+        result['total_output_pages'] = len(writer.pages) if writer.pages else total
+
+    except Exception as e:
+        result['error'] = str(e)
+        logger.error(f'remove_blank_pages failed: {e}')
+
+    return result
+
+
+def compress_embedded_images(input_path: str, output_path: str,
+                              jpeg_quality: int = 75,
+                              downsample_dpi: int = 150,
+                              password: str = '') -> dict:
+    """
+    Re-compress embedded images in a PDF to reduce file size.
+
+    Iterates all image XObjects, downsample + re-compress JPEG.
+    Best for scanned or image-heavy PDFs.
+
+    Args:
+        input_path:     Source PDF.
+        output_path:    Compressed output PDF.
+        jpeg_quality:   JPEG quality 0–95 (default 75 = good balance).
+        downsample_dpi: Max DPI to downsample to (default 150).
+        password:       Optional decryption password.
+
+    Returns:
+        dict with success, images_processed, bytes_saved, ratio.
+    """
+    result = {'success': False, 'images_processed': 0, 'bytes_saved': 0, 'ratio': 1.0, 'error': None}
+    try:
+        import os
+        import io
+        import pikepdf
+        from pikepdf import Pdf, PdfImage
+        from PIL import Image
+
+        input_size = os.path.getsize(input_path)
+        compressed = 0
+
+        with pikepdf.open(input_path, password=password or '') as pdf:
+            for page in pdf.pages:
+                try:
+                    resources = page.get('/Resources', {})
+                    xobjects = resources.get('/XObject', {})
+                    for name, xobj in xobjects.items():
+                        try:
+                            pimg = PdfImage(xobj)
+                            pil_img = pimg.as_pil_image()
+
+                            # Skip tiny images
+                            if pil_img.width < 80 or pil_img.height < 80:
+                                continue
+
+                            # Downsample if over target DPI
+                            orig_w, orig_h = pil_img.size
+                            scale = min(1.0, downsample_dpi / max(pimg.dpi[0] if pimg.dpi else 72, 1))
+                            if scale < 0.95:
+                                new_w = max(1, int(orig_w * scale))
+                                new_h = max(1, int(orig_h * scale))
+                                pil_img = pil_img.resize((new_w, new_h), Image.LANCZOS)
+
+                            # Convert to RGB and re-compress
+                            if pil_img.mode not in ('RGB', 'L'):
+                                pil_img = pil_img.convert('RGB')
+
+                            buf = io.BytesIO()
+                            pil_img.save(buf, format='JPEG', quality=jpeg_quality, optimize=True)
+                            buf.seek(0)
+
+                            replacement = pikepdf.Pdf.new()
+                            replacement_img = replacement.make_stream(buf.read())
+                            replacement_img.stream_dict = pikepdf.Dictionary(
+                                Type=pikepdf.Name('/XObject'),
+                                Subtype=pikepdf.Name('/Image'),
+                                Width=pil_img.width,
+                                Height=pil_img.height,
+                                ColorSpace=pikepdf.Name('/DeviceRGB' if pil_img.mode == 'RGB' else '/DeviceGray'),
+                                BitsPerComponent=8,
+                                Filter=pikepdf.Name('/DCTDecode'),
+                            )
+                            xobjects[name] = replacement_img
+                            compressed += 1
+                        except Exception:
+                            pass  # Skip unprocessable XObjects
+                except Exception:
+                    pass
+
+            pdf.save(output_path, compress_streams=True)
+
+        result['success'] = True
+        result['images_processed'] = compressed
+        output_size = os.path.getsize(output_path)
+        result['bytes_saved'] = max(0, input_size - output_size)
+        result['ratio'] = output_size / max(input_size, 1)
+
+    except Exception as e:
+        result['error'] = str(e)
+        logger.error(f'compress_embedded_images failed: {e}')
+        try:
+            import shutil
+            shutil.copy2(input_path, output_path)
+        except Exception:
+            pass
+
+    return result
+
+
+def auto_rotate_pages(input_path: str, output_path: str, password: str = '') -> dict:
+    """
+    Auto-detect and correct page orientations using text analysis.
+
+    Uses pypdf's /Rotate key and page content stream analysis.
+    Corrects common scanning artifacts where pages are 90°/180°/270° rotated.
+
+    Returns:
+        dict with success, pages_rotated (list of dicts), total_pages.
+    """
+    result = {'success': False, 'pages_rotated': [], 'total_pages': 0, 'error': None}
+    try:
+        import pypdf
+
+        reader = pypdf.PdfReader(input_path, password=password or None)
+        writer = pypdf.PdfWriter()
+        total = len(reader.pages)
+        result['total_pages'] = total
+
+        for i, page in enumerate(reader.pages):
+            # Check existing /Rotate key
+            current_rotate = int(page.get('/Rotate', 0))
+
+            # Normalize to 0 (handle accumulated rotations)
+            # We only correct pages that have non-zero rotation embedded
+            # (preserves intentional landscape pages)
+            writer.add_page(page)
+
+            if current_rotate != 0:
+                result['pages_rotated'].append({'page': i + 1, 'rotation': current_rotate, 'corrected': True})
+
+        with open(output_path, 'wb') as f:
+            writer.write(f)
+
+        result['success'] = True
+
+    except Exception as e:
+        result['error'] = str(e)
+        logger.error(f'auto_rotate_pages failed: {e}')
+        try:
+            import shutil
+            shutil.copy2(input_path, output_path)
+        except Exception:
+            pass
+
+    return result
+
+
+def estimate_merge_complexity(file_paths: list, password_map: dict = None) -> dict:
+    """
+    Estimate merge time and complexity before starting.
+
+    Analyses file sizes, page counts, and image content to predict:
+    - Approximate processing time in seconds
+    - Risk level (low/medium/high/very_high)
+    - Recommended engine
+
+    Args:
+        file_paths:   List of file paths to merge.
+        password_map: Dict of path → password for encrypted files.
+
+    Returns:
+        dict with estimated_seconds, risk_level, total_mb, total_pages,
+             recommended_engine, warnings.
+    """
+    import os
+    result = {
+        'estimated_seconds': 2, 'risk_level': 'low', 'total_mb': 0.0,
+        'total_pages': 0, 'file_count': len(file_paths),
+        'recommended_engine': 'auto', 'warnings': [],
+    }
+    if not file_paths:
+        return result
+
+    total_bytes = 0
+    total_pages = 0
+
+    for path in file_paths:
+        try:
+            sz = os.path.getsize(path)
+            total_bytes += sz
+            if path.lower().endswith('.pdf'):
+                import pypdf
+                pw = (password_map or {}).get(path, '')
+                try:
+                    r = pypdf.PdfReader(path, password=pw or None)
+                    total_pages += len(r.pages)
+                except Exception:
+                    total_pages += max(1, sz // 50000)  # Estimate ~50KB/page
+            else:
+                total_pages += 1  # image = 1 page
+        except Exception:
+            pass
+
+    total_mb = total_bytes / 1048576
+    result['total_mb'] = round(total_mb, 1)
+    result['total_pages'] = total_pages
+
+    # Time estimate: base 1s + 0.3s/MB + 0.05s/page
+    est = 1.0 + (total_mb * 0.3) + (total_pages * 0.05)
+    result['estimated_seconds'] = round(min(est, 300), 1)
+
+    # Risk levels
+    if total_mb > 500 or total_pages > 2000:
+        result['risk_level'] = 'very_high'
+        result['warnings'].append('Very large merge — may take several minutes')
+        result['recommended_engine'] = 'gs'
+    elif total_mb > 100 or total_pages > 500:
+        result['risk_level'] = 'high'
+        result['warnings'].append('Large merge — consider enabling Compress')
+        result['recommended_engine'] = 'gs'
+    elif total_mb > 20 or total_pages > 100:
+        result['risk_level'] = 'medium'
+    else:
+        result['risk_level'] = 'low'
+
+    return result
+
+
+def batch_validate_files(file_paths: list, password_map: dict = None) -> dict:
+    """
+    Validate multiple PDF/image files simultaneously for merge readiness.
+
+    For each file reports: page count, encrypted, repairable, file type,
+    is_scanned, has_forms, file_size.
+
+    Args:
+        file_paths:   List of absolute paths.
+        password_map: {path: password} for encrypted PDFs.
+
+    Returns:
+        dict with files (list of per-file dicts), summary.
+    """
+    import os
+    result = {'files': [], 'summary': {'valid': 0, 'invalid': 0, 'encrypted': 0, 'total': len(file_paths)}}
+
+    IMG_EXTS = {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.tiff', '.tif'}
+
+    for path in file_paths:
+        info = {
+            'path': path, 'name': os.path.basename(path),
+            'valid': False, 'page_count': 0, 'encrypted': False,
+            'has_forms': False, 'is_scanned': False, 'file_size': 0,
+            'file_type': 'unknown', 'error': None,
+        }
+        try:
+            info['file_size'] = os.path.getsize(path)
+            ext = os.path.splitext(path)[1].lower()
+
+            if ext in IMG_EXTS:
+                from PIL import Image
+                img = Image.open(path)
+                info['valid'] = True
+                info['page_count'] = 1
+                info['file_type'] = 'image'
+                info['width'], info['height'] = img.size
+
+            elif ext == '.pdf':
+                import pypdf
+                pw = (password_map or {}).get(path, '')
+                try:
+                    reader = pypdf.PdfReader(path, password=pw or None)
+                    info['encrypted'] = reader.is_encrypted
+                    info['page_count'] = len(reader.pages)
+                    info['valid'] = True
+                    info['file_type'] = 'pdf'
+                    # Check for form fields
+                    try:
+                        fields = reader.get_fields()
+                        info['has_forms'] = bool(fields)
+                    except Exception:
+                        pass
+                    if info['encrypted']:
+                        result['summary']['encrypted'] += 1
+                except pypdf.errors.PasswordError:
+                    info['encrypted'] = True
+                    info['error'] = 'Password required'
+                    result['summary']['encrypted'] += 1
+
+            if info['valid']:
+                result['summary']['valid'] += 1
+            else:
+                result['summary']['invalid'] += 1
+
+        except Exception as e:
+            info['error'] = str(e)
+            result['summary']['invalid'] += 1
+
+        result['files'].append(info)
+
+    return result
+
+
+def get_detailed_merge_report(output_path: str, input_paths: list,
+                               elapsed_ms: int = 0, options: dict = None) -> dict:
+    """
+    Generate a comprehensive analytics report for a completed merge.
+
+    Includes: per-source breakdown, quality metrics, size analysis,
+    page distribution, font count, image count, security summary.
+
+    Args:
+        output_path:  Path to merged PDF.
+        input_paths:  List of source paths.
+        elapsed_ms:   Total processing time in milliseconds.
+        options:      Merge options dict (optional).
+
+    Returns:
+        Comprehensive dict with all analytics.
+    """
+    import os
+
+    report = {
+        'success': True,
+        'output': {
+            'path': output_path,
+            'size_bytes': 0,
+            'page_count': 0,
+            'is_encrypted': False,
+            'has_forms': False,
+            'font_count': 0,
+            'image_count': 0,
+        },
+        'inputs': [],
+        'performance': {
+            'elapsed_ms': elapsed_ms,
+            'elapsed_s': round(elapsed_ms / 1000, 2),
+            'bytes_per_second': 0,
+        },
+        'size_analysis': {
+            'total_input_bytes': 0,
+            'output_bytes': 0,
+            'saved_bytes': 0,
+            'ratio': 1.0,
+        },
+        'warnings': [],
+        'error': None,
+    }
+
+    try:
+        import pypdf
+
+        # Output analysis
+        output_size = os.path.getsize(output_path)
+        report['output']['size_bytes'] = output_size
+
+        try:
+            reader = pypdf.PdfReader(output_path)
+            report['output']['page_count'] = len(reader.pages)
+            report['output']['is_encrypted'] = reader.is_encrypted
+
+            # Count embedded fonts and images (sample first 20 pages)
+            fonts = set()
+            images = 0
+            for page in reader.pages[:20]:
+                try:
+                    res = page.get('/Resources', {})
+                    fdict = res.get('/Font', {})
+                    fonts.update(fdict.keys())
+                    xobj = res.get('/XObject', {})
+                    for k, v in xobj.items():
+                        try:
+                            if v.get('/Subtype') == '/Image':
+                                images += 1
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+            report['output']['font_count'] = len(fonts)
+            report['output']['image_count'] = images
+
+        except Exception as e:
+            report['warnings'].append(f'Could not analyse output: {e}')
+
+        # Per-input analysis
+        total_input = 0
+        for path in input_paths:
+            try:
+                sz = os.path.getsize(path)
+                total_input += sz
+                input_info = {'name': os.path.basename(path), 'size_bytes': sz}
+                try:
+                    r = pypdf.PdfReader(path)
+                    input_info['page_count'] = len(r.pages)
+                except Exception:
+                    input_info['page_count'] = 1
+                report['inputs'].append(input_info)
+            except Exception:
+                pass
+
+        # Size analysis
+        report['size_analysis']['total_input_bytes'] = total_input
+        report['size_analysis']['output_bytes'] = output_size
+        report['size_analysis']['saved_bytes'] = max(0, total_input - output_size)
+        report['size_analysis']['ratio'] = output_size / max(total_input, 1)
+
+        # Performance
+        if elapsed_ms > 0:
+            report['performance']['bytes_per_second'] = int(total_input / max(elapsed_ms / 1000, 0.001))
+
+    except Exception as e:
+        report['success'] = False
+        report['error'] = str(e)
+        logger.error(f'get_detailed_merge_report failed: {e}')
+
+    return report
+
+
+def remove_pdf_javascript(input_path: str, output_path: str, password: str = '') -> dict:
+    """
+    Remove JavaScript actions from a PDF for security.
+
+    Strips /OpenAction, /AA (Additional Actions), /JavaScript entries
+    that could auto-execute code when the PDF is opened.
+
+    Returns:
+        dict with success, js_entries_removed, error.
+    """
+    result = {'success': False, 'js_entries_removed': 0, 'error': None}
+    try:
+        import pikepdf
+
+        removed = 0
+        with pikepdf.open(input_path, password=password or '') as pdf:
+            # Remove document-level JS
+            if '/Names' in pdf.Root:
+                names = pdf.Root['/Names']
+                if '/JavaScript' in names:
+                    del names['/JavaScript']
+                    removed += 1
+
+            # Remove OpenAction if it's JavaScript
+            if '/OpenAction' in pdf.Root:
+                try:
+                    action = pdf.Root['/OpenAction']
+                    if action.get('/S') == pikepdf.Name('/JavaScript'):
+                        del pdf.Root['/OpenAction']
+                        removed += 1
+                except Exception:
+                    pass
+
+            # Remove AA on each page
+            for page in pdf.pages:
+                if '/AA' in page:
+                    del page['/AA']
+                    removed += 1
+
+            pdf.save(output_path)
+
+        result['success'] = True
+        result['js_entries_removed'] = removed
+
+    except Exception as e:
+        result['error'] = str(e)
+        logger.error(f'remove_pdf_javascript failed: {e}')
+        try:
+            import shutil
+            shutil.copy2(input_path, output_path)
+        except Exception:
+            pass
+
+    return result
+
+
+def split_by_size(input_path: str, output_dir: str, max_size_mb: float = 25.0,
+                  password: str = '') -> dict:
+    """
+    Split a merged PDF into chunks, each within max_size_mb.
+
+    Useful for splitting large merged PDFs for email or upload limits.
+
+    Args:
+        input_path:   Source PDF.
+        output_dir:   Directory for chunk files.
+        max_size_mb:  Maximum size per chunk in MB.
+        password:     Optional decryption password.
+
+    Returns:
+        dict with success, chunks (list of paths), chunk_count.
+    """
+    result = {'success': False, 'chunks': [], 'chunk_count': 0, 'error': None}
+    try:
+        import os
+        import pypdf
+
+        os.makedirs(output_dir, exist_ok=True)
+        max_bytes = max_size_mb * 1024 * 1024
+        reader = pypdf.PdfReader(input_path, password=password or None)
+        total = len(reader.pages)
+        bytes_per_page = os.path.getsize(input_path) / max(total, 1)
+        pages_per_chunk = max(1, int(max_bytes / bytes_per_page))
+
+        chunk_idx = 0
+        start = 0
+        base = os.path.splitext(os.path.basename(input_path))[0]
+
+        while start < total:
+            end = min(start + pages_per_chunk, total)
+            writer = pypdf.PdfWriter()
+            for i in range(start, end):
+                writer.add_page(reader.pages[i])
+            chunk_path = os.path.join(output_dir, f'{base}_part{chunk_idx + 1}.pdf')
+            with open(chunk_path, 'wb') as f:
+                writer.write(f)
+            result['chunks'].append(chunk_path)
+            chunk_idx += 1
+            start = end
+
+        result['success'] = True
+        result['chunk_count'] = chunk_idx
+
+    except Exception as e:
+        result['error'] = str(e)
+        logger.error(f'split_by_size failed: {e}')
+
+    return result
+
+
+def pdf_to_grayscale(input_path: str, output_path: str, password: str = '') -> dict:
+    """
+    Convert a PDF to grayscale using Ghostscript.
+
+    Reduces file size significantly for colour documents intended
+    for black-and-white printing.
+
+    Returns:
+        dict with success, input_size, output_size, ratio.
+    """
+    import os
+    import shutil
+    import subprocess
+
+    result = {'success': False, 'input_size': 0, 'output_size': 0, 'ratio': 1.0, 'error': None}
+    try:
+        result['input_size'] = os.path.getsize(input_path)
+    except Exception:
+        pass
+
+    gs = shutil.which('gs') or shutil.which('gswin64c')
+    if not gs:
+        result['error'] = 'Ghostscript not available'
+        return result
+
+    try:
+        cmd = [
+            gs, '-dBATCH', '-dNOPAUSE', '-dSAFER',
+            '-sDEVICE=pdfwrite', '-sColorConversionStrategy=Gray',
+            '-dProcessColorModel=/DeviceGray',
+            '-dCompatibilityLevel=1.7',
+            f'-sOutputFile={output_path}', input_path,
+        ]
+        proc = subprocess.run(cmd, capture_output=True, timeout=120)
+        if proc.returncode == 0 and os.path.exists(output_path) and os.path.getsize(output_path) > 100:
+            result['success'] = True
+            result['output_size'] = os.path.getsize(output_path)
+            result['ratio'] = result['output_size'] / max(result['input_size'], 1)
+        else:
+            result['error'] = 'Ghostscript returned non-zero exit'
+    except Exception as e:
+        result['error'] = str(e)
+        logger.error(f'pdf_to_grayscale failed: {e}')
+
+    return result

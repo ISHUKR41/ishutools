@@ -259,33 +259,22 @@
     <!-- File List -->
     <div class="file-list" id="fileList" role="list" aria-label="Files to merge"></div>
 
-    <!-- Options Row -->
-    <div class="opts-row">
-      <!-- Quick Toggles -->
-      <div class="quick-opts" id="quickOpts">
-        <span class="opts-label"><i class="fas fa-bolt"></i> Quick:</span>
-        <label class="qchip" for="qToc" title="Add Table of Contents page">
-          <input type="checkbox" id="qToc" /><i class="fas fa-list-ol"></i> TOC
-        </label>
-        <label class="qchip" for="qSep" title="Insert separator pages">
-          <input type="checkbox" id="qSep" /><i class="fas fa-grip-lines"></i> Separators
-        </label>
-        <label class="qchip" for="qCompress" title="Compress output">
-          <input type="checkbox" id="qCompress" /><i class="fas fa-compress-arrows-alt"></i> Compress
-        </label>
-        <label class="qchip qchip-on" for="qBookmarks" title="Preserve bookmarks">
-          <input type="checkbox" id="qBookmarks" checked /><i class="fas fa-bookmark"></i> Bookmarks
-        </label>
-      </div>
-    </div>
-
-    <!-- Presets -->
+    <!-- Presets — one-click smart configurations -->
     <div class="presets-row">
-      <span class="opts-label"><i class="fas fa-wand-magic-sparkles"></i> Preset:</span>
-      <button class="preset-btn" data-preset="quick" title="Fast: bookmarks only"><i class="fas fa-bolt"></i> Quick</button>
-      <button class="preset-btn" data-preset="report" title="Report: TOC + separators"><i class="fas fa-briefcase"></i> Report</button>
-      <button class="preset-btn" data-preset="compact" title="Compact: compress + dedupe"><i class="fas fa-compress"></i> Compact</button>
-      <button class="preset-btn" data-preset="archive" title="Archive: all features"><i class="fas fa-box-archive"></i> Archive</button>
+      <span class="opts-label"><i class="fas fa-wand-magic-sparkles"></i> Style:</span>
+      <button class="preset-btn" data-preset="quick" title="Bookmarks only — fastest">
+        <i class="fas fa-bolt"></i> Quick
+      </button>
+      <button class="preset-btn" data-preset="report" title="Add TOC + separators — best for reports">
+        <i class="fas fa-briefcase"></i> Report
+      </button>
+      <button class="preset-btn" data-preset="compact" title="Compress + deduplicate — smallest file">
+        <i class="fas fa-compress"></i> Compact
+      </button>
+      <button class="preset-btn" data-preset="archive" title="All features — best quality">
+        <i class="fas fa-box-archive"></i> Archive
+      </button>
+      <span class="preset-hint" id="presetHint"></span>
     </div>
 
     <!-- Advanced Options Toggle -->
@@ -657,11 +646,15 @@
     <div class="shortcuts-list">
       <div class="sc-row"><kbd>Ctrl+O</kbd><span>Add files</span></div>
       <div class="sc-row"><kbd>Ctrl+M</kbd><span>Merge PDFs</span></div>
+      <div class="sc-row"><kbd>Ctrl+S</kbd><span>Download merged PDF</span></div>
       <div class="sc-row"><kbd>Alt+↑↓</kbd><span>Move file up / down</span></div>
       <div class="sc-row"><kbd>Del</kbd><span>Remove focused file</span></div>
+      <div class="sc-row"><kbd>Ctrl+Z</kbd><span>Undo last remove</span></div>
       <div class="sc-row"><kbd>?</kbd><span>Show shortcuts</span></div>
-      <div class="sc-row"><kbd>Esc</kbd><span>Close modal</span></div>
+      <div class="sc-row"><kbd>Esc</kbd><span>Close modal / preview</span></div>
       <div class="sc-row"><kbd>Dbl-click</kbd><span>Rename file</span></div>
+      <div class="sc-row"><kbd>Click thumb</kbd><span>Preview file</span></div>
+      <div class="sc-row"><kbd>Swipe ←</kbd><span>Delete card (mobile)</span></div>
     </div>
     <div class="modal-tip"><i class="fas fa-lightbulb"></i> Drop files anywhere on the page to add them</div>
   </div>
@@ -669,6 +662,27 @@
 
 <!-- Toast -->
 <div class="toast" id="toast" role="alert" aria-live="polite"></div>
+
+<!-- Undo Bar -->
+<div class="undo-bar" id="undoBar" role="alert" aria-live="polite">
+  <i class="fas fa-trash-alt"></i>
+  <span class="undo-msg">File removed — <strong class="undo-name"></strong></span>
+  <button class="undo-btn" id="undoBtn" aria-label="Undo remove"><i class="fas fa-rotate-left"></i> Undo</button>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal-overlay pv-overlay" id="previewModal" hidden role="dialog" aria-modal="true" aria-label="File preview">
+  <div class="pv-card">
+    <div class="pv-header">
+      <div class="pv-header-left">
+        <i class="fas fa-eye" aria-hidden="true"></i>
+        <h3 class="pv-title">Preview</h3>
+      </div>
+      <button class="modal-close" id="previewClose" aria-label="Close preview"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="pv-body" id="previewBody"></div>
+  </div>
+</div>
 
 <!-- Confetti -->
 <div id="confettiContainer" aria-hidden="true"></div>
