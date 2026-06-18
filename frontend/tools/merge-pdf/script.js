@@ -255,10 +255,15 @@ async function addFiles(newFiles) {
   updateCounts();
   checkDuplicates();
 
-  // Load thumbnails + info in background
+  // Load thumbnails + info in background (PDF.js)
   const lib = await loadPDFJS();
   for (const entry of newEntries) {
     loadFileInfo(entry, lib);
+  }
+
+  // Server-side validation in background (metadata, warnings, forms)
+  for (const entry of newEntries) {
+    validateFileAsync(entry);
   }
 }
 
@@ -267,7 +272,7 @@ async function addFiles(newFiles) {
 ══════════════════════════════════════════════════════════ */
 function updateLiveStats() {
   const n = files.length;
-  if (sbFiles) sbFiles.textContent = n;
+  if (sbFiles) animateCounter(sbFiles, n);
 
   const totalBytes = files.reduce((s, f) => s + f.file.size, 0);
   if (sbSize) sbSize.textContent = totalBytes > 0 ? formatBytes(totalBytes) : '—';
@@ -276,7 +281,13 @@ function updateLiveStats() {
   if (known.length > 0) {
     const total = known.reduce((s, f) => s + f.info.pageCount, 0);
     const hasUnknown = known.length < files.length;
-    if (sbPages) sbPages.textContent = total + (hasUnknown ? '+' : '');
+    if (sbPages) {
+      if (hasUnknown) {
+        sbPages.textContent = total + '+';
+      } else {
+        animateCounter(sbPages, total);
+      }
+    }
   } else {
     if (sbPages) sbPages.textContent = '—';
   }
@@ -554,6 +565,7 @@ function createFileCard(entry, idx) {
   // Remove entering class after animation
   setTimeout(() => card.classList.remove('entering'), 350);
 
+  const displayName = entry.displayName || entry.file.name;
   card.innerHTML = `
     <div class="file-drag-handle" title="Drag to reorder" aria-label="Drag handle">
       <i class="fas fa-grip-dots-vertical"></i>
@@ -562,7 +574,7 @@ function createFileCard(entry, idx) {
       <div class="thumb-loading"></div>
     </div>
     <div class="file-info">
-      <div class="file-name" title="${entry.file.name}">${truncateName(entry.file.name)}</div>
+      <div class="file-name" title="${displayName} (double-click to rename)">${truncateName(displayName)}</div>
       <div class="file-meta">
         <span class="file-meta-pill"><i class="fas fa-database"></i> ${formatBytes(entry.file.size)}</span>
       </div>
@@ -584,6 +596,7 @@ function createFileCard(entry, idx) {
       </div>
     </div>
     <div class="file-actions">
+      <div class="file-status loading" id="vstatus_${entry.id}" title="Validating…"></div>
       <span class="file-num">#${idx + 1}</span>
       <button class="btn-icon primary expand-btn" title="Expand options" aria-label="Expand file options">
         <i class="fas fa-sliders"></i>
@@ -593,6 +606,47 @@ function createFileCard(entry, idx) {
       </button>
     </div>
   `;
+
+  // Inline rename on double-click
+  const nameEl = card.querySelector('.file-name');
+  nameEl.addEventListener('dblclick', e => {
+    e.stopPropagation();
+    nameEl.contentEditable = 'true';
+    nameEl.classList.add('editing');
+    // Strip .pdf extension for editing comfort
+    const stem = (entry.displayName || entry.file.name).replace(/\.pdf$/i, '');
+    nameEl.textContent = stem;
+    nameEl.focus();
+    // Select all
+    const range = document.createRange();
+    range.selectNodeContents(nameEl);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+  nameEl.addEventListener('blur', () => {
+    if (nameEl.contentEditable !== 'true') return;
+    nameEl.contentEditable = 'false';
+    nameEl.classList.remove('editing');
+    const orig = entry.displayName || entry.file.name;
+    let stem = nameEl.textContent.trim();
+    if (!stem) stem = orig.replace(/\.pdf$/i, '');
+    const newName = stem.endsWith('.pdf') ? stem : stem + '.pdf';
+    if (newName !== orig) {
+      entry.displayName = newName;
+      showToast(`Renamed to "${newName}"`, 'info');
+    }
+    nameEl.textContent = truncateName(newName);
+    nameEl.title = `${newName} (double-click to rename)`;
+  });
+  nameEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); }
+    if (e.key === 'Escape') {
+      nameEl.textContent = truncateName(entry.displayName || entry.file.name);
+      nameEl.contentEditable = 'false';
+      nameEl.classList.remove('editing');
+    }
+  });
 
   // Bind events
   card.querySelector('.remove-btn').addEventListener('click', e => {
@@ -658,7 +712,10 @@ function updateCounts() {
   const n = files.length;
   if (fileCountBadge) fileCountBadge.textContent = `${n} ${n === 1 ? 'file' : 'files'}`;
   if (mergeBtnCount) mergeBtnCount.textContent = n > 0 ? `${n} files` : '';
-  if (mergeBtn) mergeBtn.disabled = n < 2;
+  if (mergeBtn) {
+    mergeBtn.disabled = n < 2;
+    mergeBtn.classList.toggle('ready', n >= 2);
+  }
   updateLiveStats();
 }
 
@@ -786,6 +843,10 @@ async function doMerge() {
   const passwords = files.map(e => e.password || null);
   formData.append('passwords', JSON.stringify(passwords));
 
+  // Per-file display names (used in TOC and separator pages)
+  const displayNames = files.map(e => (e.displayName || e.file.name).replace(/\.pdf$/i, ''));
+  formData.append('display_names', JSON.stringify(displayNames));
+
   try {
     const resp = await fetch('/api/merge-pdf', {
       method: 'POST',
@@ -817,10 +878,13 @@ async function doMerge() {
     if (downloadUrl) URL.revokeObjectURL(downloadUrl);
     downloadUrl = URL.createObjectURL(blob);
 
-    // Determine download filename
-    const stems = files.slice(0, 3).map(e => e.file.name.replace(/\.pdf$/i, '')).join('_');
+    // Smart download filename — prefer display names, fall back to file names
+    const nameSources = files.slice(0, 3).map(e =>
+      (e.displayName || e.file.name).replace(/\.pdf$/i, '').replace(/\s+/g, '_')
+    );
+    const smartStem = nameSources.join('_').slice(0, 60);
     mergeResult = {
-      filename: `${stems}_merged.pdf`,
+      filename: `${smartStem}_merged.pdf`,
       totalPages,
       sourceCount,
       outputSize,
@@ -839,9 +903,14 @@ async function doMerge() {
     if (optSeparators.checked) extras.push('with separators');
     $('resultSubtitle').textContent = `${sourceCount} files → ${totalPages} pages merged ${extras.length ? '(' + extras.join(', ') + ')' : 'successfully'}`;
 
+    // Save to recent merges history
+    saveRecentMerge(mergeResult);
+
     setTimeout(() => {
       showResult();
       launchConfetti();
+      // Show recent merges
+      renderRecentMerges();
     }, 300);
 
   } catch (err) {
@@ -1024,18 +1093,297 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ══════════════════════════════════════════════════════════
+   ANIMATED STAT COUNTER
+══════════════════════════════════════════════════════════ */
+const _counterPrev = {};
+function animateCounter(el, toVal, suffix = '') {
+  if (!el) return;
+  const key = el.id || el.className;
+  const from = _counterPrev[key] ?? 0;
+  if (from === toVal) return;
+  _counterPrev[key] = toVal;
+
+  const duration = 500;
+  const start = performance.now();
+  const update = (now) => {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3); // ease-out-cubic
+    const current = Math.round(from + (toVal - from) * eased);
+    el.textContent = current + suffix;
+    el.classList.add('counting');
+    if (progress < 1) {
+      requestAnimationFrame(update);
+    } else {
+      el.classList.remove('counting');
+    }
+  };
+  requestAnimationFrame(update);
+}
+
+/* ══════════════════════════════════════════════════════════
+   PER-FILE ASYNC VALIDATION
+══════════════════════════════════════════════════════════ */
+async function validateFileAsync(entry) {
+  const statusEl = document.getElementById(`vstatus_${entry.id}`);
+  if (!statusEl) return;
+
+  // Show loading spinner
+  statusEl.className = 'file-status loading';
+  statusEl.title = 'Validating…';
+
+  try {
+    const fd = new FormData();
+    fd.append('file', entry.file, entry.file.name);
+    if (entry.password) fd.append('password', entry.password);
+
+    const resp = await fetch('/api/merge-pdf/validate', { method: 'POST', body: fd });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+
+    if (!data.success) throw new Error(data.error || 'Validation failed');
+
+    if (data.encrypted && !entry.password) {
+      statusEl.className = 'file-status encrypted';
+      statusEl.title = 'Password protected — expand to enter password';
+      // Show pw field automatically
+      const card = document.querySelector(`[data-id="${entry.id}"]`);
+      if (card) {
+        card.classList.add('expanded');
+        const pwField = card.querySelector('.pw-field');
+        if (pwField) pwField.style.display = '';
+      }
+      return;
+    }
+
+    if (!data.valid) {
+      statusEl.className = 'file-status error';
+      statusEl.title = data.error || 'Cannot read this PDF';
+      return;
+    }
+
+    // Update entry info with server-side details
+    entry.info = entry.info || {};
+    if (data.pages > 0) {
+      entry.info.pageCount = data.pages;
+      // Update page count badge in card
+      const card = document.querySelector(`[data-id="${entry.id}"]`);
+      if (card) {
+        const pagesEl = card.querySelector('.pages-pill');
+        if (pagesEl) {
+          pagesEl.innerHTML = `<i class="fas fa-book-open"></i> ${data.pages} pages`;
+        } else {
+          // Add pages pill to meta
+          const metaEl = card.querySelector('.file-meta');
+          if (metaEl) {
+            const pill = document.createElement('span');
+            pill.className = 'file-meta-pill pages-pill';
+            pill.innerHTML = `<i class="fas fa-book-open"></i> ${data.pages} pg`;
+            metaEl.appendChild(pill);
+          }
+        }
+      }
+    }
+    entry.info.title   = data.title   || '';
+    entry.info.author  = data.author  || '';
+    entry.info.version = data.version || '';
+    entry.info.hasForms = data.has_forms || false;
+    entry.info.warnings = data.warnings || [];
+
+    // Show doc meta (title/author) in card if available
+    if (data.title || data.author) {
+      const card = document.querySelector(`[data-id="${entry.id}"]`);
+      if (card) {
+        let metaDoc = card.querySelector('.file-doc-meta');
+        if (!metaDoc) {
+          metaDoc = document.createElement('div');
+          metaDoc.className = 'file-doc-meta';
+          const infoEl = card.querySelector('.file-info');
+          if (infoEl) infoEl.appendChild(metaDoc);
+        }
+        const parts = [data.title, data.author].filter(Boolean);
+        metaDoc.textContent = parts.join(' · ').slice(0, 50);
+        metaDoc.title = parts.join(' · ');
+      }
+    }
+
+    // Show warnings
+    if (data.warnings && data.warnings.length > 0) {
+      statusEl.className = 'file-status warning';
+      statusEl.title = data.warnings[0];
+      // Show warning badge in card
+      const card = document.querySelector(`[data-id="${entry.id}"]`);
+      if (card) {
+        let badge = card.querySelector('.file-warning-badge');
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.className = 'file-warning-badge';
+          const metaEl = card.querySelector('.file-meta');
+          if (metaEl) metaEl.insertAdjacentElement('afterend', badge);
+        }
+        badge.innerHTML = `<i class="fas fa-triangle-exclamation"></i> ${data.warnings[0].slice(0, 50)}`;
+        badge.title = data.warnings.join('\n');
+      }
+    } else {
+      statusEl.className = 'file-status valid';
+      statusEl.title = `Valid PDF · ${data.pages} pages · PDF ${data.version}`;
+    }
+
+    updateLiveStats();
+
+  } catch (err) {
+    statusEl.className = 'file-status error';
+    statusEl.title = `Validation error: ${err.message}`;
+    console.warn('Validate failed:', err);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   RECENT MERGES (localStorage)
+══════════════════════════════════════════════════════════ */
+const RECENT_KEY = 'ishutools_recent_merges';
+const MAX_RECENT = 5;
+
+function saveRecentMerge(result) {
+  try {
+    const list = loadRecentMerges();
+    list.unshift({
+      filename:    result.filename || 'merged.pdf',
+      pages:       result.totalPages || 0,
+      size:        result.outputSize || 0,
+      sourceCount: result.sourceCount || files.length,
+      method:      result.method || '',
+      date:        new Date().toISOString(),
+    });
+    if (list.length > MAX_RECENT) list.length = MAX_RECENT;
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+  } catch (_) { /* localStorage blocked */ }
+}
+
+function loadRecentMerges() {
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); }
+  catch (_) { return []; }
+}
+
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+function renderRecentMerges() {
+  const container = $('recentMerges');
+  if (!container) return;
+  const list = loadRecentMerges();
+  if (list.length === 0) { container.style.display = 'none'; return; }
+  container.style.display = '';
+  container.innerHTML = `
+    <h4 class="recent-title"><i class="fas fa-history"></i> Recent Merges</h4>
+    <div class="recent-list">
+      ${list.map(m => `
+        <div class="recent-item">
+          <i class="fas fa-file-pdf"></i>
+          <div class="recent-info">
+            <div class="recent-filename" title="${m.filename}">${m.filename.length > 38 ? m.filename.slice(0,35)+'…' : m.filename}</div>
+            <div class="recent-meta">${m.sourceCount} files · ${m.pages} pages · ${formatBytes(m.size || 0)}</div>
+          </div>
+          <div class="recent-date">${timeAgo(m.date)}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+/* ══════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS MODAL
+══════════════════════════════════════════════════════════ */
+function showShortcutsModal() {
+  const modal = $('shortcutsModal');
+  if (!modal) return;
+  modal.removeAttribute('hidden');
+  if (typeof gsap !== 'undefined') {
+    gsap.from(modal.querySelector('.shortcuts-card'), {
+      duration: 0.3, y: -18, ease: 'power2.out',
+    });
+  }
+  const closeBtn = $('shortcutsClose');
+  if (closeBtn) closeBtn.focus();
+}
+
+function hideShortcutsModal() {
+  const modal = $('shortcutsModal');
+  if (modal) modal.setAttribute('hidden', '');
+}
+
+$('shortcutsClose') && $('shortcutsClose').addEventListener('click', hideShortcutsModal);
+$('shortcutsModal') && $('shortcutsModal').addEventListener('click', e => {
+  if (e.target === $('shortcutsModal')) hideShortcutsModal();
+});
+$('shortcutsHintBtn') && $('shortcutsHintBtn').addEventListener('click', showShortcutsModal);
+
+/* ══════════════════════════════════════════════════════════
+   COPY RESULT FILENAME
+══════════════════════════════════════════════════════════ */
+function copyResultFilename() {
+  if (!mergeResult) return;
+  const name = mergeResult.filename || 'merged.pdf';
+  navigator.clipboard.writeText(name).then(() => {
+    showToast(`"${name}" copied to clipboard!`, 'success');
+    const btn = $('copyNameBtn');
+    if (btn) {
+      btn.classList.add('copied');
+      btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.innerHTML = '<i class="fas fa-copy"></i> Copy Name';
+      }, 2000);
+    }
+  }).catch(() => {
+    showToast(name, 'info');
+  });
+}
+
+$('copyNameBtn') && $('copyNameBtn').addEventListener('click', copyResultFilename);
+
+/* ══════════════════════════════════════════════════════════
    KEYBOARD SHORTCUTS
 ══════════════════════════════════════════════════════════ */
 document.addEventListener('keydown', e => {
+  const inInput = e.target.matches('input, textarea, [contenteditable="true"]');
+
+  // ? key — show shortcuts modal
+  if (e.key === '?' && !inInput) {
+    showShortcutsModal();
+    return;
+  }
+  // Escape — close modal or do nothing
+  if (e.key === 'Escape') {
+    hideShortcutsModal();
+    return;
+  }
   // Ctrl+O or Cmd+O — open files
   if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
     e.preventDefault();
     if (filesSection && !filesSection.hidden) addMoreInput.click();
     else fileInput.click();
+    return;
   }
-  // Escape — cancel or go back
-  if (e.key === 'Escape' && resultSection && !resultSection.hidden) {
-    // do nothing (let user explicitly click merge again)
+  // Ctrl+M or Cmd+M — trigger merge
+  if ((e.ctrlKey || e.metaKey) && e.key === 'm') {
+    e.preventDefault();
+    if (files.length >= 2) doMerge();
+    else showToast('Add at least 2 PDF files to merge', 'warn');
+    return;
+  }
+  // Delete — remove last focused file (if no input focused)
+  if (e.key === 'Delete' && !inInput && files.length > 0 && document.activeElement.closest('.file-card')) {
+    const card = document.activeElement.closest('.file-card');
+    const id = card?.getAttribute('data-id');
+    if (id) removeFile(id);
   }
 });
 

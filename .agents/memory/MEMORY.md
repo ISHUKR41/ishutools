@@ -15,3 +15,4 @@
 - [SEO hidden div penalty](seo-hidden.md) — Replaced position:absolute opacity:0 hidden SEO div with visible seo-tools-dir section; cloaking is penalized by Google; visible structured dirs are canonical
 - [Tool .py file scale](tool-py-scale.md) — All 34 tool .py files have 28-42 functions each (953 total, 41k+ lines); append new functions at bottom; always syntax-check with compile() before restart
 - [API route naming](api-routes.md) — Route names differ from UI names: page-numbers→add-page-numbers, watermark→add-watermark, pdf-to-jpg→pdf-to-img; always verify in app.py before testing
+- [Merge PDF enterprise features](merge-pdf-enterprise.md) — pdf_merge.py has validate_for_merge(), generate_thumbnail_b64(), smart_postprocess(); merge_pdfs() accepts file_names for TOC/separator titles; display_names parsed in app.py and passed through

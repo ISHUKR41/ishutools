@@ -301,6 +301,7 @@ def merge_pdfs(
     target_page_size: str = 'A4',
     compress_output: bool = False,
     output_metadata: dict = None,
+    file_names: list = None,
 ) -> dict:
     """
     Merge multiple PDF files into a single PDF with enterprise features.
@@ -333,6 +334,10 @@ def merge_pdfs(
         passwords.append(None)
     while len(page_ranges) < len(input_paths):
         page_ranges.append('all')
+    if file_names is None:
+        file_names = [None] * len(input_paths)
+    while len(file_names) < len(input_paths):
+        file_names.append(None)
 
     writer = PdfWriter()
     seen_hashes = set()
@@ -364,18 +369,20 @@ def merge_pdfs(
         else:
             indices = list(range(total))
 
-        doc_name = os.path.splitext(os.path.basename(pdf_path))[0]
+        # Use custom display name if provided, else derive from filename
+        fallback_name = os.path.splitext(os.path.basename(pdf_path))[0]
+        doc_name = (file_names[file_idx] or fallback_name).strip() or fallback_name
         toc_entries.append({
             'name': doc_name,
             'page': current_page + toc_placeholder + 1,
         })
 
-        # Separator page
+        # Separator page — uses the display name as title
         if add_separators and file_idx > 0:
             try:
                 sep_bytes = _make_separator_page(
-                    f'Document {file_idx + 1}',
-                    subtitle=doc_name)
+                    doc_name,
+                    subtitle=f'Document {file_idx + 1} of {len(input_paths)}')
                 sep_reader = PdfReader(io.BytesIO(sep_bytes))
                 writer.add_page(sep_reader.pages[0])
                 current_page += 1
@@ -1714,3 +1721,272 @@ def deduplicate_pages(input_path: str, output_path: str, threshold: float = 0.95
         return {'output_path': output_path, 'duplicates_removed': removed, 'pages_kept': doc.page_count - len(removed)}
     except Exception as e:
         return {'error': str(e)}
+
+
+# ═══════════════════════════════════════════════════════════════
+# PRE-MERGE VALIDATION
+# ═══════════════════════════════════════════════════════════════
+
+def validate_for_merge(path: str, password: str = '') -> dict:
+    """
+    Comprehensive pre-merge validation.
+    Returns: valid, pages, size, encrypted, title, author, version,
+             has_forms, has_annotations, linearized, page_sizes, warnings, error.
+    """
+    result = {
+        'valid': False,
+        'pages': 0,
+        'size': os.path.getsize(path) if os.path.exists(path) else 0,
+        'encrypted': False,
+        'title': '',
+        'author': '',
+        'subject': '',
+        'version': '',
+        'has_forms': False,
+        'has_annotations': False,
+        'linearized': False,
+        'page_sizes': [],
+        'warnings': [],
+        'error': None,
+    }
+
+    try:
+        with pikepdf.open(path, password=password or '', suppress_warnings=True) as pdf:
+            result['pages'] = len(pdf.pages)
+            result['linearized'] = bool(getattr(pdf, 'is_linearized', False))
+            result['encrypted'] = pdf.is_encrypted
+            result['version'] = str(getattr(pdf, 'pdf_version', ''))
+
+            # XMP metadata
+            try:
+                with pdf.open_metadata(set_pikepdf_as_editor=False) as meta:
+                    result['title'] = str(meta.get('dc:title', '') or '')[:120]
+                    creator = meta.get('dc:creator', '')
+                    if isinstance(creator, list):
+                        creator = ', '.join(str(c) for c in creator)
+                    result['author'] = str(creator or '')[:80]
+                    result['subject'] = str(meta.get('dc:description', '') or '')[:120]
+            except Exception:
+                pass
+
+            # Fallback to DocInfo
+            if not result['title']:
+                try:
+                    info = pdf.docinfo
+                    if info:
+                        result['title'] = str(info.get('/Title', '') or '')[:120]
+                        if not result['author']:
+                            result['author'] = str(info.get('/Author', '') or '')[:80]
+                        if not result['subject']:
+                            result['subject'] = str(info.get('/Subject', '') or '')[:120]
+                except Exception:
+                    pass
+
+            # Forms detection
+            try:
+                root = pdf.Root
+                if root.get('/AcroForm'):
+                    result['has_forms'] = True
+                    result['warnings'].append('Contains fillable form fields — consider flattening before merge')
+            except Exception:
+                pass
+
+            # Page sizes (first 3 pages)
+            for i, page in enumerate(pdf.pages[:3]):
+                try:
+                    mb = page.get('/MediaBox')
+                    if mb:
+                        w = round(float(mb[2]) - float(mb[0]), 1)
+                        h = round(float(mb[3]) - float(mb[1]), 1)
+                        result['page_sizes'].append(f'{w}×{h}pt')
+                except Exception:
+                    pass
+
+            # Annotations (links, comments)
+            for page in pdf.pages[:5]:
+                try:
+                    if page.get('/Annots'):
+                        result['has_annotations'] = True
+                        break
+                except Exception:
+                    pass
+
+            # Warnings
+            if result['pages'] == 0:
+                result['warnings'].append('PDF appears to have 0 pages')
+            elif result['pages'] > 500:
+                result['warnings'].append(f'Large document ({result["pages"]} pages) — merge may take longer')
+            if result['has_forms']:
+                pass  # already added
+            if result['has_annotations'] and not result['has_forms']:
+                result['warnings'].append('Contains annotations or links')
+
+            result['valid'] = True
+
+    except pikepdf.PasswordError:
+        result['encrypted'] = True
+        result['error'] = 'Password required'
+        result['warnings'].append('PDF is password-protected — enter the password to continue')
+
+    except Exception as primary_err:
+        # Try pypdf as fallback
+        try:
+            reader = PdfReader(path)
+            if reader.is_encrypted:
+                if password:
+                    dec = reader.decrypt(password)
+                    if dec == 0:
+                        result['encrypted'] = True
+                        result['error'] = 'Incorrect password'
+                        return result
+                else:
+                    result['encrypted'] = True
+                    result['error'] = 'Password required'
+                    return result
+            result['pages'] = len(reader.pages)
+            meta = reader.metadata or {}
+            result['title']   = str(meta.get('/Title', '') or '')[:120]
+            result['author']  = str(meta.get('/Author', '') or '')[:80]
+            result['subject'] = str(meta.get('/Subject', '') or '')[:120]
+            result['valid'] = True
+            result['warnings'].append('Opened with fallback reader — advanced features may be limited')
+        except Exception as fallback_err:
+            result['error'] = f'Cannot read PDF: {str(fallback_err)[:120]}'
+
+    return result
+
+
+# ═══════════════════════════════════════════════════════════════
+# SERVER-SIDE THUMBNAIL GENERATION
+# ═══════════════════════════════════════════════════════════════
+
+def generate_thumbnail_b64(path: str, page_num: int = 0, password: str = '',
+                            width: int = 280) -> Optional[str]:
+    """
+    Render a PDF page to a base64-encoded PNG using PyMuPDF.
+
+    Args:
+        path:     Path to the PDF file
+        page_num: 0-based page index to render
+        password: Password for encrypted PDFs
+        width:    Thumbnail width in pixels (height auto-calculated)
+
+    Returns:
+        Base64-encoded PNG string, or None on failure.
+    """
+    import base64
+    try:
+        doc = fitz.open(path)
+        if doc.is_encrypted:
+            if password:
+                auth = doc.authenticate(password)
+                if auth == 0:
+                    doc.close()
+                    logger.warning(f'Thumbnail: wrong password for {path}')
+                    return None
+            else:
+                doc.close()
+                logger.warning(f'Thumbnail: no password provided for encrypted {path}')
+                return None
+
+        total = len(doc)
+        if total == 0:
+            doc.close()
+            return None
+        page_num = max(0, min(page_num, total - 1))
+
+        page = doc[page_num]
+        rect  = page.rect
+        scale = width / rect.width if rect.width > 0 else 1.0
+        mat   = fitz.Matrix(scale, scale)
+        pix   = page.get_pixmap(matrix=mat, colorspace=fitz.csRGB, alpha=False)
+        png_bytes = pix.tobytes('png')
+        doc.close()
+        return base64.b64encode(png_bytes).decode('utf-8')
+
+    except Exception as e:
+        logger.warning(f'generate_thumbnail_b64 failed for {path}: {e}')
+        return None
+
+
+# ═══════════════════════════════════════════════════════════════
+# SMART POST-PROCESS (compress + optionally linearize)
+# ═══════════════════════════════════════════════════════════════
+
+def smart_postprocess(input_path: str, output_path: str,
+                      compress: bool = True,
+                      linearize: bool = False) -> dict:
+    """
+    Intelligent post-processing: compression, deduplication, optional linearization.
+    Falls back gracefully at each step.
+    """
+    import shutil as _shutil
+    result = {
+        'original_size': os.path.getsize(input_path),
+        'output_size': 0,
+        'steps_applied': [],
+        'error': None,
+    }
+
+    current = input_path
+    tmp_files = []
+
+    try:
+        # Step 1 — pikepdf compress (removes redundant objects)
+        if compress:
+            tmp1 = input_path + '.pp_comp.pdf'
+            try:
+                with pikepdf.open(current, suppress_warnings=True) as pdf:
+                    pdf.save(tmp1, compress_streams=True, normalize_content=True,
+                             object_stream_mode=pikepdf.ObjectStreamMode.generate,
+                             linearize=False)
+                if os.path.exists(tmp1) and os.path.getsize(tmp1) > 0:
+                    current = tmp1
+                    tmp_files.append(tmp1)
+                    result['steps_applied'].append('pikepdf_compress')
+            except Exception as e:
+                logger.warning(f'smart_postprocess compress failed: {e}')
+                if os.path.exists(tmp1):
+                    try: os.remove(tmp1)
+                    except: pass
+
+        # Step 2 — linearize (web optimize)
+        if linearize:
+            tmp2 = input_path + '.pp_lin.pdf'
+            try:
+                with pikepdf.open(current, suppress_warnings=True) as pdf:
+                    pdf.save(tmp2, linearize=True, compress_streams=True)
+                if os.path.exists(tmp2) and os.path.getsize(tmp2) > 0:
+                    # Only use if not significantly larger
+                    if os.path.getsize(tmp2) < os.path.getsize(current) * 1.1:
+                        current = tmp2
+                        tmp_files.append(tmp2)
+                        result['steps_applied'].append('linearize')
+                else:
+                    os.remove(tmp2)
+            except Exception as e:
+                logger.warning(f'smart_postprocess linearize failed: {e}')
+                if os.path.exists(tmp2):
+                    try: os.remove(tmp2)
+                    except: pass
+
+        # Copy result
+        _shutil.copy2(current, output_path)
+        result['output_size'] = os.path.getsize(output_path)
+        result['compression_ratio'] = round(result['output_size'] / max(result['original_size'], 1), 3)
+
+    except Exception as e:
+        result['error'] = str(e)
+        # Ensure output exists even on failure
+        if current != input_path and os.path.exists(current):
+            _shutil.copy2(current, output_path)
+        elif not os.path.exists(output_path):
+            _shutil.copy2(input_path, output_path)
+        result['output_size'] = os.path.getsize(output_path) if os.path.exists(output_path) else 0
+    finally:
+        for f in tmp_files:
+            if f != current and os.path.exists(f):
+                try: os.remove(f)
+                except: pass
+
+    return result

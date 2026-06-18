@@ -216,6 +216,9 @@
           <button class="sort-btn" data-sort="size" title="Sort by size"><i class="fas fa-database"></i> Size</button>
           <button class="sort-btn" data-sort="pages" title="Sort by page count"><i class="fas fa-book-open"></i> Pages</button>
         </div>
+        <button class="shortcuts-hint-btn" id="shortcutsHintBtn" title="Keyboard shortcuts (press ?)">
+          <i class="fas fa-keyboard"></i>
+        </button>
       </div>
     </div>
 
@@ -428,14 +431,40 @@
         <button class="download-btn" id="downloadBtn">
           <i class="fas fa-download"></i> Download Merged PDF
         </button>
+        <button class="btn-secondary copy-name-btn" id="copyNameBtn" title="Copy filename to clipboard">
+          <i class="fas fa-copy"></i> Copy Name
+        </button>
         <button class="btn-secondary" id="mergeAgainBtn">
           <i class="fas fa-rotate"></i> Merge Again
         </button>
       </div>
+
+      <!-- Recent Merges -->
+      <div class="recent-merges" id="recentMerges" style="display:none"></div>
+
     </div>
   </section>
 
 </main>
+
+<!-- ═══════════ KEYBOARD SHORTCUTS MODAL ═══════════ -->
+<div class="shortcuts-overlay" id="shortcutsModal" hidden role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+  <div class="shortcuts-card">
+    <div class="shortcuts-header">
+      <h3><i class="fas fa-keyboard"></i> Keyboard Shortcuts</h3>
+      <button class="shortcuts-close" id="shortcutsClose" aria-label="Close shortcuts"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="shortcuts-grid">
+      <div class="shortcut-row"><kbd>Ctrl</kbd><kbd>O</kbd><span>Add files</span></div>
+      <div class="shortcut-row"><kbd>Ctrl</kbd><kbd>M</kbd><span>Merge PDFs</span></div>
+      <div class="shortcut-row"><kbd>Del</kbd><span></span><span>Remove selected</span></div>
+      <div class="shortcut-row"><kbd>?</kbd><span></span><span>Show shortcuts</span></div>
+      <div class="shortcut-row"><kbd>Esc</kbd><span></span><span>Close overlay</span></div>
+      <div class="shortcut-row"><kbd>Double-click</kbd><span></span><span>Rename file</span></div>
+    </div>
+    <div class="shortcuts-tip"><i class="fas fa-lightbulb"></i> Tip: Drag &amp; drop files anywhere on the page to add them</div>
+  </div>
+</div>
 
 <!-- ═══════════ HOW IT WORKS ═══════════ -->
 <section class="how-section">

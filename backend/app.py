@@ -210,6 +210,13 @@ def api_merge_pdf():
         except Exception:
             passwords = []
 
+        # Parse per-file display names (for TOC / separator titles)
+        try:
+            display_names_raw = request.form.get('display_names', '[]')
+            display_names = _json.loads(display_names_raw) if display_names_raw else []
+        except Exception:
+            display_names = []
+
         paths = save_uploaded_files(files)
 
         # Pad lists to match file count
@@ -217,6 +224,8 @@ def api_merge_pdf():
             page_ranges.append('all')
         while len(passwords) < len(paths):
             passwords.append(None)
+        while len(display_names) < len(paths):
+            display_names.append(None)
 
         out = output_path('merged.pdf')
 
@@ -246,6 +255,7 @@ def api_merge_pdf():
                 target_page_size=target_size,
                 compress_output=compress_out,
                 output_metadata=output_metadata if output_metadata else None,
+                file_names=display_names if display_names else None,
             )
 
         # Optional linearization for web-optimized viewing (fast open in browser)
@@ -297,6 +307,52 @@ def api_merge_pdf_info():
         return jsonify({'success': True, 'info': info})
     except Exception as e:
         logger.exception("merge-pdf/info error")
+        return error_response(str(e))
+
+
+@app.route('/api/merge-pdf/validate', methods=['POST'])
+def api_merge_pdf_validate():
+    """
+    Pre-merge validation: returns metadata, page count, warnings, form/annotation detection.
+    Accepts a single file upload + optional password.
+    """
+    try:
+        file = request.files.get('file')
+        if not file:
+            return error_response('No file provided.')
+        password = request.form.get('password', '')
+        path = save_uploaded_file(file)
+        from tools.pdf_merge import validate_for_merge
+        result = validate_for_merge(path, password=password)
+        result['filename'] = secure_filename(file.filename)
+        result['file_size'] = os.path.getsize(path)
+        return jsonify({'success': True, **result})
+    except Exception as e:
+        logger.exception("merge-pdf/validate error")
+        return error_response(str(e))
+
+
+@app.route('/api/merge-pdf/thumbnail', methods=['POST'])
+def api_merge_pdf_thumbnail():
+    """
+    Generate a server-side base64-encoded PNG thumbnail for a PDF page.
+    Accepts: file, page (0-based), width, password.
+    """
+    try:
+        file = request.files.get('file')
+        if not file:
+            return error_response('No file provided.')
+        password = request.form.get('password', '')
+        page     = int(request.form.get('page', 0))
+        width    = min(int(request.form.get('width', 280)), 600)
+        path     = save_uploaded_file(file)
+        from tools.pdf_merge import generate_thumbnail_b64
+        b64 = generate_thumbnail_b64(path, page_num=page, password=password, width=width)
+        if b64:
+            return jsonify({'success': True, 'thumbnail': b64, 'page': page})
+        return jsonify({'success': False, 'error': 'Thumbnail generation failed'})
+    except Exception as e:
+        logger.exception("merge-pdf/thumbnail error")
         return error_response(str(e))
 
 @app.route('/api/split-pdf', methods=['POST'])
