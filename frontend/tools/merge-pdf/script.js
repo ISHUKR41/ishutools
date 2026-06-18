@@ -297,6 +297,9 @@ function updateLiveStats() {
   const estSec = Math.max(1, Math.round(totalBytes / (1024 * 1024) * 0.5 + n * 0.3));
   if (sbEst) sbEst.textContent = estSec < 60 ? `~${estSec}s` : `~${Math.ceil(estSec/60)}m`;
 
+  // Large page count warning
+  checkLargePageWarning();
+
   // Update drag hint
   if (dragHintCount) {
     dragHintCount.textContent = n > 0
@@ -584,8 +587,15 @@ function createFileCard(entry, idx) {
           <div class="file-field">
             <label><i class="fas fa-list-ol"></i> Page Range (optional)</label>
             <input type="text" class="page-range-input" value="${entry.pageRange}"
-              placeholder="e.g. 1-3, 5, 8-10 (blank = all)"
+              placeholder="e.g. 1-3, 5, 8-10 · odd · even · last 2"
               aria-label="Page range for ${entry.file.name}" />
+            <div class="pr-quick-btns" role="group" aria-label="Quick page selection">
+              <button type="button" class="pr-btn${!entry.pageRange ? ' active' : ''}" data-range="" title="Include all pages">All</button>
+              <button type="button" class="pr-btn" data-range="1" title="First page only">First</button>
+              <button type="button" class="pr-btn" data-range="last" title="Last page only">Last</button>
+              <button type="button" class="pr-btn" data-range="odd" title="Odd pages (1, 3, 5…)">Odd</button>
+              <button type="button" class="pr-btn" data-range="even" title="Even pages (2, 4, 6…)">Even</button>
+            </div>
           </div>
           <div class="file-field pw-field" style="display:${entry.info?.encrypted ? '' : 'none'}">
             <label><i class="fas fa-key"></i> PDF Password</label>
@@ -666,6 +676,23 @@ function createFileCard(entry, idx) {
   rangeInput.addEventListener('change', () => {
     const e = files.find(f => f.id === entry.id);
     if (e) e.pageRange = rangeInput.value.trim();
+  });
+
+  // Page range quick buttons
+  const prBtns = card.querySelectorAll('.pr-btn');
+  prBtns.forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const range = btn.dataset.range;
+      rangeInput.value = range;
+      const f = files.find(f => f.id === entry.id);
+      if (f) f.pageRange = range;
+      prBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+  rangeInput.addEventListener('input', () => {
+    prBtns.forEach(b => b.classList.toggle('active', b.dataset.range === rangeInput.value.trim()));
   });
 
   const pwInput = card.querySelector('.password-input');
@@ -1292,6 +1319,20 @@ async function validateFileAsync(entry) {
       statusEl.title = `Valid PDF · ${data.pages} pages · PDF ${data.version}`;
     }
 
+    // Auto-populate output title/author from FIRST file's metadata
+    if (files[0]?.id === entry.id) {
+      const titleEl = $('optTitle');
+      const authorEl = $('optAuthor');
+      if (titleEl && !titleEl.value && data.title) {
+        titleEl.value = data.title;
+        titleEl.dispatchEvent(new Event('input'));
+      }
+      if (authorEl && !authorEl.value && data.author) {
+        authorEl.value = data.author;
+        authorEl.dispatchEvent(new Event('input'));
+      }
+    }
+
     updateLiveStats();
 
   } catch (err) {
@@ -1616,3 +1657,57 @@ function applyPreset(key) {
 document.querySelectorAll('.preset-btn').forEach(btn => {
   btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
 });
+
+/* ══════════════════════════════════════════════════════════
+   LARGE PAGE COUNT WARNING
+══════════════════════════════════════════════════════════ */
+function checkLargePageWarning() {
+  const banner = $('largePageBanner');
+  if (!banner) return;
+  const known = files.filter(f => f.info && typeof f.info.pageCount === 'number');
+  const total = known.reduce((s, f) => s + f.info.pageCount, 0);
+  if (total > 500 && files.length >= 2) {
+    banner.innerHTML = `<i class="fas fa-triangle-exclamation"></i> ${total} total pages — merge may take 30–90 seconds`;
+    banner.style.display = 'flex';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   FULL-PAGE DRAG-OVER HIGHLIGHT
+══════════════════════════════════════════════════════════ */
+let _dragOverTimer = null;
+document.addEventListener('dragenter', e => {
+  if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.includes('Files')) {
+    document.body.classList.add('global-dragover');
+    clearTimeout(_dragOverTimer);
+  }
+});
+document.addEventListener('dragleave', e => {
+  if (!e.relatedTarget || e.relatedTarget === document.documentElement) {
+    _dragOverTimer = setTimeout(() => document.body.classList.remove('global-dragover'), 80);
+  }
+});
+['drop', 'dragend'].forEach(ev => {
+  document.addEventListener(ev, () => {
+    clearTimeout(_dragOverTimer);
+    document.body.classList.remove('global-dragover');
+  });
+});
+
+/* ══════════════════════════════════════════════════════════
+   MERGE BUTTON RIPPLE EFFECT
+══════════════════════════════════════════════════════════ */
+const _mergeBtn = $('mergeBtn');
+if (_mergeBtn) {
+  _mergeBtn.addEventListener('mousedown', e => {
+    const rect = _mergeBtn.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    ripple.className = 'btn-ripple';
+    ripple.style.left = (e.clientX - rect.left) + 'px';
+    ripple.style.top  = (e.clientY - rect.top)  + 'px';
+    _mergeBtn.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 700);
+  });
+}

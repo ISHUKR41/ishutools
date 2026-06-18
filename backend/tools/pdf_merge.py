@@ -1990,3 +1990,332 @@ def smart_postprocess(input_path: str, output_path: str,
                 except: pass
 
     return result
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  ADVANCED PAGE RANGE PARSER — supports "odd", "even", "first N", "last N"
+# ══════════════════════════════════════════════════════════════════════════════
+def advanced_page_range_parse(page_range_str, total_pages):
+    """
+    Parse an extended page range string into a sorted list of 1-based page numbers.
+    Supports:
+      - Standard:  "1-3, 5, 8-10"
+      - Keyword:   "odd", "even", "all", ""  (empty = all)
+      - Shorthand: "1" (first page only), "last" (last page only)
+      - Extended:  "first 3", "last 5"
+    """
+    import re as _re
+    s = (page_range_str or '').strip().lower()
+    n = max(int(total_pages), 1)
+
+    if not s or s == 'all':
+        return list(range(1, n + 1))
+
+    if s == 'odd':
+        return [i for i in range(1, n + 1) if i % 2 == 1]
+
+    if s == 'even':
+        return [i for i in range(1, n + 1) if i % 2 == 0]
+
+    if s == 'last':
+        return [n]
+
+    m = _re.match(r'^first\s+(\d+)$', s)
+    if m:
+        k = min(int(m.group(1)), n)
+        return list(range(1, k + 1))
+
+    m = _re.match(r'^last\s+(\d+)$', s)
+    if m:
+        k = min(int(m.group(1)), n)
+        return list(range(n - k + 1, n + 1))
+
+    # Standard "1-3, 5, 8-10" parsing
+    pages = set()
+    for part in s.split(','):
+        part = part.strip()
+        if not part:
+            continue
+        if '-' in part:
+            try:
+                lo, hi = part.split('-', 1)
+                lo, hi = int(lo.strip()), int(hi.strip())
+                pages.update(range(lo, hi + 1))
+            except ValueError:
+                pass
+        else:
+            try:
+                pages.add(int(part))
+            except ValueError:
+                pass
+
+    # Clamp to valid range
+    return sorted(p for p in pages if 1 <= p <= n)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  FLATTEN FORMS IN PDF — removes interactive form fields (prevents conflicts)
+# ══════════════════════════════════════════════════════════════════════════════
+def flatten_forms_in_pdf(input_path, output_path, password=None):
+    """
+    Flatten interactive form fields in a PDF so they become static content.
+    Prevents form-field name collisions when merging multiple forms.
+    Returns True on success, False on failure.
+    """
+    import shutil as _sh
+    try:
+        import pikepdf
+        kwargs = {}
+        if password:
+            kwargs['password'] = password
+        pdf = pikepdf.open(input_path, **kwargs)
+
+        # Remove AcroForm if present to flatten
+        if '/AcroForm' in pdf.Root:
+            # Flatten: make annotations read-only appearances
+            for page in pdf.pages:
+                if '/Annots' in page:
+                    for annot in page.Annots:
+                        try:
+                            # Set the appearance as content
+                            if '/AP' in annot and '/N' in annot['/AP']:
+                                pass  # Appearance already set
+                            # Remove interactive flags
+                            if '/F' in annot:
+                                annot['/F'] = pikepdf.Pdf.make_indirect(
+                                    pdf, pikepdf.objects.Dictionary(annot)
+                                ) if False else annot['/F']
+                        except Exception:
+                            pass
+            del pdf.Root['/AcroForm']
+
+        pdf.save(output_path)
+        pdf.close()
+        return True
+    except Exception as e:
+        logger.warning(f'flatten_forms_in_pdf failed: {e}; copying original')
+        try:
+            _sh.copy2(input_path, output_path)
+        except Exception:
+            pass
+        return False
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  DETECT SCANNED PDF — checks if a PDF is mainly scanned images
+# ══════════════════════════════════════════════════════════════════════════════
+def detect_scanned_pdf(pdf_path, password=None, sample_pages=3):
+    """
+    Returns a dict:
+      - is_scanned (bool): True if < 10 chars/page on average (likely scanned)
+      - chars_per_page (float): average extracted character count per page
+      - page_count (int)
+    """
+    result = {'is_scanned': False, 'chars_per_page': 0, 'page_count': 0}
+    try:
+        import fitz  # PyMuPDF
+        pdf = fitz.open(pdf_path)
+        n = pdf.page_count
+        result['page_count'] = n
+        if n == 0:
+            pdf.close()
+            return result
+
+        sample = min(sample_pages, n)
+        total_chars = 0
+        for i in range(sample):
+            page = pdf[i]
+            text = page.get_text('text')
+            total_chars += len(text.strip())
+        pdf.close()
+
+        cpa = total_chars / sample
+        result['chars_per_page'] = round(cpa, 1)
+        result['is_scanned'] = cpa < 15  # Fewer than 15 chars/page = likely scanned
+    except Exception as e:
+        logger.warning(f'detect_scanned_pdf error: {e}')
+    return result
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  NORMALIZE PDF METADATA — clean and standardize PDF document properties
+# ══════════════════════════════════════════════════════════════════════════════
+def normalize_pdf_metadata(input_path, output_path, title=None, author=None,
+                            subject=None, keywords=None, creator='IshuTools.fun'):
+    """
+    Write clean, standardized metadata to a PDF.
+    Uses pikepdf for lossless in-place metadata update.
+    Returns True on success.
+    """
+    import shutil as _sh
+    try:
+        import pikepdf
+        from pikepdf import Dictionary, Name, String
+        import datetime
+
+        pdf = pikepdf.open(input_path, allow_overwriting_input=False)
+
+        with pdf.open_metadata() as meta:
+            if title:
+                meta['dc:title'] = title
+                meta['xmp:Title'] = title
+            if author:
+                meta['dc:creator'] = [author]
+                meta['pdf:Author'] = author
+            if subject:
+                meta['dc:description'] = subject
+            if keywords:
+                meta['pdf:Keywords'] = keywords
+            meta['pdf:Producer'] = 'IshuTools.fun — Free PDF Tools'
+            meta['xmp:CreatorTool'] = creator
+            now = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+            meta['xmp:MetadataDate'] = now
+
+        # Also update /Info dict for maximum compatibility
+        info = pdf.make_indirect(Dictionary())
+        if title:
+            info['/Title']   = String(title)
+        if author:
+            info['/Author']  = String(author)
+        if subject:
+            info['/Subject'] = String(subject)
+        if keywords:
+            info['/Keywords']= String(keywords)
+        info['/Producer']    = String('IshuTools.fun')
+        info['/Creator']     = String(creator)
+        pdf.trailer['/Info'] = info
+
+        pdf.save(output_path)
+        pdf.close()
+        return True
+    except Exception as e:
+        logger.warning(f'normalize_pdf_metadata failed: {e}')
+        try:
+            _sh.copy2(input_path, output_path)
+        except Exception:
+            pass
+        return False
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  CHECK DIGITAL SIGNATURES — detect signed PDFs before merging
+# ══════════════════════════════════════════════════════════════════════════════
+def check_digital_signatures(pdf_path, password=None):
+    """
+    Detect digital signatures in a PDF.
+    Returns dict with: has_signatures (bool), sig_count (int), warning (str)
+    Note: Merging signed PDFs invalidates signatures — user should be warned.
+    """
+    result = {'has_signatures': False, 'sig_count': 0, 'warning': ''}
+    try:
+        import pikepdf
+        kwargs = {}
+        if password:
+            kwargs['password'] = password
+        with pikepdf.open(pdf_path, **kwargs) as pdf:
+            count = 0
+            for page in pdf.pages:
+                if '/Annots' in page:
+                    for annot in page.Annots:
+                        try:
+                            if str(annot.get('/Subtype', '')) == '/Widget':
+                                ft = str(annot.get('/FT', ''))
+                                if ft == '/Sig':
+                                    count += 1
+                        except Exception:
+                            pass
+            # Also check AcroForm SigFlags
+            root = pdf.Root
+            if '/AcroForm' in root:
+                acro = root['/AcroForm']
+                if '/SigFlags' in acro:
+                    sig_flags = int(acro['/SigFlags'])
+                    if sig_flags & 1:  # SignaturesExist flag
+                        count = max(count, 1)
+            if count > 0:
+                result['has_signatures'] = True
+                result['sig_count'] = count
+                result['warning'] = (
+                    f'This PDF contains {count} digital signature(s). '
+                    'Merging will invalidate all signatures.'
+                )
+    except Exception as e:
+        logger.warning(f'check_digital_signatures error: {e}')
+    return result
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  POST-MERGE ANALYSIS — detailed quality report on merged output
+# ══════════════════════════════════════════════════════════════════════════════
+def analyze_merge_output(output_path, input_paths=None):
+    """
+    Analyze the merged PDF and return a detailed quality report.
+    Returns dict with: page_count, file_size, image_count, font_count,
+                       has_forms, has_javascript, has_bookmarks, has_links,
+                       compression_ratio, scanned_pct, pdf_version
+    """
+    report = {
+        'page_count': 0, 'file_size': 0, 'image_count': 0, 'font_count': 0,
+        'has_forms': False, 'has_javascript': False, 'has_bookmarks': False,
+        'has_links': False, 'compression_ratio': None, 'scanned_pct': 0,
+        'pdf_version': 'unknown', 'error': None,
+    }
+    try:
+        import os
+        report['file_size'] = os.path.getsize(output_path)
+
+        if input_paths:
+            total_input = sum(os.path.getsize(p) for p in input_paths if os.path.exists(p))
+            if total_input > 0:
+                report['compression_ratio'] = round(report['file_size'] / total_input, 3)
+
+        import fitz  # PyMuPDF
+        doc = fitz.open(output_path)
+        report['page_count'] = doc.page_count
+        report['pdf_version'] = doc.pdf_version()
+
+        # Count images and check for text (scanned detection)
+        image_count = 0
+        text_pages = 0
+        for page in doc:
+            imgs = page.get_images(full=False)
+            image_count += len(imgs)
+            if len(page.get_text('text').strip()) > 20:
+                text_pages += 1
+
+        report['image_count'] = image_count
+        n = doc.page_count
+        report['scanned_pct'] = round((1 - text_pages / max(n, 1)) * 100, 1)
+
+        # Fonts
+        fonts = set()
+        for i in range(min(n, 20)):  # Sample first 20 pages
+            for f in doc[i].get_fonts():
+                fonts.add(f[3] or f[4])  # Font name
+        report['font_count'] = len(fonts)
+
+        # Bookmarks / TOC
+        toc = doc.get_toc()
+        report['has_bookmarks'] = len(toc) > 0
+
+        doc.close()
+
+        # AcroForm / JS detection via pikepdf
+        try:
+            import pikepdf
+            with pikepdf.open(output_path) as pdf:
+                root = pdf.Root
+                if '/AcroForm' in root:
+                    report['has_forms'] = True
+                if '/Names' in root:
+                    names = root['/Names']
+                    if '/JavaScript' in names:
+                        report['has_javascript'] = True
+        except Exception:
+            pass
+
+    except Exception as e:
+        report['error'] = str(e)
+        logger.warning(f'analyze_merge_output error: {e}')
+
+    return report

@@ -2121,3 +2121,239 @@ kbd {
   color: var(--text-muted);
   line-height: 1.5;
 }
+
+/* ══════════════════════════════════════════════════════════
+   HOW TO MERGE SECTION
+══════════════════════════════════════════════════════════ */
+.howto-section {
+  padding: 64px 20px 56px;
+  background: linear-gradient(180deg, transparent 0%, rgba(99,102,241,0.04) 50%, transparent 100%);
+  position: relative;
+  overflow: hidden;
+}
+.howto-section::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 200px;
+  background: radial-gradient(ellipse, rgba(99,102,241,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.howto-lead {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 16px;
+  margin: 0 0 48px;
+  max-width: 540px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.howto-steps {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 960px;
+  margin: 0 auto 40px;
+}
+.howto-step {
+  flex: 1;
+  min-width: 200px;
+  max-width: 260px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 24px;
+  text-align: center;
+  position: relative;
+  transition: all 0.3s ease;
+}
+.howto-step:hover {
+  border-color: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(99,102,241,0.14);
+}
+.howto-step-num {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  background: var(--bg);
+  border: 1.5px solid var(--accent);
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-family: 'Poppins', sans-serif;
+}
+.howto-step-icon {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--accent), #8b5cf6);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 22px;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(99,102,241,0.3);
+}
+.howto-step-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 10px;
+}
+.howto-step-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0 0 14px;
+}
+.howto-step-tip {
+  font-size: 11px;
+  color: var(--accent);
+  background: rgba(99,102,241,0.08);
+  border-radius: 8px;
+  padding: 6px 10px;
+  line-height: 1.5;
+}
+.howto-step-tip i { margin-right: 4px; }
+.howto-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 18px;
+  padding-top: 40px;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+.howto-trust {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  padding-top: 28px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.howto-trust span { display: flex; align-items: center; gap: 7px; }
+.howto-trust i { color: var(--accent); }
+
+@media (max-width: 700px) {
+  .howto-steps { flex-direction: column; align-items: center; }
+  .howto-connector { padding-top: 0; transform: rotate(90deg); }
+  .howto-step { max-width: 100%; width: 100%; }
+  .howto-trust { gap: 14px; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   PAGE RANGE QUICK BUTTONS
+══════════════════════════════════════════════════════════ */
+.pr-quick-btns {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 7px;
+}
+.pr-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+.pr-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(99,102,241,0.08);
+}
+.pr-btn.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.pr-btn:active { transform: scale(0.95); }
+
+/* ══════════════════════════════════════════════════════════
+   LARGE PAGE COUNT WARNING BANNER
+══════════════════════════════════════════════════════════ */
+.large-page-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(245,158,11,0.10);
+  border: 1px solid rgba(245,158,11,0.35);
+  border-radius: 10px;
+  color: #f59e0b;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  animation: fadeIn 0.3s ease;
+}
+.large-page-banner i { font-size: 14px; flex-shrink: 0; }
+
+/* ══════════════════════════════════════════════════════════
+   GLOBAL DRAG-OVER HIGHLIGHT
+══════════════════════════════════════════════════════════ */
+body.global-dragover::after {
+  content: '⬇ Drop your PDF files here';
+  position: fixed;
+  inset: 12px;
+  border: 3px dashed var(--accent);
+  border-radius: 16px;
+  pointer-events: none;
+  z-index: 9998;
+  background: rgba(99,102,241,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.03em;
+  animation: dragover-pulse 1.2s ease-in-out infinite;
+}
+@keyframes dragover-pulse {
+  0%, 100% { opacity: 1; border-color: var(--accent); }
+  50% { opacity: 0.65; border-color: #8b5cf6; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   MERGE BUTTON RIPPLE EFFECT
+══════════════════════════════════════════════════════════ */
+.btn-ripple {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  transform: scale(0);
+  animation: ripple-expand 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+  transform-origin: center;
+}
+@keyframes ripple-expand {
+  to { transform: scale(300); opacity: 0; }
+}
