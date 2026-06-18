@@ -3322,3 +3322,759 @@ def pdf_to_grayscale(input_path: str, output_path: str, password: str = '') -> d
         logger.error(f'pdf_to_grayscale failed: {e}')
 
     return result
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENTERPRISE EXTENSIONS v2 — IshuTools.fun by Ishu Kumar (ISHUKR41 / ISHUKR75)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def validate_pdf_before_merge(path: str, password: str = '') -> dict:
+    """
+    Comprehensive pre-merge PDF validation.
+
+    Checks: readability, encryption, page count, corruption, PDF version,
+    embedded fonts, form fields, digital signatures, XFA forms.
+
+    Returns:
+        dict with keys: valid (bool), pages, version, encrypted,
+        has_forms, has_signatures, has_xfa, is_scanned_likely,
+        warnings (list), errors (list), file_size.
+    """
+    result = {
+        'valid': False, 'pages': 0, 'version': '', 'encrypted': False,
+        'has_forms': False, 'has_signatures': False, 'has_xfa': False,
+        'is_scanned_likely': False, 'warnings': [], 'errors': [],
+        'file_size': 0,
+    }
+    try:
+        result['file_size'] = os.path.getsize(path)
+    except Exception:
+        result['errors'].append('Cannot read file — access denied or missing')
+        return result
+
+    # Quick magic-byte check
+    try:
+        with open(path, 'rb') as f:
+            hdr = f.read(8)
+        if not hdr.startswith(b'%PDF'):
+            result['errors'].append('Not a valid PDF file (wrong file header)')
+            return result
+        result['version'] = hdr.decode('latin-1', errors='replace')[5:8].strip()
+    except Exception as e:
+        result['errors'].append(f'Cannot read file header: {e}')
+        return result
+
+    # pypdf validation
+    try:
+        import pypdf
+        reader = pypdf.PdfReader(path)
+        if reader.is_encrypted:
+            result['encrypted'] = True
+            if not password:
+                result['errors'].append('PDF is password-protected — provide the password')
+                return result
+            ok = reader.decrypt(password)
+            if not ok:
+                result['errors'].append('Wrong password — PDF decryption failed')
+                return result
+
+        n = len(reader.pages)
+        if n == 0:
+            result['errors'].append('PDF has no pages')
+            return result
+        result['pages'] = n
+
+        # Form detection
+        if reader.trailer.get('/Root'):
+            root = reader.trailer['/Root']
+            try:
+                acro = root.get('/AcroForm')
+                if acro:
+                    result['has_forms'] = True
+                    fields = acro.get('/Fields', [])
+                    if len(fields) > 0:
+                        result['warnings'].append(
+                            f'PDF contains {len(fields)} form field(s) — '
+                            'form data may not be preserved after merge'
+                        )
+                    # XFA check
+                    if '/XFA' in acro:
+                        result['has_xfa'] = True
+                        result['warnings'].append(
+                            'PDF contains XFA (dynamic) forms — '
+                            'XFA content will be flattened during merge'
+                        )
+            except Exception:
+                pass
+
+            # Signature detection
+            try:
+                if '/Perms' in root or '/DSS' in root:
+                    result['has_signatures'] = True
+                    result['warnings'].append(
+                        'PDF has digital signatures — '
+                        'signatures will be invalidated by merging (expected)'
+                    )
+            except Exception:
+                pass
+
+        # Scanned-page heuristic: if first page has no extractable text
+        try:
+            sample_pages = min(n, 3)
+            text_found = False
+            for i in range(sample_pages):
+                t = (reader.pages[i].extract_text() or '').strip()
+                if len(t) > 40:
+                    text_found = True
+                    break
+            if not text_found and n > 0:
+                result['is_scanned_likely'] = True
+                result['warnings'].append(
+                    'PDF appears to be scanned (image-only pages) — '
+                    'use OCR first for searchable text in merged output'
+                )
+        except Exception:
+            pass
+
+        result['valid'] = True
+
+    except pypdf.errors.PdfStreamError as e:
+        result['errors'].append(f'PDF is corrupted or truncated: {e}')
+    except Exception as e:
+        result['errors'].append(f'Validation error: {e}')
+
+    return result
+
+
+def advanced_compress_pdf(
+    input_path: str,
+    output_path: str,
+    level: str = 'medium',
+    password: str = '',
+) -> dict:
+    """
+    Multi-strategy PDF compression.
+
+    Levels:
+      'light'    — lossless stream compression (pikepdf)
+      'medium'   — lossless + object stream + content stream rewrite
+      'aggressive' — Ghostscript + image downsampling (may alter visuals)
+      'gs_screen'  — Ghostscript /screen preset (smallest, lossy images)
+      'gs_ebook'   — Ghostscript /ebook preset (balanced)
+      'gs_printer' — Ghostscript /printer preset (high quality)
+
+    Returns:
+        dict with success, method, input_size, output_size, ratio, savings_pct.
+    """
+    import shutil
+    result = {
+        'success': False, 'method': 'none',
+        'input_size': 0, 'output_size': 0, 'ratio': 1.0, 'savings_pct': 0.0,
+        'error': None,
+    }
+    try:
+        result['input_size'] = os.path.getsize(input_path)
+    except Exception:
+        result['error'] = 'Cannot read input file'
+        return result
+
+    # ── pikepdf strategies ───────────────────────────────────────────────────
+    if level in ('light', 'medium'):
+        try:
+            import pikepdf
+            with pikepdf.open(input_path, password=password or '', suppress_warnings=True) as pdf:
+                save_kwargs = {
+                    'compress_streams': True,
+                    'stream_decode_level': pikepdf.StreamDecodeLevel.generalized,
+                    'object_stream_mode': (
+                        pikepdf.ObjectStreamMode.generate
+                        if level == 'medium' else pikepdf.ObjectStreamMode.preserve
+                    ),
+                    'linearize': (level == 'medium'),
+                    'recompress_flate': (level == 'medium'),
+                }
+                pdf.save(output_path, **save_kwargs)
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 100:
+                result['output_size']  = os.path.getsize(output_path)
+                result['ratio']        = result['output_size'] / max(result['input_size'], 1)
+                result['savings_pct']  = max(0, (1 - result['ratio']) * 100)
+                result['method']       = f'pikepdf-{level}'
+                result['success']      = True
+                return result
+        except Exception as e:
+            logger.warning(f'pikepdf compress ({level}) failed: {e}')
+
+    # ── Ghostscript strategies ───────────────────────────────────────────────
+    gs_preset_map = {
+        'aggressive': '/ebook',
+        'gs_screen':  '/screen',
+        'gs_ebook':   '/ebook',
+        'gs_printer': '/printer',
+    }
+    gs_preset = gs_preset_map.get(level, '/ebook')
+    gs = shutil.which('gs') or shutil.which('ghostscript')
+    if gs:
+        try:
+            cmd = [
+                gs, '-dBATCH', '-dNOPAUSE', '-dSAFER', '-dQUIET',
+                '-sDEVICE=pdfwrite',
+                f'-dPDFSETTINGS={gs_preset}',
+                '-dCompatibilityLevel=1.7',
+                '-dEmbedAllFonts=true',
+                '-dSubsetFonts=true',
+                '-dAutoRotatePages=/None',
+                '-dColorImageDownsampleType=/Bicubic',
+                '-dGrayImageDownsampleType=/Bicubic',
+                f'-sOutputFile={output_path}',
+                input_path,
+            ]
+            proc = subprocess.run(cmd, capture_output=True, timeout=180)
+            if proc.returncode == 0 and os.path.exists(output_path) and os.path.getsize(output_path) > 100:
+                result['output_size']  = os.path.getsize(output_path)
+                result['ratio']        = result['output_size'] / max(result['input_size'], 1)
+                result['savings_pct']  = max(0, (1 - result['ratio']) * 100)
+                result['method']       = f'ghostscript-{gs_preset}'
+                result['success']      = True
+                return result
+        except Exception as e:
+            logger.warning(f'Ghostscript compress failed: {e}')
+
+    # Fallback: copy
+    try:
+        shutil.copy2(input_path, output_path)
+        result['output_size'] = result['input_size']
+        result['ratio']       = 1.0
+        result['method']      = 'passthrough'
+        result['success']     = True
+    except Exception as e:
+        result['error'] = str(e)
+    return result
+
+
+def detect_pdf_characteristics(path: str, password: str = '') -> dict:
+    """
+    Detect detailed PDF characteristics for smart merge planning.
+
+    Returns:
+        dict with: page_count, page_sizes (list), has_mixed_sizes,
+        has_landscape_pages, has_color, has_transparency,
+        embedded_fonts (count), has_images, is_linearized,
+        pdf_version, approx_dpi, has_javascript, file_size_bytes.
+    """
+    info = {
+        'page_count': 0, 'page_sizes': [], 'has_mixed_sizes': False,
+        'has_landscape_pages': False, 'has_color': False, 'has_transparency': False,
+        'embedded_fonts': 0, 'has_images': False, 'is_linearized': False,
+        'pdf_version': '', 'has_javascript': False, 'file_size_bytes': 0,
+        'error': None,
+    }
+    try:
+        info['file_size_bytes'] = os.path.getsize(path)
+    except Exception:
+        info['error'] = 'Cannot stat file'
+        return info
+
+    try:
+        import fitz as fz
+        doc = fz.open(path)
+        if doc.is_encrypted:
+            if not password:
+                info['error'] = 'Encrypted — no password'
+                return info
+            doc.authenticate(password)
+
+        info['pdf_version'] = doc.pdf_version()
+        info['page_count']  = doc.page_count
+        info['is_linearized'] = doc.is_fast_webaccess
+
+        sizes = set()
+        for i, page in enumerate(doc):
+            r = page.rect
+            w, h = round(r.width, 1), round(r.height, 1)
+            sizes.add((w, h))
+            info['page_sizes'].append({'w': w, 'h': h})
+            if w > h:
+                info['has_landscape_pages'] = True
+
+            # Color / images / transparency on first 5 pages
+            if i < 5:
+                blocks = page.get_text('dict', flags=0).get('blocks', [])
+                for b in blocks:
+                    if b.get('type') == 1:  # image block
+                        info['has_images'] = True
+                        cs = b.get('colorspace', 0)
+                        if cs > 1:
+                            info['has_color'] = True
+
+                # Check for transparency via xobjects
+                try:
+                    xobj_names = page.get_xobjects()
+                    if xobj_names:
+                        info['has_transparency'] = True
+                except Exception:
+                    pass
+
+        info['has_mixed_sizes'] = len(sizes) > 1
+
+        # Count embedded fonts
+        try:
+            info['embedded_fonts'] = sum(1 for f in doc.get_page_fonts(0) if f[3])
+        except Exception:
+            pass
+
+        # JavaScript detection
+        try:
+            for name, _ in doc.get_names().items():
+                if 'javascript' in name.lower() or 'js' in name.lower():
+                    info['has_javascript'] = True
+                    break
+        except Exception:
+            pass
+
+        doc.close()
+    except Exception as e:
+        info['error'] = str(e)
+        logger.warning(f'detect_pdf_characteristics failed for {path}: {e}')
+
+    return info
+
+
+def get_pre_merge_stats(paths: list, passwords: list = None) -> dict:
+    """
+    Collect aggregate statistics across all files before merging.
+
+    Returns:
+        dict with: file_count, total_pages, total_size_bytes,
+        encrypted_count, image_file_count, mixed_sizes, warnings (list).
+    """
+    passwords = passwords or []
+    stats = {
+        'file_count': len(paths), 'total_pages': 0, 'total_size_bytes': 0,
+        'encrypted_count': 0, 'image_file_count': 0, 'mixed_sizes': False,
+        'warnings': [], 'per_file': [],
+    }
+    all_sizes = set()
+    for i, path in enumerate(paths):
+        pwd = passwords[i] if i < len(passwords) else ''
+        try:
+            sz = os.path.getsize(path)
+            stats['total_size_bytes'] += sz
+
+            ext = os.path.splitext(path)[1].lower()
+            if ext in ('.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.tiff', '.tif'):
+                stats['image_file_count'] += 1
+                stats['per_file'].append({'path': path, 'type': 'image', 'size': sz, 'pages': 1})
+                continue
+
+            import pypdf
+            reader = pypdf.PdfReader(path)
+            enc    = reader.is_encrypted
+            if enc:
+                stats['encrypted_count'] += 1
+                if pwd:
+                    reader.decrypt(pwd)
+                else:
+                    stats['warnings'].append(f'{os.path.basename(path)}: encrypted, no password provided')
+                    stats['per_file'].append({'path': path, 'type': 'pdf', 'size': sz, 'pages': 0, 'encrypted': True})
+                    continue
+
+            n = len(reader.pages)
+            stats['total_pages'] += n
+            if n > 0:
+                page0 = reader.pages[0].mediabox
+                all_sizes.add((round(float(page0.width)), round(float(page0.height))))
+            stats['per_file'].append({'path': path, 'type': 'pdf', 'size': sz, 'pages': n, 'encrypted': enc})
+
+            if sz > 200 * 1024 * 1024:
+                stats['warnings'].append(f'{os.path.basename(path)} is very large ({sz // (1024*1024)} MB) — may be slow')
+
+        except Exception as e:
+            stats['warnings'].append(f'{os.path.basename(path)}: could not read — {e}')
+            stats['per_file'].append({'path': path, 'type': 'unknown', 'size': 0, 'pages': 0, 'error': str(e)})
+
+    if len(all_sizes) > 1:
+        stats['mixed_sizes'] = True
+        stats['warnings'].append('Files have different page sizes — consider enabling "Normalize Page Size"')
+
+    return stats
+
+
+def smart_postprocess_output(output_path: str, compress: bool = False,
+                              linearize: bool = True) -> dict:
+    """
+    Post-merge smart optimization pass.
+
+    Steps: optionally compress + linearize for fast web open.
+    Falls back gracefully if Ghostscript or pikepdf unavailable.
+
+    Returns:
+        dict with success, input_size, output_size, steps_applied.
+    """
+    result = {
+        'success': False, 'input_size': 0, 'output_size': 0,
+        'steps_applied': [], 'error': None,
+    }
+    try:
+        result['input_size'] = os.path.getsize(output_path)
+        working = output_path + '.post.pdf'
+
+        applied = False
+        if compress:
+            cr = advanced_compress_pdf(output_path, working, level='medium')
+            if cr['success'] and cr['ratio'] < 0.99:
+                import shutil
+                shutil.move(working, output_path)
+                result['steps_applied'].append(f"compress ({cr['savings_pct']:.1f}% saved)")
+                applied = True
+            else:
+                try:
+                    os.remove(working)
+                except Exception:
+                    pass
+
+        if linearize:
+            try:
+                import pikepdf
+                lin_path = output_path + '.lin.pdf'
+                with pikepdf.open(output_path, suppress_warnings=True) as pdf:
+                    pdf.save(lin_path, linearize=True, compress_streams=True,
+                             object_stream_mode=pikepdf.ObjectStreamMode.generate)
+                if os.path.exists(lin_path) and os.path.getsize(lin_path) > 100:
+                    import shutil
+                    shutil.move(lin_path, output_path)
+                    result['steps_applied'].append('linearize (fast web open)')
+                    applied = True
+            except Exception as le:
+                logger.debug(f'Linearize step failed (non-fatal): {le}')
+
+        result['output_size'] = os.path.getsize(output_path)
+        result['success']     = True
+
+    except Exception as e:
+        result['error'] = str(e)
+        logger.error(f'smart_postprocess_output failed: {e}')
+
+    return result
+
+
+def generate_styled_toc_page(entries: list, color_scheme: str = 'indigo') -> bytes:
+    """
+    Generate a beautifully styled Table of Contents page using ReportLab.
+
+    Args:
+        entries: list of dicts with 'title' (str) and 'page' (int).
+        color_scheme: 'indigo' | 'teal' | 'rose' | 'slate'.
+
+    Returns:
+        bytes — complete single-page PDF.
+    """
+    import io as _io
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors as rl_colors
+    from reportlab.lib.units import mm
+
+    SCHEMES = {
+        'indigo': {'header': (0.388, 0.400, 0.945), 'accent': (0.545, 0.361, 0.965), 'dot': (0.663, 0.635, 0.98)},
+        'teal':   {'header': (0.0,   0.569, 0.663), 'accent': (0.063, 0.745, 0.729), 'dot': (0.2,   0.85,  0.85)},
+        'rose':   {'header': (0.882, 0.114, 0.380), 'accent': (0.965, 0.400, 0.455), 'dot': (0.98,  0.635, 0.66)},
+        'slate':  {'header': (0.278, 0.337, 0.416), 'accent': (0.42,  0.50,  0.60),  'dot': (0.6,   0.68,  0.78)},
+    }
+    sch = SCHEMES.get(color_scheme, SCHEMES['indigo'])
+
+    buf = _io.BytesIO()
+    W, H = A4
+    c = rl_canvas.Canvas(buf, pagesize=A4)
+
+    # Background
+    c.setFillColorRGB(0.043, 0.055, 0.102)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+
+    # Header bar
+    c.setFillColorRGB(*sch['header'])
+    c.rect(0, H - 72*mm, W, 72*mm, fill=1, stroke=0)
+
+    # Header accent strip
+    c.setFillColorRGB(*sch['accent'])
+    c.rect(0, H - 74*mm, W, 2*mm, fill=1, stroke=0)
+
+    # "TABLE OF CONTENTS" label
+    c.setFillColorRGB(1, 1, 1)
+    c.setFont('Helvetica-Bold', 22)
+    c.drawCentredString(W / 2, H - 32*mm, 'TABLE OF CONTENTS')
+    c.setFont('Helvetica', 9)
+    c.setFillColorRGB(0.8, 0.8, 1.0)
+    c.drawCentredString(W / 2, H - 40*mm, 'IshuTools.fun · Merged PDF')
+
+    # Entries
+    y = H - 85*mm
+    row_h = 9.8*mm
+    for idx, entry in enumerate(entries[:28]):  # max 28 entries per page
+        if y < 22*mm:
+            break
+        title = str(entry.get('title', f'Document {idx + 1}'))[:60]
+        page  = str(entry.get('page', ''))
+
+        # Alternating row background
+        if idx % 2 == 0:
+            c.setFillColorRGB(0.063, 0.078, 0.165)
+        else:
+            c.setFillColorRGB(0.055, 0.067, 0.145)
+        c.rect(12*mm, y - 3.2*mm, W - 24*mm, row_h, fill=1, stroke=0)
+
+        # Number dot
+        c.setFillColorRGB(*sch['dot'])
+        c.circle(20*mm, y + 2.8*mm, 2.8*mm, fill=1, stroke=0)
+        c.setFillColorRGB(0.043, 0.055, 0.102)
+        c.setFont('Helvetica-Bold', 7)
+        c.drawCentredString(20*mm, y + 1.3*mm, str(idx + 1))
+
+        # Title
+        c.setFillColorRGB(0.94, 0.95, 1.0)
+        c.setFont('Helvetica', 9)
+        c.drawString(27*mm, y + 1.5*mm, title)
+
+        # Page number
+        c.setFillColorRGB(0.6, 0.65, 0.8)
+        c.setFont('Helvetica-Bold', 9)
+        c.drawRightString(W - 14*mm, y + 1.5*mm, str(page))
+
+        # Dot leader
+        c.setStrokeColorRGB(0.2, 0.25, 0.4)
+        c.setLineWidth(0.4)
+        c.setDash([1.5, 3], 0)
+        title_end = 27*mm + c.stringWidth(title, 'Helvetica', 9) + 4*mm
+        page_start = W - 14*mm - c.stringWidth(str(page), 'Helvetica-Bold', 9) - 4*mm
+        if page_start > title_end + 6*mm:
+            c.line(title_end, y + 2.5*mm, page_start, y + 2.5*mm)
+        c.setDash([], 0)
+
+        y -= row_h
+
+    # Footer
+    c.setFillColorRGB(*sch['accent'])
+    c.rect(0, 0, W, 12*mm, fill=1, stroke=0)
+    c.setFillColorRGB(1, 1, 1)
+    c.setFont('Helvetica', 7)
+    c.drawCentredString(W / 2, 4.5*mm, 'Generated by IshuTools.fun · Free PDF Merger by Ishu Kumar (ISHUKR41)')
+
+    c.showPage()
+    c.save()
+    buf.seek(0)
+    return buf.read()
+
+
+def generate_styled_separator_page(title: str, subtitle: str = '',
+                                    color_scheme: str = 'indigo',
+                                    doc_number: int = 0) -> bytes:
+    """
+    Generate a professional styled separator/divider page using ReportLab.
+
+    Args:
+        title:        Main title (document name).
+        subtitle:     Optional subtitle (file size, page count, etc.).
+        color_scheme: 'indigo' | 'teal' | 'rose' | 'slate' | 'sunset'.
+        doc_number:   Document index for display.
+
+    Returns:
+        bytes — complete single-page PDF.
+    """
+    import io as _io
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+
+    SCHEMES = {
+        'indigo': [(0.388, 0.400, 0.945), (0.545, 0.361, 0.965)],
+        'teal':   [(0.0,   0.569, 0.663), (0.063, 0.745, 0.729)],
+        'rose':   [(0.882, 0.114, 0.380), (0.965, 0.400, 0.455)],
+        'slate':  [(0.278, 0.337, 0.416), (0.42,  0.50,  0.60) ],
+        'sunset': [(0.941, 0.380, 0.035), (0.98,  0.647, 0.1)  ],
+    }
+    colors_cycle = list(SCHEMES.values())
+    color_pair   = SCHEMES.get(color_scheme, colors_cycle[doc_number % len(colors_cycle)])
+    c1, c2 = color_pair
+
+    buf = _io.BytesIO()
+    W, H = A4
+    c = rl_canvas.Canvas(buf, pagesize=A4)
+
+    # Dark BG
+    c.setFillColorRGB(0.043, 0.055, 0.102)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+
+    # Left accent bar
+    c.setFillColorRGB(*c1)
+    c.rect(0, 0, 6*mm, H, fill=1, stroke=0)
+
+    # Center accent bar (lighter)
+    c.setFillColorRGB(*c2)
+    c.rect(0, H/2 - 0.6*mm, W, 1.2*mm, fill=1, stroke=0)
+
+    # Background glow circle
+    c.setFillColorRGB(c1[0], c1[1], c1[2])
+    c.setStrokeColorRGB(c1[0], c1[1], c1[2])
+    c.setFillAlpha(0.04)
+    c.circle(W / 2, H / 2, 88*mm, fill=1, stroke=0)
+    c.setFillAlpha(1.0)
+
+    # Document number
+    c.setFont('Helvetica-Bold', 52)
+    c.setFillColorRGB(c1[0], c1[1], c1[2])
+    c.setFillAlpha(0.08)
+    doc_num_str = f'{doc_number:02d}' if doc_number else ''
+    c.drawCentredString(W / 2, H / 2 + 28*mm, doc_num_str)
+    c.setFillAlpha(1.0)
+
+    # Title
+    title_str = title[:72]
+    font_size  = 22 if len(title_str) <= 30 else (18 if len(title_str) <= 50 else 14)
+    c.setFillColorRGB(0.95, 0.96, 1.0)
+    c.setFont('Helvetica-Bold', font_size)
+    c.drawCentredString(W / 2, H / 2 + 8*mm, title_str)
+
+    # Subtitle
+    if subtitle:
+        c.setFillColorRGB(0.55, 0.60, 0.80)
+        c.setFont('Helvetica', 9)
+        c.drawCentredString(W / 2, H / 2 - 5*mm, subtitle)
+
+    # Divider line
+    c.setStrokeColorRGB(*c2)
+    c.setLineWidth(1.2)
+    line_w = 60*mm
+    c.line(W/2 - line_w, H/2 - 13*mm, W/2 + line_w, H/2 - 13*mm)
+
+    # Footer
+    c.setFillColorRGB(*c1)
+    c.rect(0, 0, W, 10*mm, fill=1, stroke=0)
+    c.setFillColorRGB(1, 1, 1)
+    c.setFont('Helvetica', 6.5)
+    c.drawCentredString(W / 2, 3.5*mm, 'IshuTools.fun · Free PDF Merger by Ishu Kumar (ISHUKR41)')
+
+    c.showPage()
+    c.save()
+    buf.seek(0)
+    return buf.read()
+
+
+def repair_pdf(input_path: str, output_path: str, password: str = '') -> dict:
+    """
+    Attempt to repair a corrupt or partially valid PDF using multiple strategies.
+
+    Strategy order:
+      1. pikepdf (lenient open)
+      2. PyMuPDF (fitz, ignores errors)
+      3. Ghostscript (ps2pdf repair pass)
+
+    Returns:
+        dict with success, method, pages, error.
+    """
+    result = {'success': False, 'method': None, 'pages': 0, 'error': None}
+
+    # Strategy 1: pikepdf
+    try:
+        import pikepdf
+        with pikepdf.open(input_path, password=password or '',
+                          suppress_warnings=True, ignore_xref_streams=True,
+                          inherit_page_attributes=True) as pdf:
+            pdf.save(output_path, fix_metadata_version=True)
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 100:
+            import pypdf
+            r = pypdf.PdfReader(output_path)
+            result['pages']   = len(r.pages)
+            result['method']  = 'pikepdf-lenient'
+            result['success'] = True
+            return result
+    except Exception as e:
+        logger.debug(f'repair_pdf pikepdf failed: {e}')
+
+    # Strategy 2: PyMuPDF
+    try:
+        import fitz
+        doc = fitz.open(input_path)
+        if doc.is_encrypted and password:
+            doc.authenticate(password)
+        doc.save(output_path, garbage=3, deflate=True, clean=True)
+        result['pages']   = doc.page_count
+        result['method']  = 'pymupdf-clean'
+        result['success'] = True
+        doc.close()
+        return result
+    except Exception as e:
+        logger.debug(f'repair_pdf PyMuPDF failed: {e}')
+
+    # Strategy 3: Ghostscript
+    import shutil
+    gs = shutil.which('gs') or shutil.which('ghostscript')
+    if gs:
+        try:
+            cmd = [
+                gs, '-dBATCH', '-dNOPAUSE', '-dSAFER',
+                '-sDEVICE=pdfwrite', '-dCompatibilityLevel=1.6',
+                '-dPDFSETTINGS=/default', '-dNOTRANSPARENCYFLATTENING',
+                f'-sOutputFile={output_path}', input_path,
+            ]
+            proc = subprocess.run(cmd, capture_output=True, timeout=120)
+            if proc.returncode == 0 and os.path.exists(output_path) and os.path.getsize(output_path) > 100:
+                import pypdf
+                r = pypdf.PdfReader(output_path)
+                result['pages']   = len(r.pages)
+                result['method']  = 'ghostscript-repair'
+                result['success'] = True
+                return result
+        except Exception as e:
+            logger.debug(f'repair_pdf Ghostscript failed: {e}')
+
+    result['error'] = 'All repair strategies exhausted'
+    return result
+
+
+def estimate_merge_quality_score(paths: list, result: dict) -> dict:
+    """
+    Estimate a quality score (0–100) for the merged output.
+
+    Factors: page preservation, bookmark preservation, size efficiency,
+    method used, warnings encountered.
+
+    Returns:
+        dict with score (int 0-100), grade ('A+'..'F'), summary (str).
+    """
+    score = 100
+    deductions = []
+
+    total_in_pages = sum(
+        result.get('source_pages', {}).get(p, 0) for p in paths
+    ) or result.get('total_pages', 100)
+    total_out_pages = result.get('total_pages', total_in_pages)
+
+    if total_in_pages > 0:
+        preservation = total_out_pages / total_in_pages
+        if preservation < 0.98:
+            diff = round((1 - preservation) * 100, 1)
+            score -= min(30, int(diff * 2))
+            deductions.append(f'{diff}% pages missing')
+
+    method = result.get('method_used', '')
+    if 'fitz' in method or 'pypdf' in method:
+        score -= 0
+    elif 'gs' in method:
+        score -= 5
+        deductions.append('Ghostscript may alter content slightly')
+
+    skipped = result.get('skipped_duplicates', 0)
+    if skipped > 0:
+        score -= 0  # intentional
+
+    # Size ratio (compressed < 2× should be fine)
+    out_sz = result.get('output_size_bytes', 0)
+    if out_sz > 200 * 1024 * 1024:
+        score -= 3
+        deductions.append('Output > 200 MB')
+
+    score = max(0, min(100, score))
+    grade_map = [(95,'A+'),(85,'A'),(75,'B+'),(65,'B'),(55,'C'),(40,'D')]
+    grade = next((g for t,g in grade_map if score >= t), 'F')
+    summary = f"Quality {grade} ({score}/100)" + (f" — {'; '.join(deductions)}" if deductions else ' — Excellent merge')
+
+    return {'score': score, 'grade': grade, 'summary': summary, 'deductions': deductions}

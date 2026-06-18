@@ -31,6 +31,8 @@ let _sse       = null;
 let _simTimer  = null;
 let _mergeSt   = 0;
 let _sortable  = null;
+let _sizeChart = null;
+let _typedInst = null;
 
 /* ════════ DOM helper ════════ */
 const $ = id => document.getElementById(id);
@@ -486,6 +488,10 @@ function showSection(which) {
   D.sPr.hidden = which !== 'progress';
   D.sRe.hidden = which !== 'result';
   if (which === 'progress') resetProgress();
+  if (which === 'upload' || which === 'files') {
+    if (_sizeChart) { _sizeChart.destroy(); _sizeChart = null; }
+    const cw = $('chartWrap'); if (cw) cw.hidden = true;
+  }
 }
 
 /* ════════ PROGRESS ════════ */
@@ -686,6 +692,59 @@ function showResult(totalPages, srcCount, methodUsed, outputSize, skippedDups, b
   // Filename display
   const fn = $('resFn'), fnTx = $('resFnTx');
   if (fn && fnTx) { fnTx.textContent = _dlName; fn.hidden = false; }
+
+  // Skipped dupes
+  const rDupes = $('rDupes');
+  if (rDupes && skippedDups > 0) {
+    rDupes.innerHTML = `<i class="fas fa-clone"></i>${skippedDups} duplicate${skippedDups > 1 ? 's' : ''} skipped`;
+    rDupes.hidden = false;
+  }
+
+  // Chart.js — before / after size comparison
+  const inputSzCh = FILES.reduce((a,f) => a + f.size, 0);
+  const outSzCh   = outputSize || blobSize;
+  const ctxEl = $('sizeChart'), cw = $('chartWrap');
+  if (ctxEl && cw && typeof Chart !== 'undefined') {
+    if (_sizeChart) { _sizeChart.destroy(); _sizeChart = null; }
+    const isDark    = document.documentElement.dataset.theme !== 'light';
+    const tickColor = isDark ? '#64748b' : '#94a3b8';
+    const gridColor = isDark ? 'rgba(99,102,241,.07)' : 'rgba(99,102,241,.05)';
+    const smaller   = outSzCh <= inputSzCh;
+    _sizeChart = new Chart(ctxEl, {
+      type: 'bar',
+      data: {
+        labels: [`Input (${FILES.length} file${FILES.length > 1 ? 's' : ''})`, 'Merged Output'],
+        datasets: [{
+          data: [inputSzCh, outSzCh],
+          backgroundColor: ['rgba(99,102,241,.32)', smaller ? 'rgba(34,197,94,.32)' : 'rgba(245,158,11,.32)'],
+          borderColor: ['rgb(99,102,241)', smaller ? 'rgb(34,197,94)' : 'rgb(245,158,11)'],
+          borderWidth: 1.6, borderRadius: 7,
+        }]
+      },
+      options: {
+        responsive: true, indexAxis: 'y',
+        animation: { duration: 860, easing: 'easeOutQuart' },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: c => '  ' + fmtSize(c.raw) } },
+        },
+        scales: {
+          x: {
+            ticks: { callback: v => fmtSize(v), color: tickColor, font: { size: 9 } },
+            grid:  { color: gridColor },
+          },
+          y: {
+            ticks: { color: tickColor, font: { size: 9 } },
+            grid:  { display: false },
+          },
+        },
+      },
+    });
+    cw.hidden = false;
+    if (typeof anime !== 'undefined') {
+      anime({ targets: cw, opacity: [0, 1], translateY: [10, 0], duration: 600, easing:'easeOutCubic', delay: 300 });
+    }
+  }
 
   // Animate the result box in with GSAP
   if (typeof gsap !== 'undefined') {
@@ -1133,4 +1192,25 @@ document.addEventListener('DOMContentLoaded', () => {
   initCanvas();
   loadPdfJs();
   setTimeout(() => initAnimations(), 150);
+
+  // Typed.js — hero trust cycling
+  setTimeout(() => {
+    if (typeof Typed !== 'undefined' && $('heroTyped')) {
+      if (_typedInst) _typedInst.destroy();
+      _typedInst = new Typed('#heroTyped', {
+        strings: [
+          '100% Free. Always.',
+          'No signup needed.',
+          'No watermark, ever.',
+          'Files deleted instantly.',
+          'Works on any device.',
+          'Up to 50 files at once.',
+          '1 GB per file supported.',
+          'Zero quality loss.',
+        ],
+        typeSpeed: 46, backSpeed: 26, loop: true, backDelay: 2600,
+        smartBackspace: true, showCursor: true, cursorChar: '|',
+      });
+    }
+  }, 800);
 });

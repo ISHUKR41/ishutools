@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Merge PDF Online Free — Combine PDF Files Instantly | IshuTools.fun</title>
 <meta name="description" content="Merge PDF files online free — no signup, no watermark, instant. Combine PDFs + JPG + PNG into one. Drag reorder, page ranges, bookmarks, TOC. 100% private, 100% free. By Ishu Kumar (ISHUKR41) at IshuTools.fun"/>
-<meta name="keywords" content="merge pdf,merge pdf online free,merge pdf files online,combine pdf files,join pdf online,pdf merger free,pdf combiner,merge pdf no watermark,merge pdf no signup,ishu kumar,ishu,ishutools,ishutools.fun,ISHUKR41,ISHUKR75,ishu kumar developer,ishu kumar github,free pdf tools india,best pdf merger 2026,merge multiple pdf,combine pdf images,pdf joiner online,merge pdf pages,merge pdf bookmarks,secure pdf merge,fast pdf merger,online pdf editor,merge password protected pdf,pdf table of contents,ishutools merge pdf,pypdf pikepdf fitz merge,pdf tools ishu"/>
+<meta name="keywords" content="merge pdf,merge pdf online free,merge pdf files online,combine pdf files,join pdf online,pdf merger free,pdf combiner,merge pdf no watermark,merge pdf no signup,ishu kumar,ishu,ishutools,ishutools.fun,ISHUKR41,ISHUKR75,ishu kumar developer,ishu kumar github,ishu kumar india,ishu tools,ishu pdf tools,free pdf tools india,best pdf merger 2026,merge multiple pdf,combine pdf images,pdf joiner online,merge pdf pages,merge pdf bookmarks,secure pdf merge,fast pdf merger,online pdf editor,merge password protected pdf,pdf table of contents,ishutools merge pdf,pypdf pikepdf fitz merge,pdf tools ishu,ishu kumar pdf merger,ishukr41 tools,ishu kumar ishutools,pdf merger india,free pdf tools 2026,pdf combiner online,merge pdf chrome,pdf merger mobile,combine pdf android,combine pdf iphone,pdf union online,join two pdf files,merge pdf without losing quality,fastest pdf merger online,pdf joiner free,no account pdf merge,pdf collator online,professional pdf merger tool,pdf file combiner,merge documents online free,merge pdf word excel,ishu tools merge pdf,pdf combine online india,best free pdf merger,pdf merge tool no watermark,combine multiple pdf files online,ishu kumar developer india,ISHUKR41 github,ISHUKR75 github,ishutools free,pdf merger 2025 2026"/>
 <meta name="author" content="Ishu Kumar (ISHUKR41 / ISHUKR75)"/>
 <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1"/>
 <meta name="theme-color" content="#6366f1"/>
@@ -45,6 +45,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" defer></script>
 <!-- Canvas Confetti — success celebration -->
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
+<!-- Chart.js — before/after size visualization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+<!-- Typed.js — hero trust-phrase cycling -->
+<script src="https://cdn.jsdelivr.net/npm/typed.js@2.1.0/dist/typed.umd.js" defer></script>
 <!-- Sounds (NOT defer — must load before script.js) -->
 <script src="sounds/sounds.js"></script>
 <link rel="stylesheet" href="style.css"/>
@@ -115,6 +119,10 @@
       <span class="white-text">Files Online</span>
     </h1>
     <p class="hero-desc">Combine PDFs, JPG, PNG &amp; more into one. Drag to reorder, set page ranges, add bookmarks — instant &amp; private.</p>
+    <p class="hero-typed-wrap" aria-label="Key benefits">
+      <i class="fas fa-bolt" aria-hidden="true"></i>
+      <span id="heroTyped"></span>
+    </p>
     <div class="hero-chips" aria-label="Key features">
       <span><i class="fas fa-layer-group"></i>Up to 50 files</span>
       <span><i class="fas fa-image"></i>PDF + Images</span>
@@ -408,6 +416,13 @@
         <span id="rTime"><i class="fas fa-stopwatch"></i>—</span>
         <span id="rEngine"><i class="fas fa-cogs"></i>—</span>
         <span id="rSaved"><i class="fas fa-scale-balanced"></i>—</span>
+        <span id="rDupes" hidden><i class="fas fa-clone"></i>—</span>
+      </div>
+
+      <!-- Size comparison chart (Chart.js) -->
+      <div id="chartWrap" class="chart-wrap" hidden aria-label="File size comparison chart">
+        <p class="chart-ttl"><i class="fas fa-chart-bar"></i>Size Comparison</p>
+        <canvas id="sizeChart" height="68" aria-label="Before vs after file size"></canvas>
       </div>
 
       <div id="resFn" class="res-fn" hidden aria-label="Output filename">
@@ -428,6 +443,39 @@
   </section>
 
 </main><!-- end #app -->
+
+<!-- ═══ SEO TOOLS DIRECTORY ═══ -->
+<section class="seo-dir" aria-labelledby="seoDirHead">
+  <div class="sec-wrap">
+    <h2 id="seoDirHead" class="seo-dir-h">IshuTools.fun — Free Online PDF Tools by Ishu Kumar (ISHUKR41)</h2>
+    <p>
+      <strong>IshuTools.fun</strong> is a professional free online PDF tools suite built by
+      <strong>Ishu Kumar</strong> (GitHub: <a href="https://github.com/ISHUKR41" rel="noopener" target="_blank">ISHUKR41</a> / <a href="https://github.com/ISHUKR75" rel="noopener" target="_blank">ISHUKR75</a>).
+      Merge PDF, Split PDF, Compress PDF, Convert PDF and 35+ more tools — 100% free, no signup, no watermark.
+      Our <strong>Merge PDF</strong> tool lets you combine PDF files online free, add images (JPG, PNG, WebP),
+      drag-reorder pages, select page ranges, add bookmarks and a table of contents. Works on any device,
+      no installation, 100% private. Built with pypdf, PyMuPDF (fitz), pikepdf, and Ghostscript for enterprise-grade PDF merging.
+    </p>
+    <nav class="seo-links" aria-label="All PDF tools at IshuTools.fun">
+      <a href="/tools/merge-pdf/">Merge PDF</a>
+      <a href="/tools/split-pdf/">Split PDF</a>
+      <a href="/tools/compress-pdf/">Compress PDF</a>
+      <a href="/tools/jpg-to-pdf/">JPG to PDF</a>
+      <a href="/tools/pdf-to-jpg/">PDF to JPG</a>
+      <a href="/tools/pdf-to-word/">PDF to Word</a>
+      <a href="/tools/word-to-pdf/">Word to PDF</a>
+      <a href="/tools/excel-to-pdf/">Excel to PDF</a>
+      <a href="/tools/protect-pdf/">Protect PDF</a>
+      <a href="/tools/unlock-pdf/">Unlock PDF</a>
+      <a href="/tools/rotate-pdf/">Rotate PDF</a>
+      <a href="/tools/add-watermark/">Watermark PDF</a>
+      <a href="/tools/ocr-pdf/">OCR PDF</a>
+      <a href="/tools/add-page-numbers/">Page Numbers</a>
+      <a href="/tools/organize-pdf/">Organize PDF</a>
+      <a href="/tools/summarize-pdf/">AI Summarize</a>
+    </nav>
+  </div>
+</section>
 
 <!-- ═══ HOW IT WORKS ═══ -->
 <section class="info-section bg-alt" aria-labelledby="howHeading">
