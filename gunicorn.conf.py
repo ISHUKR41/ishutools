@@ -24,5 +24,5 @@ accesslog = "-"
 errorlog = "-"
 capture_output = True
 
-# Auto-reload on code changes
-reload = True
+# Auto-reload disabled for Replit compatibility
+reload = False
