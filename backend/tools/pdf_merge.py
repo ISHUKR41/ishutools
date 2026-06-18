@@ -661,8 +661,10 @@ def _write_metadata(writer: PdfWriter, input_paths: list,
         except Exception:
             continue
 
-    meta['/Producer'] = 'IshuTools.fun PDF Suite v9.0'
-    meta['/Creator'] = 'IshuTools.fun | Merge PDF'
+    meta['/Producer'] = 'IshuTools.fun PDF Suite v9.0 — Built by Ishu Kumar (ISHUKR41) | ishutools.fun'
+    meta['/Creator'] = 'IshuTools.fun Merge PDF | By Ishu Kumar (ISHUKR41 / ISHUKR75) | ishutools.fun'
+    meta['/Author'] = 'Ishu Kumar (ISHUKR41) — IshuTools.fun'
+    meta['/Subject'] = 'Merged with IshuTools.fun free PDF merger — built by Ishu Kumar (ISHUKR41). No watermark, no signup. Visit ishutools.fun'
     meta['/ModDate'] = datetime.utcnow().strftime("D:%Y%m%d%H%M%S+00'00'")
 
     if output_metadata:
