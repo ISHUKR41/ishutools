@@ -634,7 +634,7 @@ def _write_pikepdf(src: str, indices: List[int], dst: str,
 
 def _write_fitz(src: str, indices: List[int], dst: str,
                 password: str = '') -> bool:
-    """Copy pages via PyMuPDF (structure-preserving fallback)."""
+    """Copy pages via PyMuPDF (structure-preserving fallback — lossless)."""
     if not _HAS_FITZ:
         return False
     try:
@@ -647,7 +647,8 @@ def _write_fitz(src: str, indices: List[int], dst: str,
                 out.insert_pdf(doc, from_page=i, to_page=i)
         if out.page_count == 0:
             doc.close(); out.close(); return False
-        out.save(dst, garbage=4, deflate=True, clean=False)
+        # garbage=0, deflate=False, clean=False → zero stream re-encoding (lossless)
+        out.save(dst, garbage=0, deflate=False, clean=False)
         out.close(); doc.close()
         return os.path.isfile(dst) and os.path.getsize(dst) > 50
     except Exception as e:
@@ -696,16 +697,18 @@ def _write_pages(src: str, indices: List[int], dst: str,
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _gs_burst(src: str, out_dir: str) -> List[str]:
-    """Burst PDF into one-per-page using GS at highest quality."""
+    """Burst PDF into one-per-page using GS (lossless — no re-encoding flags)."""
     if not GS_BIN:
         return []
     pattern = os.path.join(out_dir, 'page_%04d.pdf')
     try:
+        # NOTE: No -dPDFSETTINGS flag — that causes re-encoding quality loss.
+        # -dFastWebView=false and -dNOINTERPOLATE ensure zero stream modification.
         cmd = [
             GS_BIN, '-q', '-dBATCH', '-dNOPAUSE', '-dNOSAFER',
             '-sDEVICE=pdfwrite', '-dCompatibilityLevel=1.7',
-            '-dPDFSETTINGS=/prepress',
-            '-dNOINTERPOLATE',
+            '-dNOINTERPOLATE', '-dPassThroughJPEGImages=true',
+            '-dPassThroughJPXImages=true',
             f'-sOutputFile={pattern}',
             src,
         ]
