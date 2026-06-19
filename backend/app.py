@@ -576,7 +576,7 @@ def api_merge_pdf_thumbnail():
 
 @app.route('/api/split-pdf', methods=['POST'])
 def api_split_pdf():
-    """Split a PDF — 7 modes, lossless quality, SSE progress, rich response headers."""
+    """Split a PDF — 8 modes, lossless quality, SSE progress, rich response headers."""
     try:
         file = request.files.get('file')
         if not file:

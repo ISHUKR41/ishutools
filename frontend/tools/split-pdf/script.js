@@ -120,7 +120,9 @@ document.addEventListener('DOMContentLoaded', () => {
     resultSummary:   document.getElementById('resultSummary'),
     downloadBtn:     document.getElementById('downloadBtn'),
 
-    faqList:         document.getElementById('faqList'),
+    faqList:            document.getElementById('faqList'),
+    rangeGroupsInput:   document.getElementById('rangeGroupsInput'),
+    rangeGroupsPreview: document.getElementById('rangeGroupsPreview'),
   };
 
   initTheme();
@@ -423,7 +425,7 @@ function modeName(m) {
   const MAP = {
     all:'All Pages', range:'Page Range', every_n:'Every N Pages',
     bookmarks:'By Bookmarks', blank_pages:'Blank Separator',
-    size_limit:'By File Size', odd_even:'Odd / Even',
+    size_limit:'By File Size', odd_even:'Odd / Even', range_groups:'Range Groups',
   };
   return MAP[m] || m;
 }
@@ -443,6 +445,11 @@ function updateModeBadges() {
     'blank_pages': BLANK_COUNT >= 2 ? `→ ~${BLANK_COUNT + 1} files` : '',
     'size_limit':  '',
     'odd_even':    '→ 2 files',
+    'range_groups': (() => {
+      if (!TOTAL_PAGES) return '';
+      const groups = (D.rangeGroupsInput?.value || '').split(',').map(s=>s.trim()).filter(Boolean);
+      return groups.length ? `→ ${groups.length} file${groups.length>1?'s':''}` : '';
+    })(),
   };
 
   Object.entries(badges).forEach(([mode, label]) => {
@@ -623,6 +630,38 @@ function updateRangePreview() {
   el.innerHTML = html;
 }
 
+function updateRangeGroupsPreview() {
+  const el = D.rangeGroupsPreview; if (!el) return;
+  const val = (D.rangeGroupsInput?.value || '').trim();
+  if (!val) {
+    el.innerHTML = '<span class="sp-rp-hint">Enter ranges above — each comma-separated group becomes its own PDF file</span>';
+    return;
+  }
+  if (!TOTAL_PAGES) {
+    el.innerHTML = '<span class="sp-rp-hint">Upload a PDF first to validate ranges</span>';
+    return;
+  }
+  const tokens = val.split(',').map(s => s.trim()).filter(Boolean);
+  if (!tokens.length) {
+    el.innerHTML = '<span class="sp-rp-hint">Enter ranges separated by commas</span>';
+    return;
+  }
+  let html = '';
+  let valid = 0, invalid = 0;
+  tokens.forEach((tok, i) => {
+    const pages = parseRangeStr(tok, TOTAL_PAGES);
+    if (!pages.length) {
+      html += `<span class="sp-range-chip" style="background:rgba(239,68,68,.18);color:#ef4444" title="Invalid range">File ${i+1}: <em>${tok}</em> ✗</span>`;
+      invalid++;
+    } else {
+      html += `<span class="sp-range-chip" title="${pages.length} page${pages.length!==1?'s':''}">File ${i+1}: <strong>${tok}</strong> (${pages.length}pp)</span>`;
+      valid++;
+    }
+  });
+  html += `<span class="sp-range-count">${valid} file${valid!==1?'s':''}${invalid?' · '+invalid+' invalid':''}</span>`;
+  el.innerHTML = html;
+}
+
 /* ── MODES ──────────────────────────────────────────────────────── */
 function initModes() {
   if (!D.modesGrid) return;
@@ -657,6 +696,7 @@ function showModeOptions(mode) {
     blank_pages: ['opt-blank-info'],
     size_limit:  ['opt-size','opt-split-preview'],
     odd_even:    ['opt-odd-even-info'],
+    range_groups:['opt-range-groups'],
   };
 
   const opts = MAP[mode] || [];
@@ -673,6 +713,14 @@ function showModeOptions(mode) {
   });
   if (D.rangeInput) {
     D.rangeInput.oninput = () => { updateRangeFromInput(); };
+  }
+
+  if (D.rangeGroupsInput) {
+    D.rangeGroupsInput.oninput = () => {
+      updateRangeGroupsPreview();
+      updateModeBadges();
+      updateSplitBtn();
+    };
   }
 
   if (mode === 'bookmarks') renderBookmarksList();
@@ -795,6 +843,9 @@ function updateSplitBtn() {
 
   if (SELECTED_MODE === 'range') {
     canSplit = canSplit && PAGE_SEL.size > 0;
+  } else if (SELECTED_MODE === 'range_groups') {
+    const groups = (D.rangeGroupsInput?.value || '').split(',').map(s=>s.trim()).filter(Boolean);
+    canSplit = canSplit && groups.length > 0;
   }
 
   D.splitBtn.disabled = !canSplit;
@@ -810,6 +861,10 @@ function updateSplitBtn() {
       blank_pages: BLANK_COUNT >= 2 ? `~${BLANK_COUNT+1} files` : '',
       size_limit:  '',
       odd_even:    '2 files',
+      range_groups: (() => {
+        const groups = (D.rangeGroupsInput?.value || '').split(',').map(s=>s.trim()).filter(Boolean);
+        return groups.length ? `${groups.length} file${groups.length>1?'s':''}` : '';
+      })(),
     };
     D.splitBtnBadge.textContent = map[SELECTED_MODE] || '';
   }
@@ -846,6 +901,8 @@ async function doSplit() {
 
   if (SELECTED_MODE === 'range') {
     fd.append('ranges', D.rangeInput?.value || '');
+  } else if (SELECTED_MODE === 'range_groups') {
+    fd.append('ranges', D.rangeGroupsInput?.value || '');
   } else if (SELECTED_MODE === 'every_n') {
     fd.append('every_n', D.everyNInput?.value || 5);
   } else if (SELECTED_MODE === 'size_limit') {
@@ -1052,6 +1109,8 @@ function resetTool() {
 
   if (D.fileInput) D.fileInput.value = '';
   if (D.rangeInput) D.rangeInput.value = '';
+  if (D.rangeGroupsInput) D.rangeGroupsInput.value = '';
+  if (D.rangeGroupsPreview) D.rangeGroupsPreview.innerHTML = '<span class="sp-rp-hint">Enter ranges above — each comma-separated group becomes its own PDF file</span>';
   if (D.progressSteps) D.progressSteps.innerHTML = '';
 
   // Animate back
@@ -1064,7 +1123,7 @@ function resetToToolView() {
   // Go back to split config view without full reset
   D.progressCard.hidden   = true;
   D.modesCard.hidden      = false;
-  D.optsCard.hidden       = (SELECTED_MODE === 'all' || SELECTED_MODE === 'odd_even');
+  D.optsCard.hidden       = (SELECTED_MODE === 'all' || SELECTED_MODE === 'odd_even' || !SELECTED_MODE);
   D.advCard.hidden        = false;
   D.actionSection.hidden  = false;
   if (D.progressSteps) D.progressSteps.innerHTML = '';
