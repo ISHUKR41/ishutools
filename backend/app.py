@@ -601,7 +601,7 @@ def api_split_pdf():
         job_id         = request.form.get('job_id', '')
 
         VALID_MODES = {'all', 'range', 'every_n', 'bookmarks', 'blank_pages',
-                       'size_limit', 'odd_even', 'range_groups'}
+                       'size_limit', 'odd_even', 'range_groups', 'content_type'}
         if split_mode not in VALID_MODES:
             split_mode = 'all'
 
@@ -623,6 +623,15 @@ def api_split_pdf():
             result = split_ranges_to_multiple(
                 path, out_dir, result_zip,
                 ranges_str=ranges,
+                password=password,
+                remove_blanks=remove_blanks,
+                naming_pattern=naming_pattern,
+                source_filename=orig_filename,
+            )
+        elif split_mode == 'content_type':
+            from tools.pdf_split import split_by_content_type
+            result = split_by_content_type(
+                path, out_dir, result_zip,
                 password=password,
                 remove_blanks=remove_blanks,
                 naming_pattern=naming_pattern,

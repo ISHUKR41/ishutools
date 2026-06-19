@@ -1,5 +1,5 @@
 /**
- * split-pdf/script.js  v12.0 — IshuTools.fun
+ * split-pdf/script.js  v14.0 — IshuTools.fun
  * Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
  *
  * Memory constraints:
@@ -519,6 +519,8 @@ var MODE_DESC = {
     'Keep each output PDF under a target file size. Uses binary-search grouping for accurate results.',
   odd_even:
     'Two files: odd pages (1,3,5…) and even pages (2,4,6…). Perfect for duplex scanning and booklet printing.',
+  content_type:
+    'v14 Exclusive — Auto-groups pages by content: Text, Image/Scanned, Forms, Mixed. Each content type → its own lossless PDF. Zero manual selection needed.',
 };
 
 function selectMode(mode) {
@@ -539,7 +541,7 @@ function selectMode(mode) {
     }, 180);
   }
 
-  var modes = ['all','range','range_groups','every_n','bookmarks','blank_pages','size_limit','odd_even'];
+  var modes = ['all','range','range_groups','every_n','bookmarks','blank_pages','size_limit','odd_even','content_type'];
   modes.forEach(function(m) {
     var el = document.getElementById('opts-' + m);
     if (el) togEl(el, m === mode);
@@ -577,6 +579,7 @@ function updateModeBadges() {
     blank_pages:  PDF_INFO.blank_pages > 0 ? PDF_INFO.blank_pages + ' blanks' : 'auto-detect',
     size_limit:   'fit in MB',
     odd_even:     '2 files',
+    content_type: 'auto-group',
   };
   Object.keys(badges).forEach(function(m) {
     var el = document.getElementById('badge-' + m);
@@ -1126,7 +1129,7 @@ function doSplit() {
   var total = PDF_INFO ? PDF_INFO.total_pages : '?';
   addProgressStep('fa-check',        'Mode: ' + MODE.replace(/_/g,' '), 'done');
   addProgressStep('fa-file-pdf',     (total) + ' pages · ' + fmtBytes(FILE.size), 'done');
-  addProgressStep('fa-microchip',    'v12 lossless engine active (pikepdf + PyMuPDF)', 'active');
+  addProgressStep('fa-microchip',    'v14 lossless engine active (pikepdf + PyMuPDF)', 'active');
 
   simProgress(86, 108);
 
@@ -1181,6 +1184,7 @@ function doSplit() {
       var qualityScore = res.headers.get('X-Quality-Score') || '100';
       var zipName      = res.headers.get('X-Download-Name') || res.headers.get('X-Zip-Name') || _ZIP_FILENAME;
       var zipSizeKb    = parseInt(res.headers.get('X-Zip-Size-Kb') || '0');
+      var fileNames    = (res.headers.get('X-File-Names') || '').split('|').filter(Boolean);
 
       if (_BLOB_URL) URL.revokeObjectURL(_BLOB_URL);
       _BLOB_URL     = URL.createObjectURL(blob);
@@ -1190,7 +1194,7 @@ function doSplit() {
         hideEl(D.progressCard);
         showEl(D.resultsCard);
         showEl(D.actionCard);
-        showResults(filesCreated, totalPages, qualityGrade, qualityScore, procMs, zipSizeKb);
+        showResults(filesCreated, totalPages, qualityGrade, qualityScore, procMs, zipSizeKb, fileNames);
         S('playSuccessChime');
 
         /* v12: Auto-scroll to results */
@@ -1219,7 +1223,8 @@ function doSplit() {
 /* ══════════════════════════════════════════════════════════════════
    SHOW RESULTS (v12: animated counters)
 ══════════════════════════════════════════════════════════════════ */
-function showResults(filesCreated, totalPages, qualityGrade, qualityScore, procMs, zipSizeKb) {
+function showResults(filesCreated, totalPages, qualityGrade, qualityScore, procMs, zipSizeKb, fileNames) {
+  fileNames = fileNames || [];
   var elapsed = procMs > 0
     ? (procMs >= 1000 ? (procMs / 1000).toFixed(1) + 's' : procMs + 'ms')
     : (Math.round((Date.now() - _splitStart) / 100) / 10).toFixed(1) + 's';
@@ -1256,6 +1261,33 @@ function showResults(filesCreated, totalPages, qualityGrade, qualityScore, procM
       if (el) animateCount(el, s.value, s.suffix, 600 + i * 120);
     }
   });
+
+  /* v14: Show individual file list from X-File-Names */
+  if (D.resFilesWrap) {
+    if (fileNames.length > 0 && fileNames.length <= 200) {
+      var maxShow = Math.min(fileNames.length, 60);
+      var rows = fileNames.slice(0, maxShow).map(function(fname, idx) {
+        var ext = fname.split('.').pop().toLowerCase();
+        var icon = ext === 'pdf' ? 'fa-file-pdf' : 'fa-file-zipper';
+        return '<div class="sp-rfw-row">'
+          + '<i class="fa-solid ' + icon + '"></i>'
+          + '<span class="sp-rfw-name" title="' + fname + '">' + fname + '</span>'
+          + '<span class="sp-rfw-idx">#' + (idx + 1) + '</span>'
+          + '</div>';
+      }).join('');
+      var moreNote = fileNames.length > maxShow
+        ? '<div class="sp-rfw-row" style="justify-content:center;color:var(--text3);font-size:.75rem;padding:10px">'
+          + '<i class="fa-solid fa-ellipsis" style="margin-right:6px"></i>+ '
+          + (fileNames.length - maxShow) + ' more files inside the ZIP</div>'
+        : '';
+      D.resFilesWrap.innerHTML =
+        '<div class="sp-rfw-hdr"><i class="fa-solid fa-list-ul"></i>Output Files (' + fileNames.length + ')</div>'
+        + '<div class="sp-rfw-list">' + rows + moreNote + '</div>';
+      showEl(D.resFilesWrap);
+    } else {
+      hideEl(D.resFilesWrap);
+    }
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1358,6 +1390,7 @@ function resetAll() {
   D.splitBtn.disabled = true;
   if (D.progressSteps)   D.progressSteps.innerHTML = '';
   if (D.resultsStats)    D.resultsStats.innerHTML  = '';
+  if (D.resFilesWrap)  { D.resFilesWrap.innerHTML  = ''; hideEl(D.resFilesWrap); }
   if (D.thumbsStrip)     D.thumbsStrip.innerHTML   = '';
   if (D.bookmarkList)    D.bookmarkList.innerHTML   = '';
   if (D.pgrid)           D.pgrid.innerHTML          = '';
@@ -1511,6 +1544,7 @@ document.addEventListener('DOMContentLoaded', function() {
     resultsCard:       document.getElementById('resultsCard'),
     resultsSub:        document.getElementById('resultsSub'),
     resultsStats:      document.getElementById('resultsStats'),
+    resFilesWrap:      document.getElementById('resFilesWrap'),
     downloadBtn:       document.getElementById('downloadBtn'),
     dlName:            document.getElementById('dlName'),
     qualityText:       document.getElementById('qualityText'),

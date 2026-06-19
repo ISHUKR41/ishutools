@@ -3329,6 +3329,7 @@ body::after {
 .sp-mode-card[data-mode="blank_pages"]  { --mc1:#64748b; --mc2:#94a3b8; --mglow:rgba(100,116,139,.35); }
 .sp-mode-card[data-mode="size_limit"]   { --mc1:#ef4444; --mc2:#f97316; --mglow:rgba(239,68,68,.35); }
 .sp-mode-card[data-mode="odd_even"]     { --mc1:#ec4899; --mc2:#8b5cf6; --mglow:rgba(236,72,153,.35); }
+.sp-mode-card[data-mode="content_type"] { --mc1:#14b8a6; --mc2:#06b6d4; --mglow:rgba(20,184,166,.35); }
 
 .sp-mode-card:hover {
   border-color: var(--mc1) !important;
@@ -3336,19 +3337,22 @@ body::after {
   transform: translateY(-3px) !important;
 }
 .sp-mode-card.active {
-  background: linear-gradient(135deg, rgba(var(--mc1),0) 0%, rgba(var(--mc2),0) 100%) !important;
   border-color: var(--mc1) !important;
   box-shadow: 0 0 0 2px var(--mc1), 0 8px 28px var(--mglow) !important;
 }
 .sp-mode-card.active .sp-mode-icon { color: var(--mc1) !important; }
 .sp-mode-card.active .sp-mode-name { color: var(--text) !important; font-weight: 700 !important; }
 
-/* Active state uses inline CSS vars properly */
-.sp-mode-card.active {
-  background: linear-gradient(135deg,
-    rgba(99,102,241,.07) 0%,
-    rgba(139,92,246,.05) 100%) !important;
-}
+/* v14: Per-mode unique active backgrounds (rgba literals — CSS vars can't be used inside rgba()) */
+.sp-mode-card[data-mode="all"].active         { background: linear-gradient(135deg, rgba(99,102,241,.16), rgba(129,140,248,.07)) !important; }
+.sp-mode-card[data-mode="range"].active       { background: linear-gradient(135deg, rgba(6,182,212,.16), rgba(59,130,246,.07)) !important; }
+.sp-mode-card[data-mode="range_groups"].active{ background: linear-gradient(135deg, rgba(139,92,246,.16), rgba(167,139,250,.07)) !important; }
+.sp-mode-card[data-mode="every_n"].active     { background: linear-gradient(135deg, rgba(16,185,129,.16), rgba(6,182,212,.07)) !important; }
+.sp-mode-card[data-mode="bookmarks"].active   { background: linear-gradient(135deg, rgba(245,158,11,.16), rgba(249,115,22,.07)) !important; }
+.sp-mode-card[data-mode="blank_pages"].active { background: linear-gradient(135deg, rgba(100,116,139,.16), rgba(148,163,184,.07)) !important; }
+.sp-mode-card[data-mode="size_limit"].active  { background: linear-gradient(135deg, rgba(239,68,68,.16), rgba(249,115,22,.07)) !important; }
+.sp-mode-card[data-mode="odd_even"].active    { background: linear-gradient(135deg, rgba(236,72,153,.16), rgba(139,92,246,.07)) !important; }
+.sp-mode-card[data-mode="content_type"].active{ background: linear-gradient(135deg, rgba(20,184,166,.16), rgba(6,182,212,.07)) !important; }
 
 /* ═══════════════════════════════════════════════════════════════════
    v13 — IMPROVED RESULTS CARD download button
@@ -3369,3 +3373,100 @@ body::after {
    v13 — Version badge update
 ═══════════════════════════════════════════════════════════════════ */
 .sp-hero-badge { font-size: .72rem !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   v14 — NEW COMPONENTS & FEATURES
+═══════════════════════════════════════════════════════════════════ */
+
+/* Teal info box for content_type mode */
+.sp-info-teal {
+  background: rgba(20,184,166,.08);
+  border: 1px solid rgba(20,184,166,.22);
+}
+.sp-info-teal i { color: #14b8a6; }
+
+/* Content type legend */
+.sp-ct-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 14px;
+}
+.sp-ct-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px;
+  border-radius: 8px;
+  font-size: .8rem;
+  font-weight: 600;
+  border: 1px solid rgba(255,255,255,.07);
+  letter-spacing: .01em;
+}
+.sp-ct-text  { background: rgba(99,102,241,.1);  color: #818cf8; border-color: rgba(99,102,241,.22); }
+.sp-ct-image { background: rgba(6,182,212,.1);   color: #22d3ee; border-color: rgba(6,182,212,.22); }
+.sp-ct-form  { background: rgba(245,158,11,.1);  color: #fbbf24; border-color: rgba(245,158,11,.22); }
+.sp-ct-mixed { background: rgba(139,92,246,.1);  color: #a78bfa; border-color: rgba(139,92,246,.22); }
+
+/* Results individual file list */
+.sp-rfw {
+  margin: 16px 0 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  animation: fadeUp .35s ease both;
+}
+.sp-rfw-hdr {
+  padding: 9px 15px;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--text3);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  background: var(--card2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.sp-rfw-hdr i { color: var(--accent); }
+.sp-rfw-list {
+  max-height: 185px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.sp-rfw-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 15px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  font-size: .81rem;
+  color: var(--text2);
+  transition: background .12s;
+}
+.sp-rfw-row:last-child { border-bottom: none; }
+.sp-rfw-row:hover { background: rgba(99,102,241,.06); }
+.sp-rfw-row i { color: var(--accent); font-size: .75rem; flex-shrink: 0; }
+.sp-rfw-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-rfw-idx  { font-size: .72rem; color: var(--text3); flex-shrink: 0; }
+
+/* v14 — modes grid expanded to 9 columns on wide screens */
+@media (min-width: 900px) {
+  .sp-modes-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* v14 — keyboard shortcut hint improved */
+kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  font-family: monospace;
+  font-size: .75em;
+  color: var(--text2);
+  line-height: 1.5;
+}
