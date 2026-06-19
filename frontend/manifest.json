@@ -1,0 +1,70 @@
+{
+  "name": "ishu ka tool — IshuTools by Ishu Kumar",
+  "short_name": "ishu ka tool",
+  "description": "ishu ka Split PDF Tool — IshuTools.fun by Ishu Kumar (ISHUKR41). Free, lossless, 9 modes, no signup. India's best free PDF splitter.",
+  "start_url": "/tools/split-pdf/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "categories": ["productivity", "utilities"],
+  "id": "ishu-ka-tool-ishutools-split-pdf",
+  "icons": [
+    {
+      "src": "/static/icons/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "ishu ka Split PDF Tool",
+      "short_name": "Split PDF",
+      "description": "ishu ka free PDF splitter — 9 modes, lossless, by Ishu Kumar (ISHUKR41)",
+      "url": "/tools/split-pdf/",
+      "icons": [{ "src": "/static/icons/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Merge PDF by Ishu Kumar",
+      "short_name": "Merge PDF",
+      "description": "Free PDF merger by Ishu Kumar — IshuTools.fun",
+      "url": "/tools/merge-pdf/",
+      "icons": [{ "src": "/static/icons/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Compress PDF by Ishu Kumar",
+      "short_name": "Compress",
+      "description": "Free PDF compressor by Ishu Kumar — IshuTools.fun",
+      "url": "/tools/compress-pdf/",
+      "icons": [{ "src": "/static/icons/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "All Tools by Ishu Kumar",
+      "short_name": "All Tools",
+      "description": "36+ free PDF tools by Ishu Kumar at IshuTools.fun",
+      "url": "/",
+      "icons": [{ "src": "/static/icons/favicon.svg", "sizes": "any" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "/static/og/split-pdf.png",
+      "type": "image/png",
+      "sizes": "1200x630",
+      "label": "ishu ka Split PDF Tool — IshuTools.fun by Ishu Kumar (ISHUKR41)"
+    }
+  ],
+  "keywords": [
+    "ishu", "ishu ka tool", "ishu kumar", "ishu tools", "ISHUKR41", "ISHUKR75",
+    "ishutools", "ishutools.fun", "split pdf", "split pdf free", "ishu split pdf",
+    "ishu ka pdf tool", "ishu kumar split pdf", "ishu kumar ne banaya",
+    "free pdf tools", "pdf splitter free", "lossless pdf split", "split pdf online",
+    "ishu kumar developer india", "ishu ka free tool", "ishu tools india"
+  ]
+}
