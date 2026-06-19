@@ -656,9 +656,12 @@ def api_split_pdf():
         resp.headers['X-Download-Name']  = download_name
         resp.headers['X-File-Names']     = '|'.join(out_files[:40])
         resp.headers['X-Processing-Ms']  = str(result.get('processing_time_ms', 0))
+        resp.headers['X-Quality-Score']  = str(result.get('quality_score', 100))
+        resp.headers['X-Quality-Grade']  = str(result.get('quality_grade', 'A+'))
         resp.headers['Access-Control-Expose-Headers'] = (
             'X-File-Count,X-Total-Pages,X-Skipped-Blanks,'
-            'X-Mode-Used,X-Zip-Size-KB,X-Download-Name,X-File-Names,X-Processing-Ms'
+            'X-Mode-Used,X-Zip-Size-KB,X-Download-Name,X-File-Names,'
+            'X-Processing-Ms,X-Quality-Score,X-Quality-Grade'
         )
 
         _push_progress(job_id, 100, 'Done! ✓', '', done=True)
