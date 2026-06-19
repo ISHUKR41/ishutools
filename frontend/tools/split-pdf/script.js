@@ -1398,9 +1398,8 @@ function initGsapAnimations() {
       entries.forEach(function(entry) {
         if (entry.isIntersecting) {
           var el = entry.target;
-          gsap.from(el.querySelectorAll('.sp-feat-card, .sp-step, .sp-stat-card, .sp-review-card'), {
-            y: 22, stagger: .08, duration: .45, ease: 'power2.out'
-          });
+          var targets = el.querySelectorAll('.sp-feat-card, .sp-step, .sp-stat-card, .sp-review-card, .sp-ishu-block');
+          if (targets.length) gsap.from(targets, { y: 22, stagger: .08, duration: .45, ease: 'power2.out' });
           revealIO.unobserve(el);
         }
       });

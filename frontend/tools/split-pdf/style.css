@@ -2836,3 +2836,73 @@ body::after {
 }
 .sp-thumb-skeleton { animation: skeletonPulse 1.4s ease infinite !important; }
 
+
+/* ══ ISHU KUMAR SECTION ══════════════════════════════════════════════════ */
+.sp-ishu-section {
+  background: linear-gradient(135deg, rgba(99,102,241,.06) 0%, rgba(139,92,246,.06) 100%);
+  border-top: 1px solid rgba(99,102,241,.15);
+  border-bottom: 1px solid rgba(99,102,241,.15);
+}
+.sp-ishu-content-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px,1fr));
+  gap: 24px;
+  margin-top: 8px;
+}
+.sp-ishu-block {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+}
+.sp-ishu-block-title {
+  font-size: .85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--accent);
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sp-ishu-block p {
+  font-size: .93rem;
+  line-height: 1.7;
+  color: var(--text-sec);
+  margin: 0 0 12px;
+}
+.sp-ishu-block p:last-child { margin-bottom: 0; }
+.sp-ishu-tagline {
+  font-size: .9rem !important;
+  color: var(--text-muted, #94a3b8) !important;
+  font-style: italic;
+  border-left: 3px solid var(--accent);
+  padding-left: 12px;
+  margin-top: 14px !important;
+}
+.sp-ishu-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sp-ishu-tags span {
+  background: rgba(99,102,241,.1);
+  border: 1px solid rgba(99,102,241,.25);
+  color: var(--text-sec);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: .78rem;
+  font-weight: 500;
+  transition: all .2s;
+  cursor: default;
+}
+.sp-ishu-tags span:hover {
+  background: rgba(99,102,241,.2);
+  color: var(--text);
+  border-color: var(--accent);
+}
+.sp-ishu-tags-block { grid-column: 1 / -1; }
+@media (max-width:768px) {
+  .sp-ishu-tags-block { grid-column: 1; }
+}
