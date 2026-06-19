@@ -677,15 +677,15 @@ def api_split_pdf():
 
 @app.route('/api/split-pdf/info', methods=['POST'])
 def api_split_pdf_info():
-    """Return PDF metadata: page count, bookmarks, blank pages, file size."""
+    """Return PDF metadata: page count, bookmarks, blank pages, file size. v13: uses pdf_info_fast."""
     try:
-        from tools.pdf_split import get_split_preview
+        from tools.pdf_split import pdf_info_fast
         file = request.files.get('file')
         if not file:
             return error_response('No file uploaded.')
         password = request.form.get('password', '')
         path = save_uploaded_file(file)
-        info = get_split_preview(path, password=password)
+        info = pdf_info_fast(path, password=password)
         return jsonify({'success': True, **info})
     except Exception as e:
         logger.exception("split-pdf/info error")
@@ -694,27 +694,19 @@ def api_split_pdf_info():
 
 @app.route('/api/split-pdf/thumbnails', methods=['POST'])
 def api_split_pdf_thumbnails():
-    """Return base64 thumbnail images for the first N pages of a PDF."""
+    """Return base64 thumbnail images for the first N pages of a PDF. v13: returns dicts with page+data."""
     try:
-        import base64
         from tools.pdf_split import generate_page_thumbnails
         file = request.files.get('file')
         if not file:
             return error_response('No file uploaded.')
-        count    = min(20, int(request.form.get('count', 12) or 12))
+        count    = min(20, int(request.form.get('count', 16) or 16))
         dpi      = int(request.form.get('dpi', 72) or 72)
         password = request.form.get('password', '')
         path     = save_uploaded_file(file)
-        thumb_dir = tempfile.mkdtemp()
-        pages = list(range(count))
-        thumbs = generate_page_thumbnails(path, thumb_dir, pages=pages, dpi=dpi, password=password)
-        result = []
-        for tp in thumbs:
-            if os.path.exists(tp):
-                with open(tp, 'rb') as f:
-                    b64 = base64.b64encode(f.read()).decode()
-                result.append({'page': os.path.basename(tp), 'data': f'data:image/jpeg;base64,{b64}'})
-        return jsonify({'success': True, 'thumbnails': result, 'count': len(result)})
+        pages    = list(range(count))
+        thumbs   = generate_page_thumbnails(path, None, pages=pages, dpi=dpi, password=password)
+        return jsonify({'success': True, 'thumbnails': thumbs, 'count': len(thumbs)})
     except Exception as e:
         logger.exception("split-pdf/thumbnails error")
         return error_response(str(e))
@@ -740,13 +732,13 @@ def api_split_pdf_validate():
 def api_split_pdf_auto_detect():
     """Smart split mode recommendation based on PDF structure."""
     try:
-        from tools.pdf_split import auto_detect_mode
+        from tools.pdf_split import auto_detect_split_mode
         file = request.files.get('file')
         if not file:
             return error_response('No file uploaded.')
         password = request.form.get('password', '')
         path = save_uploaded_file(file)
-        result = auto_detect_mode(path, password=password)
+        result = auto_detect_split_mode(path, password=password)
         return jsonify({'success': True, **result})
     except Exception as e:
         logger.exception('split-pdf/auto-detect error')
@@ -755,7 +747,7 @@ def api_split_pdf_auto_detect():
 
 @app.route('/api/split-pdf/analytics', methods=['POST'])
 def api_split_pdf_analytics():
-    """Per-page word count, image count, blank detection analytics."""
+    """Per-page analytics: page types, blank detection, bookmarks, recommendations. v13."""
     try:
         from tools.pdf_split import get_page_analytics
         file = request.files.get('file')
@@ -764,7 +756,7 @@ def api_split_pdf_analytics():
         password = request.form.get('password', '')
         path = save_uploaded_file(file)
         analytics = get_page_analytics(path, password=password)
-        return jsonify({'success': True, 'pages': analytics, 'count': len(analytics)})
+        return jsonify({'success': True, **analytics})
     except Exception as e:
         logger.exception('split-pdf/analytics error')
         return error_response(str(e))
