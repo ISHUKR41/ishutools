@@ -3695,3 +3695,79 @@ kbd {
   letter-spacing: .01em;
 }
 
+
+/* ══════════════════════════════════════════════════════════════════
+   ISHU KUMAR DISCOVERY ZONE — sp-ishu-discovery section
+   Maximum SEO visibility for "ishu" / "ishu kumar" searches
+══════════════════════════════════════════════════════════════════ */
+.sp-ishu-discovery { background: linear-gradient(135deg, rgba(99,102,241,.06) 0%, rgba(139,92,246,.06) 50%, rgba(16,185,129,.04) 100%); border-top: 1px solid rgba(99,102,241,.15); }
+
+/* 3-col grid */
+.sp-isd-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.25rem; margin-bottom: 1.5rem; }
+@media(max-width:900px){ .sp-isd-grid{ grid-template-columns: repeat(2,1fr); } }
+@media(max-width:600px){ .sp-isd-grid{ grid-template-columns: 1fr; } }
+
+/* Cards */
+.sp-isd-card { background: rgba(255,255,255,.04); border: 1px solid rgba(99,102,241,.18); border-radius: 14px; padding: 1.25rem; transition: border-color .2s, transform .2s; }
+.sp-isd-card:hover { border-color: rgba(99,102,241,.45); transform: translateY(-2px); }
+[data-theme="light"] .sp-isd-card { background: rgba(0,0,0,.025); border-color: rgba(99,102,241,.15); }
+
+.sp-isd-title { font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #6366f1; margin: 0 0 .85rem; display: flex; align-items: center; gap: .4rem; }
+.sp-isd-title i { opacity: .8; }
+
+/* Popular searches list */
+.sp-isd-searches { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .45rem; }
+.sp-isd-searches li { display: flex; align-items: flex-start; gap: .5rem; font-size: .8rem; line-height: 1.4; }
+.sp-isd-searches li i { color: #10b981; font-size: .7rem; margin-top: 3px; flex-shrink: 0; }
+.sp-isd-searches a { color: var(--sp-text-secondary, #9ca3af); text-decoration: none; transition: color .15s; }
+.sp-isd-searches a:hover { color: #6366f1; }
+
+/* Version history list */
+.sp-isd-versions { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .4rem; }
+.sp-isd-ver { display: grid; grid-template-columns: 2.4rem 3.6rem 1fr; gap: .4rem; align-items: baseline; font-size: .8rem; }
+.sp-isd-ver-tag { font-weight: 800; font-size: .75rem; color: #6366f1; font-family: 'JetBrains Mono', monospace; }
+.sp-isd-ver-latest .sp-isd-ver-tag { color: #10b981; }
+.sp-isd-ver-latest .sp-isd-ver-date { font-weight: 700; }
+.sp-isd-ver-date { color: var(--sp-text-muted, #6b7280); font-size: .72rem; white-space: nowrap; }
+.sp-isd-ver-note { color: var(--sp-text-secondary, #9ca3af); line-height: 1.35; }
+
+/* Entity card */
+.sp-isd-body { font-size: .82rem; line-height: 1.6; color: var(--sp-text-secondary, #9ca3af); margin: 0 0 .75rem; }
+.sp-isd-body a { color: #6366f1; text-decoration: none; }
+.sp-isd-body a:hover { text-decoration: underline; }
+.sp-isd-entity { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .3rem; }
+.sp-isd-entity li { display: flex; align-items: center; gap: .5rem; font-size: .8rem; color: var(--sp-text-secondary, #9ca3af); }
+.sp-isd-entity li i { width: 1rem; text-align: center; color: #8b5cf6; flex-shrink: 0; }
+.sp-isd-entity li strong { color: var(--sp-text, #f1f5f9); min-width: 4.5rem; flex-shrink: 0; }
+.sp-isd-entity a { color: #6366f1; text-decoration: none; }
+.sp-isd-entity a:hover { text-decoration: underline; }
+
+/* Bilingual row */
+.sp-isd-lang-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem; }
+@media(max-width:700px){ .sp-isd-lang-row{ grid-template-columns: 1fr; } }
+.sp-isd-lang-card { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 1.25rem; }
+[data-theme="light"] .sp-isd-lang-card { background: rgba(0,0,0,.02); border-color: rgba(0,0,0,.08); }
+.sp-isd-lang-title { font-size: .82rem; font-weight: 700; color: #8b5cf6; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 .7rem; display: flex; align-items: center; gap: .4rem; }
+.sp-isd-lang-card p { font-size: .82rem; line-height: 1.7; color: var(--sp-text-secondary, #9ca3af); margin: 0 0 .6rem; }
+.sp-isd-lang-card p:last-of-type { margin-bottom: 0; }
+.sp-isd-lang-card p strong { color: var(--sp-text, #f1f5f9); }
+.sp-isd-lang-card a { color: #6366f1; text-decoration: none; }
+.sp-isd-lang-card a:hover { text-decoration: underline; }
+.sp-isd-hinglish-tags { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .7rem; }
+.sp-isd-hinglish-tags span { background: rgba(99,102,241,.12); border: 1px solid rgba(99,102,241,.2); border-radius: 20px; padding: .2rem .65rem; font-size: .72rem; color: #6366f1; font-weight: 600; }
+
+/* Achievement badges row */
+.sp-isd-badges-row { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1.5rem; justify-content: center; }
+.sp-isd-badge { display: flex; flex-direction: column; align-items: center; gap: .25rem; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: .7rem 1rem; min-width: 8rem; flex: 1 1 8rem; max-width: 11rem; text-align: center; transition: border-color .2s, transform .2s; }
+.sp-isd-badge:hover { border-color: rgba(99,102,241,.4); transform: translateY(-2px); }
+[data-theme="light"] .sp-isd-badge { background: rgba(0,0,0,.025); border-color: rgba(0,0,0,.08); }
+.sp-isd-badge i { font-size: 1.25rem; color: #6366f1; }
+.sp-isd-badge span { font-size: .78rem; font-weight: 700; color: var(--sp-text, #f1f5f9); }
+.sp-isd-badge small { font-size: .67rem; color: var(--sp-text-muted, #6b7280); }
+
+/* Keyword cloud */
+.sp-isd-kwcloud { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; padding: 1rem; background: rgba(255,255,255,.02); border-radius: 12px; border: 1px solid rgba(255,255,255,.06); }
+.sp-isd-kwcloud span { background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.15); border-radius: 20px; padding: .22rem .75rem; font-size: .72rem; color: var(--sp-text-secondary, #9ca3af); transition: background .15s, color .15s; cursor: default; }
+.sp-isd-kwcloud span:hover { background: rgba(99,102,241,.2); color: #6366f1; }
+[data-theme="light"] .sp-isd-kwcloud { background: rgba(0,0,0,.02); border-color: rgba(0,0,0,.06); }
+[data-theme="light"] .sp-isd-kwcloud span { background: rgba(99,102,241,.06); border-color: rgba(99,102,241,.12); color: #4b5563; }
