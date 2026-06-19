@@ -1048,14 +1048,12 @@ function initKeyboard() {
 ══════════════════════════════════════════════════════════════════ */
 function initGsapAnimations() {
   if (typeof gsap === 'undefined') return;
-  var heroArea = document.querySelector('.sp-hero-area');
-  if (heroArea) {
-    gsap.from('.sp-hero-badge', { y:12, duration:.5, ease:'power2.out', delay:.1 });
-    gsap.from('.sp-hero-h1',    { y:16, duration:.55, ease:'power2.out', delay:.18 });
-    gsap.from('.sp-hero-sub',   { y:10, duration:.5, ease:'power2.out', delay:.25 });
-    gsap.from('.sp-hero-pills span', { y:8, stagger:.06, duration:.4, ease:'power2.out', delay:.32 });
-  }
-  gsap.from('.sp-upload-card', { y:18, duration:.55, ease:'power2.out', delay:.4 });
+  /* Hero now lives inside upload card — animate the whole card in, then stagger inner elements */
+  gsap.from('.sp-upload-card',     { y:22, duration:.6,  ease:'power2.out', delay:.08 });
+  gsap.from('.sp-hero-badge',      { y:10, duration:.45, ease:'power2.out', delay:.22 });
+  gsap.from('.sp-hero-h1',         { y:14, duration:.5,  ease:'power2.out', delay:.3  });
+  gsap.from('.sp-hero-sub',        { y:8,  duration:.45, ease:'power2.out', delay:.38 });
+  gsap.from('.sp-hero-pills span', { y:7,  stagger:.055, duration:.38, ease:'power2.out', delay:.46 });
 }
 
 /* ══════════════════════════════════════════════════════════════════
