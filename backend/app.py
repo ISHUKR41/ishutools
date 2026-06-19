@@ -771,6 +771,93 @@ def api_split_pdf_analytics():
         return error_response(str(e))
 
 
+@app.route('/api/split-pdf/estimate', methods=['POST'])
+def api_split_pdf_estimate():
+    """v15: Pre-split estimation — returns file count, page distribution, ZIP size estimate."""
+    try:
+        from tools.pdf_split import estimate_split_result
+        file = request.files.get('file')
+        if not file:
+            return error_response('No file uploaded.')
+        mode     = request.form.get('mode', 'all')
+        password = request.form.get('password', '')
+        ranges   = request.form.get('ranges', '')
+        every_n  = int(request.form.get('every_n', 5) or 5)
+        max_size = float(request.form.get('max_size_mb', 5.0) or 5.0)
+        path     = save_uploaded_file(file)
+        result   = estimate_split_result(path, mode, password=password,
+                                          ranges=ranges, every_n=every_n,
+                                          max_size_mb=max_size,
+                                          source_filename=file.filename or '')
+        return jsonify(result)
+    except Exception as e:
+        logger.exception('split-pdf/estimate error')
+        return error_response(str(e))
+
+
+@app.route('/api/split-pdf/deep-analyze', methods=['POST'])
+def api_split_pdf_deep_analyze():
+    """v15: Comprehensive PDF deep analysis — fonts, images, color pages, complexity scores."""
+    try:
+        from tools.pdf_split import pdf_deep_analyze
+        file = request.files.get('file')
+        if not file:
+            return error_response('No file uploaded.')
+        password = request.form.get('password', '')
+        path     = save_uploaded_file(file)
+        result   = pdf_deep_analyze(path, password=password)
+        return jsonify(result)
+    except Exception as e:
+        logger.exception('split-pdf/deep-analyze error')
+        return error_response(str(e))
+
+
+@app.route('/api/split-pdf/repair', methods=['POST'])
+def api_split_pdf_repair():
+    """v15: Multi-stage PDF repair: pikepdf → PyMuPDF → pypdf cascade."""
+    try:
+        from tools.pdf_split import repair_and_clean_pdf
+        from pathlib import Path as _Path
+        file = request.files.get('file')
+        if not file:
+            return error_response('No file uploaded.')
+        password = request.form.get('password', '')
+        path     = save_uploaded_file(file)
+        out      = output_path('repaired.pdf')
+        result   = repair_and_clean_pdf(path, out, password=password)
+        if not result.get('success'):
+            return error_response(result.get('error', 'Repair failed'))
+        stem  = _Path(file.filename).stem if file.filename else 'repaired'
+        fname = stem + '_repaired.pdf'
+        resp  = send_file(out, as_attachment=True,
+                          download_name=fname,
+                          mimetype='application/pdf')
+        resp.headers['X-Repair-Stage']   = result.get('stage_used', 'unknown')
+        resp.headers['X-Output-Size-KB'] = str(result.get('output_size_kb', 0))
+        resp.headers['X-Repair-Time-Ms'] = str(result.get('repair_time_ms', 0))
+        return resp
+    except Exception as e:
+        logger.exception('split-pdf/repair error')
+        return error_response(str(e))
+
+
+@app.route('/api/split-pdf/color-analysis', methods=['POST'])
+def api_split_pdf_color_analysis():
+    """v15: Detect color vs grayscale pages using pixel analysis."""
+    try:
+        from tools.pdf_split import get_color_page_analysis
+        file = request.files.get('file')
+        if not file:
+            return error_response('No file uploaded.')
+        password = request.form.get('password', '')
+        path     = save_uploaded_file(file)
+        result   = get_color_page_analysis(path, password=password)
+        return jsonify(result)
+    except Exception as e:
+        logger.exception('split-pdf/color-analysis error')
+        return error_response(str(e))
+
+
 @app.route('/api/compress-pdf', methods=['POST'])
 def api_compress_pdf():
     """Compress and reduce PDF file size."""

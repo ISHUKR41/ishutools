@@ -3470,3 +3470,228 @@ kbd {
   color: var(--text2);
   line-height: 1.5;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   IshuTools Split PDF — v15 Style Additions
+   Author: Ishu Kumar (ISHUKR41 / ISHUKR75) | ishutools.fun
+   Deep-research CSS: spring animations, gradient ring, shimmer, full responsive
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── v15: Keyframes ─────────────────────────────────────────────── */
+@keyframes gradRing {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes chipPop {
+  0%   { transform: scale(.7) translateY(5px); opacity: 0; }
+  65%  { transform: scale(1.07) translateY(-1px); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+@keyframes modeCardReveal {
+  from { transform: translateY(14px) scale(.95); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);   opacity: 1; }
+}
+@keyframes shimmerSlide {
+  from { background-position: -200% 0; }
+  to   { background-position:  200% 0; }
+}
+@keyframes resultsGlow {
+  0%,100% { box-shadow: 0 0 32px rgba(99,102,241,.15), var(--shadow2); }
+  50%     { box-shadow: 0 0 54px rgba(139,92,246,.28), var(--shadow2); }
+}
+@keyframes fileInfoSlide {
+  from { transform: translateY(-8px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes estimateIn {
+  from { transform: translateX(-6px) scale(.97); opacity: 0; }
+  to   { transform: translateX(0)    scale(1);   opacity: 1; }
+}
+
+/* ── v15: Upload zone — rotating gradient ring on drag-over ─────── */
+.sp-upload-card.drag-active {
+  border-color: transparent !important;
+  background:
+    linear-gradient(var(--bg2), var(--bg2)) padding-box,
+    linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4, #10b981, #6366f1) border-box;
+  background-size: 300% 300%;
+  animation: gradRing 1.4s linear infinite;
+  transform: scale(1.015);
+  transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* ── v15: File info chip pop-in ─────────────────────────────────── */
+.sp-info-chip:not(.sp-chip-hidden) {
+  animation: chipPop .3s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+/* ── v15: Mode card stagger reveal ─────────────────────────────── */
+.sp-modes-grid .sp-mode-card {
+  animation: modeCardReveal .38s cubic-bezier(.34,1.56,.64,1) both;
+}
+.sp-modes-grid .sp-mode-card:nth-child(1)  { animation-delay:.03s; }
+.sp-modes-grid .sp-mode-card:nth-child(2)  { animation-delay:.07s; }
+.sp-modes-grid .sp-mode-card:nth-child(3)  { animation-delay:.11s; }
+.sp-modes-grid .sp-mode-card:nth-child(4)  { animation-delay:.15s; }
+.sp-modes-grid .sp-mode-card:nth-child(5)  { animation-delay:.19s; }
+.sp-modes-grid .sp-mode-card:nth-child(6)  { animation-delay:.23s; }
+.sp-modes-grid .sp-mode-card:nth-child(7)  { animation-delay:.27s; }
+.sp-modes-grid .sp-mode-card:nth-child(8)  { animation-delay:.31s; }
+.sp-modes-grid .sp-mode-card:nth-child(9)  { animation-delay:.35s; }
+
+/* ── v15: Mode card — spring hover + active scale ──────────────── */
+.sp-mode-card:hover:not(.active) {
+  transform: translateY(-3px) scale(1.016);
+}
+.sp-mode-card.active {
+  transform: scale(1.022);
+  transition: transform .22s cubic-bezier(.34,1.56,.64,1), background .2s, border-color .2s;
+}
+
+/* ── v15: Results card glow ─────────────────────────────────────── */
+.sp-results-card {
+  animation: resultsGlow 3.5s ease-in-out infinite;
+}
+
+/* ── v15: Download button shimmer overlay ───────────────────────── */
+.sp-dl-btn {
+  position: relative;
+  overflow: hidden;
+}
+.sp-dl-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,transparent 25%,rgba(255,255,255,.09) 50%,transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmerSlide 2.4s ease-in-out infinite;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* ── v15: File info wrap animation ─────────────────────────────── */
+.sp-file-info-wrap {
+  animation: fileInfoSlide .3s ease both;
+}
+
+/* ── v15: Progress step — active icon pulse ─────────────────────── */
+.sp-progress-step.active .sp-step-icon,
+.sp-progress-step.active [class*="fa-"] {
+  animation: pulse 1s ease-in-out infinite;
+  color: var(--accent);
+}
+
+/* ── v15: Split preview text animation ──────────────────────────── */
+#splitPreview {
+  animation: estimateIn .25s ease both;
+}
+
+/* ── v15: Estimate bar ──────────────────────────────────────────── */
+.sp-estimate-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  background: rgba(99,102,241,.06);
+  border: 1px solid rgba(99,102,241,.16);
+  border-radius: 10px;
+  font-size: .82rem;
+  color: var(--text2);
+  margin: 10px 0 0;
+  animation: estimateIn .3s ease both;
+}
+.sp-estimate-bar i          { color: var(--accent); flex-shrink: 0; }
+.sp-estimate-bar .sp-ev     { font-weight: 700; color: var(--text); margin-right: 2px; }
+.sp-estimate-bar .sp-enote  { font-size: .75rem; color: var(--text3); }
+
+/* ── v15: Deep-analyze result chips ────────────────────────────── */
+.sp-chip-fonts  { background:rgba(168,85,247,.1);  color:#c084fc; border-color:rgba(168,85,247,.25); }
+.sp-chip-imgs   { background:rgba(20,184,166,.1);  color:#2dd4bf; border-color:rgba(20,184,166,.25); }
+.sp-chip-color  { background:rgba(245,158,11,.1);  color:#fbbf24; border-color:rgba(245,158,11,.25); }
+.sp-chip-repair { background:rgba(239,68,68,.1);   color:#f87171; border-color:rgba(239,68,68,.25); }
+
+/* ── v15: Thumbnail hover ──────────────────────────────────────── */
+.sp-thumb-item:hover {
+  transform: translateY(-5px) scale(1.07);
+  border-color: var(--accent);
+  box-shadow: 0 8px 22px rgba(99,102,241,.32);
+  z-index: 2;
+}
+
+/* ── v15: Progress fill gradient ───────────────────────────────── */
+.sp-progress-fill {
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+  background-size: 200% 100%;
+  animation: shimmerSlide 2s ease-in-out infinite;
+  border-radius: inherit;
+  height: 100%;
+  transition: width .32s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── v15: Split button hover spring ────────────────────────────── */
+.sp-split-btn:not(:disabled):hover {
+  transform: translateY(-2px) scale(1.022);
+  box-shadow: 0 10px 30px rgba(99,102,241,.48);
+}
+.sp-split-btn:not(:disabled):active {
+  transform: scale(.97);
+  transition: transform .1s;
+}
+
+/* ── v15: Better mobile responsive ─────────────────────────────── */
+@media (max-width: 480px) {
+  .sp-modes-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .sp-mode-card {
+    padding: 12px 8px !important;
+  }
+  .sp-mode-card .sp-mc-name { font-size: .7rem !important; }
+  .sp-hero-badge            { font-size: .62rem !important; padding: 4px 10px !important; }
+  .sp-hero-h1               { font-size: clamp(1.5rem, 6vw, 2.2rem) !important; }
+  .sp-hero-sub              { font-size: .8rem !important; }
+  .sp-res-stat              { font-size: .77rem !important; padding: 7px 10px !important; }
+  .sp-rfw-row               { padding: 7px 12px !important; font-size: .77rem !important; }
+  .sp-preset-btn            { font-size: .7rem !important; padding: 4px 9px !important; }
+  .sp-compare-table         { font-size: .77rem !important; }
+  .sp-estimate-bar          { font-size: .76rem !important; padding: 7px 12px !important; }
+}
+
+@media (max-width: 640px) {
+  .sp-feat-grid   { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .sp-steps-grid  { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .sp-dl-actions  { flex-direction: column !important; }
+  .sp-dl-btn      { width: 100% !important; justify-content: center !important; }
+  .sp-stat-cards-row { grid-template-columns: 1fr 1fr !important; }
+}
+
+/* ── v15: rfw row — icon color by file type ─────────────────────── */
+.sp-rfw-row i.fa-file-pdf    { color: #f87171 !important; }
+.sp-rfw-row i.fa-file-zipper { color: var(--accent); }
+.sp-rfw-row i.fa-file        { color: var(--text3); }
+.sp-rfw-row:nth-child(odd)   { background: rgba(99,102,241,.022); }
+
+/* ── v15: Recommend banner — enhanced ───────────────────────────── */
+.sp-recommend-banner {
+  border-left: 3px solid var(--accent);
+}
+
+/* ── v15: Section heading — subtle gradient underline ───────────── */
+.sp-section-h2::after {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 3px;
+  background: var(--grad);
+  border-radius: 2px;
+  margin: 8px auto 0;
+}
+
+/* ── v15: action hint gradient text ────────────────────────────── */
+.sp-action-hint {
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+

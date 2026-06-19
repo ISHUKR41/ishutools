@@ -1663,3 +1663,457 @@ def split_by_content_type(
         'engine':             'pikepdf+fitz+pypdf cascade v14.0',
         'content_groups':     group_summary,
     }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# v15 — Deep Analysis · Pre-split Estimation · Repair · Color Analysis
+# ══════════════════════════════════════════════════════════════════════════════
+# IshuTools.fun Split PDF v15.0 — by Ishu Kumar (ISHUKR41/ISHUKR75)
+# Advanced: PyMuPDF deep extraction · pikepdf XMP · numpy statistical analysis
+# scipy spectral · Pillow color detection · pypdf form fields · hashlib integrity
+# ══════════════════════════════════════════════════════════════════════════════
+
+import hashlib as _hashlib
+
+
+def pdf_deep_analyze(input_path: str, password: str = '') -> Dict[str, Any]:
+    """
+    v15: Comprehensive PDF deep analysis.
+    Uses PyMuPDF, pikepdf, pypdf, numpy, Pillow in cascade.
+    Returns: fonts, font_count, total_image_count, color_page_count, color_pages,
+             text_page_count, image_page_count, blank_page_count, avg_text_density,
+             avg_complexity, page_complexity_scores, unique_page_sizes,
+             most_common_page_size, pdf_version, is_linearized, object_count,
+             xmp_metadata, form_fields_count, file_hash_sha256.
+    """
+    result: Dict[str, Any] = {
+        'success': False,
+        'engine':  'fitz+pikepdf+pypdf+numpy+Pillow v15.0',
+    }
+    t_start = time.time()
+
+    # ── File integrity hash ──────────────────────────────────────────────────
+    try:
+        h = _hashlib.sha256()
+        with open(input_path, 'rb') as _fh:
+            for _chunk in iter(lambda: _fh.read(65536), b''):
+                h.update(_chunk)
+        result['file_hash_sha256'] = h.hexdigest()
+        result['file_size_bytes']  = os.path.getsize(input_path)
+    except Exception:
+        pass
+
+    # ── pypdf: form fields + basic metadata ─────────────────────────────────
+    try:
+        reader = PdfReader(input_path)
+        if reader.is_encrypted:
+            ok = reader.decrypt(password or '')
+            if not ok:
+                result['error'] = 'Password required or incorrect'
+                return result
+        total_pages = len(reader.pages)
+        result['total_pages'] = total_pages
+
+        form_fields = 0
+        try:
+            ff = reader.get_form_text_fields()
+            if ff:
+                form_fields = len(ff)
+        except Exception:
+            pass
+        result['form_fields_count'] = form_fields
+    except Exception as exc:
+        result['error'] = str(exc)
+        return result
+
+    # ── PyMuPDF: deep per-page extraction ───────────────────────────────────
+    if _HAS_FITZ:
+        try:
+            doc = fitz.open(input_path)
+            if doc.is_encrypted:
+                doc.authenticate(password or '')
+
+            font_names:        Set[str]           = set()
+            font_count_total   = 0
+            image_count_total  = 0
+            color_pages:       List[int]          = []
+            text_page_count    = 0
+            image_page_count   = 0
+            blank_page_count   = 0
+            avg_text_density   = 0.0
+            page_sizes:        List[Tuple]        = []
+            complexity_scores: List[float]        = []
+
+            cap = min(total_pages, 250)  # cap for speed on huge docs
+            for pno in range(cap):
+                page = doc[pno]
+                rect = page.rect
+                page_sizes.append((round(rect.width, 1), round(rect.height, 1)))
+
+                # Text density (words per 100 pt²)
+                text       = page.get_text('text') or ''
+                word_count = len(text.split())
+                area       = max(rect.width * rect.height, 1.0)
+                avg_text_density += word_count / (area / 10000)
+
+                # Images
+                img_list = page.get_images(full=False)
+                image_count_total += len(img_list)
+
+                # Fonts
+                try:
+                    for f in page.get_fonts(full=False):
+                        if f[3]:
+                            font_names.add(f[3])
+                            font_count_total += 1
+                except Exception:
+                    pass
+
+                # Color detection via pixel sampling (first 25 pages only)
+                if pno < 25 and (_HAS_PIL or _HAS_NUMPY):
+                    try:
+                        pix = page.get_pixmap(dpi=22, colorspace=fitz.csRGB)
+                        raw = pix.samples
+                        if _HAS_NUMPY:
+                            arr    = np.frombuffer(raw, dtype=np.uint8).reshape(-1, 3)
+                            sample = arr[::max(1, len(arr)//300)]
+                            rg     = np.abs(sample[:,0].astype(np.int16) - sample[:,1].astype(np.int16))
+                            gb     = np.abs(sample[:,1].astype(np.int16) - sample[:,2].astype(np.int16))
+                            if int(np.max(rg)) > 14 or int(np.max(gb)) > 14:
+                                color_pages.append(pno + 1)
+                        elif _HAS_PIL:
+                            img = Image.frombytes('RGB', [pix.width, pix.height], raw)
+                            data = list(img.getdata())
+                            for px in data[::max(1, len(data)//250)]:
+                                r, g, b = px
+                                if abs(r - g) > 14 or abs(g - b) > 14:
+                                    color_pages.append(pno + 1)
+                                    break
+                    except Exception:
+                        pass
+
+                # Classify
+                has_text  = word_count > 12
+                has_img   = len(img_list) > 0
+                if not has_text and not has_img:
+                    blank_page_count += 1
+                elif has_text and not has_img:
+                    text_page_count += 1
+                else:
+                    image_page_count += 1
+
+                # Complexity score (0–100)
+                complexity_scores.append(
+                    round(min(100.0, word_count * 0.28 + len(img_list) * 9.0), 1)
+                )
+
+            avg_text_density = round(avg_text_density / max(cap, 1), 2)
+            unique_sizes = list(set(page_sizes))
+            most_common  = max(set(page_sizes), key=page_sizes.count) if page_sizes else None
+
+            result.update({
+                'fonts':                  sorted(list(font_names))[:40],
+                'font_count':             len(font_names),
+                'font_uses_total':        font_count_total,
+                'total_image_count':      image_count_total,
+                'color_page_count':       len(color_pages),
+                'color_pages':            color_pages[:30],
+                'text_page_count':        text_page_count,
+                'image_page_count':       image_page_count,
+                'blank_page_count':       blank_page_count,
+                'avg_text_density':       avg_text_density,
+                'unique_page_sizes':      len(unique_sizes),
+                'most_common_page_size':  most_common,
+                'page_complexity_scores': complexity_scores[:60],
+                'avg_complexity':         round(sum(complexity_scores) / max(len(complexity_scores), 1), 1),
+                'pages_analyzed':         cap,
+            })
+            doc.close()
+        except Exception as exc:
+            logger.warning('deep_analyze fitz phase failed: %s', exc)
+
+    # ── pikepdf: XMP metadata + PDF version + linearization ─────────────────
+    if _HAS_PIKEPDF:
+        try:
+            with pikepdf.open(input_path, password=(password or '')) as pk:
+                result['pdf_version']  = str(pk.pdf_version)
+                result['is_linearized'] = pk.is_linearized
+                result['object_count']  = len(pk.objects)
+                try:
+                    meta = pk.open_metadata()
+                    xmp: Dict[str, str] = {}
+                    for key in ('dc:title', 'dc:creator', 'dc:description',
+                                'xmp:CreateDate', 'xmp:ModifyDate', 'pdf:Producer',
+                                'xmp:CreatorTool', 'pdf:Keywords'):
+                        try:
+                            v = meta.get(key)
+                            if v:
+                                xmp[key] = str(v)[:200]
+                        except Exception:
+                            pass
+                    result['xmp_metadata'] = xmp
+                except Exception:
+                    result['xmp_metadata'] = {}
+        except Exception as exc:
+            logger.warning('deep_analyze pikepdf phase failed: %s', exc)
+
+    # ── scipy: Complexity distribution stats (if available) ─────────────────
+    if _HAS_SCIPY and result.get('page_complexity_scores'):
+        try:
+            scores = result['page_complexity_scores']
+            arr    = _scipy_stats.describe(scores)
+            result['complexity_stats'] = {
+                'mean':     round(float(arr.mean), 2),
+                'variance': round(float(arr.variance), 2),
+                'min':      round(float(arr.minmax[0]), 2),
+                'max':      round(float(arr.minmax[1]), 2),
+                'skewness': round(float(arr.skewness), 3),
+            }
+        except Exception:
+            pass
+
+    result['success']          = True
+    result['analysis_time_ms'] = int((time.time() - t_start) * 1000)
+    return result
+
+
+# ────────────────────────────────────────────────────────────────────────────
+
+def estimate_split_result(input_path: str, mode: str, password: str = '',
+                           ranges: str = '', every_n: int = 5,
+                           max_size_mb: float = 5.0,
+                           source_filename: str = '') -> Dict[str, Any]:
+    """
+    v15: Ultra-fast pre-split estimation.
+    Returns: estimated_files, estimated_pages, estimated_zip_mb, note.
+    No actual splitting — pure arithmetic from pdf_info_fast().
+    """
+    info = pdf_info_fast(input_path, password=password)
+    if not info.get('success'):
+        return {'success': False, 'error': info.get('error', 'Could not read PDF')}
+
+    total          = info.get('total_pages', 1)
+    file_size      = os.path.getsize(input_path) if os.path.isfile(input_path) else 0
+    bytes_per_page = max(file_size / max(total, 1), 512)
+
+    est_files = 1
+    est_pages: List[int] = []
+    note = ''
+
+    if mode == 'all':
+        est_files = total
+        est_pages = [1] * min(total, 20)
+        note = f'One PDF per page → {total} files'
+
+    elif mode == 'range':
+        try:
+            sel = parse_ranges(ranges, total)
+            est_files = 1
+            est_pages = [len(sel)]
+            note = f'{len(sel)} pages selected → 1 file'
+        except Exception:
+            est_pages = [total]
+
+    elif mode == 'range_groups':
+        grps = [r.strip() for r in re.split(r'[\n,，;；]+', ranges) if r.strip()]
+        est_files = max(len(grps), 1)
+        for g in grps:
+            try:
+                est_pages.append(len(parse_ranges(g, total)))
+            except Exception:
+                est_pages.append(1)
+        if not est_pages:
+            est_pages = [total]
+        note = f'{est_files} range group(s) → {est_files} file(s)'
+
+    elif mode == 'every_n':
+        n = max(1, int(every_n))
+        est_files = max(1, (total + n - 1) // n)
+        est_pages = [min(n, total - i * n) for i in range(min(est_files, 20))]
+        note = f'{n} pages/chunk → {est_files} file(s)'
+
+    elif mode == 'bookmarks':
+        bms       = info.get('bookmarks') or []
+        est_files = max(len(bms), 1) if info.get('has_bookmarks') else 1
+        avg_p     = max(1, total // est_files)
+        est_pages = [avg_p] * min(est_files, 20)
+        note = f'{len(bms)} bookmark(s) → ~{est_files} chapter file(s)'
+
+    elif mode == 'blank_pages':
+        blank     = info.get('blank_pages', 0)
+        est_files = max(blank + 1, 2)
+        avg_p     = max(1, (total - blank) // est_files)
+        est_pages = [avg_p] * min(est_files, 20)
+        note = f'{blank} blank separator(s) → ~{est_files} section file(s)'
+
+    elif mode == 'size_limit':
+        target = max_size_mb * 1024 * 1024
+        ppc    = max(1, int(target / max(bytes_per_page, 512)))
+        est_files = max(1, (total + ppc - 1) // ppc)
+        est_pages = [min(ppc, total - i * ppc) for i in range(min(est_files, 20))]
+        note = f'{max_size_mb} MB target → ~{ppc} pages/file → {est_files} file(s)'
+
+    elif mode == 'odd_even':
+        odd_n = (total + 1) // 2
+        evn_n = total // 2
+        est_files = 2
+        est_pages = [odd_n, evn_n]
+        note = f'Odd: {odd_n} pages · Even: {evn_n} pages → 2 files'
+
+    elif mode == 'content_type':
+        est_files = 4   # typical max groups
+        avg_p     = max(1, total // 4)
+        est_pages = [avg_p] * 4
+        note = 'Up to 4 content groups: Text / Image / Form / Mixed'
+
+    # ZIP size estimate (pages × bytes_per_page, slightly over-estimates containers)
+    used_pages   = est_pages[:est_files]
+    est_zip_kb   = int(sum(p * bytes_per_page for p in used_pages) / 1024) if used_pages else 0
+    est_zip_mb   = round(est_zip_kb / 1024, 2)
+
+    return {
+        'success':          True,
+        'mode':             mode,
+        'total_pages':      total,
+        'estimated_files':  est_files,
+        'estimated_pages':  used_pages,
+        'estimated_zip_kb': est_zip_kb,
+        'estimated_zip_mb': est_zip_mb,
+        'note':             note,
+        'bytes_per_page':   int(bytes_per_page),
+    }
+
+
+# ────────────────────────────────────────────────────────────────────────────
+
+def repair_and_clean_pdf(input_path: str, output_path: str,
+                          password: str = '') -> Dict[str, Any]:
+    """
+    v15: Multi-stage PDF repair using pikepdf → PyMuPDF → pypdf cascade.
+    Stage 1 — pikepdf: reconstruct XRef, linearize, generate object streams.
+    Stage 2 — PyMuPDF: full clean + deflate (if stage 1 failed).
+    Stage 3 — pypdf: page-by-page rebuild (last resort).
+    Returns: success, stage_used, output_size_kb, repair_time_ms.
+    """
+    t_start    = time.time()
+    stage_used = None
+
+    if _HAS_PIKEPDF:
+        try:
+            with pikepdf.open(input_path,
+                              password=(password or ''),
+                              suppress_warnings=True,
+                              attempt_recovery=True) as pk:
+                pk.save(output_path,
+                        linearize=True,
+                        recompress_flate=False,
+                        object_stream_mode=pikepdf.ObjectStreamMode.generate)
+            stage_used = 'pikepdf-reconstruct'
+        except Exception as e:
+            logger.warning('repair stage1 (pikepdf) failed: %s', e)
+
+    if not stage_used and _HAS_FITZ:
+        try:
+            doc = fitz.open(input_path)
+            if doc.is_encrypted:
+                doc.authenticate(password or '')
+            doc.save(output_path, garbage=4, deflate=True, clean=True)
+            doc.close()
+            stage_used = 'fitz-rebuild'
+        except Exception as e:
+            logger.warning('repair stage2 (fitz) failed: %s', e)
+
+    if not stage_used:
+        try:
+            rdr = PdfReader(input_path)
+            if rdr.is_encrypted:
+                rdr.decrypt(password or '')
+            wtr = PdfWriter()
+            for page in rdr.pages:
+                wtr.add_page(page)
+            with open(output_path, 'wb') as f:
+                wtr.write(f)
+            stage_used = 'pypdf-rebuild'
+        except Exception as e:
+            return {'success': False, 'error': f'All repair stages failed: {e}'}
+
+    out_size = os.path.getsize(output_path) if os.path.isfile(output_path) else 0
+    return {
+        'success':         True,
+        'stage_used':      stage_used,
+        'output_size_kb':  out_size // 1024,
+        'repair_time_ms':  int((time.time() - t_start) * 1000),
+    }
+
+
+# ────────────────────────────────────────────────────────────────────────────
+
+def get_color_page_analysis(input_path: str, password: str = '',
+                             max_sample: int = 60) -> Dict[str, Any]:
+    """
+    v15: Detect color vs grayscale pages via PyMuPDF + numpy/Pillow pixel analysis.
+    Renders at 20 DPI for speed; checks per-channel variance.
+    Returns: color_pages, grayscale_pages, color_ratio, has_color.
+    """
+    if not _HAS_FITZ:
+        return {'success': False, 'error': 'PyMuPDF not available'}
+
+    try:
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            doc.authenticate(password or '')
+        total       = doc.page_count
+        color_pgs:  List[int] = []
+        gray_pgs:   List[int] = []
+
+        for pno in range(min(total, max_sample)):
+            page = doc[pno]
+            try:
+                pix = page.get_pixmap(dpi=20, colorspace=fitz.csRGB)
+                raw = pix.samples
+                is_color = False
+                if _HAS_NUMPY:
+                    arr    = np.frombuffer(raw, dtype=np.uint8).reshape(-1, 3)
+                    sample = arr[::max(1, len(arr)//400)]
+                    rg     = np.abs(sample[:,0].astype(np.int16) - sample[:,1].astype(np.int16))
+                    gb     = np.abs(sample[:,1].astype(np.int16) - sample[:,2].astype(np.int16))
+                    is_color = bool(np.max(rg) > 13 or np.max(gb) > 13)
+                elif _HAS_PIL:
+                    img  = Image.frombytes('RGB', [pix.width, pix.height], raw)
+                    data = list(img.getdata())
+                    for px in data[::max(1, len(data)//300)]:
+                        r, g, b = px
+                        if abs(r - g) > 13 or abs(g - b) > 13:
+                            is_color = True
+                            break
+                (color_pgs if is_color else gray_pgs).append(pno + 1)
+            except Exception:
+                gray_pgs.append(pno + 1)
+
+        doc.close()
+        color_ratio = round(len(color_pgs) / max(total, 1), 3)
+        return {
+            'success':         True,
+            'total_pages':     total,
+            'sampled_pages':   min(total, max_sample),
+            'color_pages':     color_pgs,
+            'grayscale_pages': gray_pgs,
+            'color_ratio':     color_ratio,
+            'has_color':       len(color_pgs) > 0,
+        }
+    except Exception as exc:
+        return {'success': False, 'error': str(exc)}
+
+
+# ── v15 module-level aliases ─────────────────────────────────────────────────
+def get_deep_analysis(path: str, password: str = '') -> Dict[str, Any]:
+    return pdf_deep_analyze(path, password)
+
+def get_split_estimate(path: str, mode: str, password: str = '', **kw) -> Dict[str, Any]:
+    return estimate_split_result(path, mode, password, **kw)
+
+def repair_pdf(input_path: str, output_path: str, password: str = '') -> Dict[str, Any]:
+    return repair_and_clean_pdf(input_path, output_path, password)
+
+def get_color_analysis(path: str, password: str = '') -> Dict[str, Any]:
+    return get_color_page_analysis(path, password)
