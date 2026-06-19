@@ -36,6 +36,10 @@ Allow: /static/
 
 User-agent: Googlebot-Video
 Allow: /tools/merge-pdf/
+Allow: /tools/split-pdf/
+Allow: /tools/compress-pdf/
+Allow: /tools/pdf-to-jpg/
+Allow: /tools/jpg-to-pdf/
 
 User-agent: Google-Extended
 Allow: /
