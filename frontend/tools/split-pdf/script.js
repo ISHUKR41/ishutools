@@ -1,5 +1,5 @@
 /**
- * split-pdf/script.js  v12.0 — IshuTools.fun
+ * split-pdf/script.js  v15.0 — IshuTools.fun
  * Author: Ishu Kumar (ISHUKR41 / ISHUKR75)
  *
  * Memory constraints:
@@ -367,6 +367,7 @@ function handleFile(file) {
   loadPdfInfo(file);
   loadThumbnails(file);
   autoDetectMode(file);
+  callDeepAnalyze(file);
   setTimeout(updateSplitPreview, 300);
 }
 
@@ -481,6 +482,66 @@ function autoDetectMode(file) {
     .catch(function() {});
 }
 
+/* ── v15: Deep-analyze — fonts · images · color pages · complexity ─── */
+function callDeepAnalyze(file) {
+  var fd = new FormData();
+  fd.append('file', file);
+  var pw = D.passwordInput ? D.passwordInput.value : '';
+  if (pw) fd.append('password', pw);
+
+  fetch('/api/split-pdf/deep-analyze', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(info) {
+      if (!info.success) return;
+
+      /* Merge enriched data into PDF_INFO */
+      if (PDF_INFO) {
+        PDF_INFO.font_count         = info.font_count        || 0;
+        PDF_INFO.total_image_count  = info.total_image_count || 0;
+        PDF_INFO.color_page_count   = info.color_page_count  || 0;
+        PDF_INFO.avg_complexity     = info.avg_complexity    || 0;
+        PDF_INFO.is_linearized      = info.is_linearized     || false;
+        PDF_INFO.fonts              = info.fonts             || [];
+        PDF_INFO.file_hash_sha256   = info.file_hash_sha256  || '';
+      }
+
+      /* Update tooltip on size chip */
+      if (D.chipSize) {
+        var tipParts = [];
+        if (info.pdf_version)       tipParts.push('PDF ' + info.pdf_version);
+        if (info.is_linearized)     tipParts.push('Linearized');
+        if (info.object_count)      tipParts.push(info.object_count + ' objects');
+        if (info.file_hash_sha256)  tipParts.push('SHA-256: ' + info.file_hash_sha256.slice(0, 12) + '…');
+        if (tipParts.length) D.chipSize.title = tipParts.join(' · ');
+      }
+
+      /* Update pages chip tooltip with deep info */
+      if (D.chipPages) {
+        var pgTip = [];
+        if (info.font_count)        pgTip.push(info.font_count + ' font' + (info.font_count !== 1 ? 's' : ''));
+        if (info.total_image_count) pgTip.push(info.total_image_count + ' image' + (info.total_image_count !== 1 ? 's' : ''));
+        if (info.color_page_count)  pgTip.push(info.color_page_count + ' color page' + (info.color_page_count !== 1 ? 's' : ''));
+        if (info.avg_complexity)    pgTip.push('Complexity: ' + info.avg_complexity + '/100');
+        if (pgTip.length) D.chipPages.title = pgTip.join(' · ');
+      }
+
+      /* Show scanned chip info if applicable */
+      if (info.text_page_count === 0 && info.image_page_count > 0 && D.chipScanned) {
+        D.chipScanned.classList.remove('sp-chip-hidden');
+      }
+
+      /* Show a subtle toast with analysis highlights (only if interesting) */
+      if (info.font_count > 0 || info.total_image_count > 0 || info.color_page_count > 0) {
+        var parts = [];
+        if (info.font_count)        parts.push(info.font_count + ' font' + (info.font_count !== 1 ? 's' : ''));
+        if (info.total_image_count) parts.push(info.total_image_count + ' image' + (info.total_image_count !== 1 ? 's' : ''));
+        if (info.color_page_count)  parts.push(info.color_page_count + ' color page' + (info.color_page_count !== 1 ? 's' : ''));
+        toast('PDF analysis: ' + parts.join(' · '), 'info', 3200);
+      }
+    })
+    .catch(function() {}); /* Silent — deep analyze is non-critical */
+}
+
 function thumbClick(idx) {
   if (MODE !== 'range') {
     selectMode('range');
@@ -519,6 +580,8 @@ var MODE_DESC = {
     'Keep each output PDF under a target file size. Uses binary-search grouping for accurate results.',
   odd_even:
     'Two files: odd pages (1,3,5…) and even pages (2,4,6…). Perfect for duplex scanning and booklet printing.',
+  content_type:
+    'v14 Exclusive — Auto-groups pages by content: Text, Image/Scanned, Forms, Mixed. Each content type → its own lossless PDF. Zero manual selection needed.',
 };
 
 function selectMode(mode) {
@@ -539,7 +602,7 @@ function selectMode(mode) {
     }, 180);
   }
 
-  var modes = ['all','range','range_groups','every_n','bookmarks','blank_pages','size_limit','odd_even'];
+  var modes = ['all','range','range_groups','every_n','bookmarks','blank_pages','size_limit','odd_even','content_type'];
   modes.forEach(function(m) {
     var el = document.getElementById('opts-' + m);
     if (el) togEl(el, m === mode);
@@ -577,6 +640,7 @@ function updateModeBadges() {
     blank_pages:  PDF_INFO.blank_pages > 0 ? PDF_INFO.blank_pages + ' blanks' : 'auto-detect',
     size_limit:   'fit in MB',
     odd_even:     '2 files',
+    content_type: 'auto-group',
   };
   Object.keys(badges).forEach(function(m) {
     var el = document.getElementById('badge-' + m);
@@ -851,6 +915,8 @@ function updateSplitPreview() {
     est = '~' + Math.max(2, Math.ceil(total / Math.max(1, parseInt(D.sizeSlider ? D.sizeSlider.value : 5)||5))) + ' files (estimate)';
   else if (MODE === 'odd_even')
     est = '2 files (odd + even)';
+  else if (MODE === 'content_type')
+    est = '2–4 files (Text / Image / Form / Mixed groups)';
 
   if (D.splitPreviewText) D.splitPreviewText.textContent = 'Will create: ' + est;
   showEl(D.splitPreviewBox);
@@ -868,6 +934,7 @@ function updateActionHint() {
     blank_pages:  'Splits at blank separators → ZIP',
     size_limit:   'Grouped by file size → ZIP',
     odd_even:     'Odd pages + Even pages → 2 PDFs → ZIP',
+    content_type: 'Auto-groups by content → Text / Image / Form / Mixed PDFs → ZIP',
   };
   D.actionHint.textContent = (hints[MODE] || 'Press Ctrl+Enter to split') + ' · Ctrl+Enter to start';
 }
@@ -1126,7 +1193,7 @@ function doSplit() {
   var total = PDF_INFO ? PDF_INFO.total_pages : '?';
   addProgressStep('fa-check',        'Mode: ' + MODE.replace(/_/g,' '), 'done');
   addProgressStep('fa-file-pdf',     (total) + ' pages · ' + fmtBytes(FILE.size), 'done');
-  addProgressStep('fa-microchip',    'v12 lossless engine active (pikepdf + PyMuPDF)', 'active');
+  addProgressStep('fa-microchip',    'v15 lossless engine active (pikepdf + PyMuPDF + fitz)', 'active');
 
   simProgress(86, 108);
 
@@ -1181,6 +1248,7 @@ function doSplit() {
       var qualityScore = res.headers.get('X-Quality-Score') || '100';
       var zipName      = res.headers.get('X-Download-Name') || res.headers.get('X-Zip-Name') || _ZIP_FILENAME;
       var zipSizeKb    = parseInt(res.headers.get('X-Zip-Size-Kb') || '0');
+      var fileNames    = (res.headers.get('X-File-Names') || '').split('|').filter(Boolean);
 
       if (_BLOB_URL) URL.revokeObjectURL(_BLOB_URL);
       _BLOB_URL     = URL.createObjectURL(blob);
@@ -1190,7 +1258,7 @@ function doSplit() {
         hideEl(D.progressCard);
         showEl(D.resultsCard);
         showEl(D.actionCard);
-        showResults(filesCreated, totalPages, qualityGrade, qualityScore, procMs, zipSizeKb);
+        showResults(filesCreated, totalPages, qualityGrade, qualityScore, procMs, zipSizeKb, fileNames);
         S('playSuccessChime');
 
         /* v12: Auto-scroll to results */
@@ -1219,7 +1287,8 @@ function doSplit() {
 /* ══════════════════════════════════════════════════════════════════
    SHOW RESULTS (v12: animated counters)
 ══════════════════════════════════════════════════════════════════ */
-function showResults(filesCreated, totalPages, qualityGrade, qualityScore, procMs, zipSizeKb) {
+function showResults(filesCreated, totalPages, qualityGrade, qualityScore, procMs, zipSizeKb, fileNames) {
+  fileNames = fileNames || [];
   var elapsed = procMs > 0
     ? (procMs >= 1000 ? (procMs / 1000).toFixed(1) + 's' : procMs + 'ms')
     : (Math.round((Date.now() - _splitStart) / 100) / 10).toFixed(1) + 's';
@@ -1256,6 +1325,33 @@ function showResults(filesCreated, totalPages, qualityGrade, qualityScore, procM
       if (el) animateCount(el, s.value, s.suffix, 600 + i * 120);
     }
   });
+
+  /* v14: Show individual file list from X-File-Names */
+  if (D.resFilesWrap) {
+    if (fileNames.length > 0 && fileNames.length <= 200) {
+      var maxShow = Math.min(fileNames.length, 60);
+      var rows = fileNames.slice(0, maxShow).map(function(fname, idx) {
+        var ext = fname.split('.').pop().toLowerCase();
+        var icon = ext === 'pdf' ? 'fa-file-pdf' : 'fa-file-zipper';
+        return '<div class="sp-rfw-row">'
+          + '<i class="fa-solid ' + icon + '"></i>'
+          + '<span class="sp-rfw-name" title="' + fname + '">' + fname + '</span>'
+          + '<span class="sp-rfw-idx">#' + (idx + 1) + '</span>'
+          + '</div>';
+      }).join('');
+      var moreNote = fileNames.length > maxShow
+        ? '<div class="sp-rfw-row" style="justify-content:center;color:var(--text3);font-size:.75rem;padding:10px">'
+          + '<i class="fa-solid fa-ellipsis" style="margin-right:6px"></i>+ '
+          + (fileNames.length - maxShow) + ' more files inside the ZIP</div>'
+        : '';
+      D.resFilesWrap.innerHTML =
+        '<div class="sp-rfw-hdr"><i class="fa-solid fa-list-ul"></i>Output Files (' + fileNames.length + ')</div>'
+        + '<div class="sp-rfw-list">' + rows + moreNote + '</div>';
+      showEl(D.resFilesWrap);
+    } else {
+      hideEl(D.resFilesWrap);
+    }
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1358,6 +1454,7 @@ function resetAll() {
   D.splitBtn.disabled = true;
   if (D.progressSteps)   D.progressSteps.innerHTML = '';
   if (D.resultsStats)    D.resultsStats.innerHTML  = '';
+  if (D.resFilesWrap)  { D.resFilesWrap.innerHTML  = ''; hideEl(D.resFilesWrap); }
   if (D.thumbsStrip)     D.thumbsStrip.innerHTML   = '';
   if (D.bookmarkList)    D.bookmarkList.innerHTML   = '';
   if (D.pgrid)           D.pgrid.innerHTML          = '';
@@ -1511,6 +1608,7 @@ document.addEventListener('DOMContentLoaded', function() {
     resultsCard:       document.getElementById('resultsCard'),
     resultsSub:        document.getElementById('resultsSub'),
     resultsStats:      document.getElementById('resultsStats'),
+    resFilesWrap:      document.getElementById('resFilesWrap'),
     downloadBtn:       document.getElementById('downloadBtn'),
     dlName:            document.getElementById('dlName'),
     qualityText:       document.getElementById('qualityText'),
