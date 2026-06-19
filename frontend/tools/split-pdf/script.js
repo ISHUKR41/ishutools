@@ -16,18 +16,19 @@
 /* ═══════════════════════════════════════════════════════════
    MODULE STATE
 ═══════════════════════════════════════════════════════════ */
-let FILE          = null;   // uploaded File object
-let TOTAL_PAGES   = 0;
-let BOOKMARKS     = [];
-let BLANK_COUNT   = 0;
-let RESULT_BLOB   = null;
-let RESULT_NAME   = '';
-let PAGE_SEL      = new Set();
-let SELECTED_MODE = 'all';
-let _shiftStart   = -1;
-let _simTimer     = null;
-let _sseSource    = null;
-let D             = {};     // DOM refs
+let FILE           = null;   // uploaded File object
+let TOTAL_PAGES    = 0;
+let BOOKMARKS      = [];
+let BLANK_COUNT    = 0;
+let RESULT_BLOB    = null;
+let RESULT_NAME    = '';
+let PAGE_SEL       = new Set();
+let SELECTED_MODE  = 'all';
+let _shiftStart    = -1;
+let _simTimer      = null;
+let _sseSource     = null;
+let _splitStartTime = 0;    // for elapsed timer
+let D              = {};     // DOM refs
 
 /* ═══════════════════════════════════════════════════════════
    SOUND WRAPPER
@@ -134,6 +135,10 @@ document.addEventListener('DOMContentLoaded', () => {
     fab:             document.getElementById('fabBtn'),
     // FAQ
     faqList:         document.getElementById('faqList'),
+    // Timer & copy
+    resTimerWrap:    document.getElementById('resTimerWrap'),
+    resTimer:        document.getElementById('resTimer'),
+    copyRangeBtn:    document.getElementById('copyRangeBtn'),
   };
 
   initTheme();
@@ -160,10 +165,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (D.themeBtn) D.themeBtn.addEventListener('click', toggleTheme);
   document.getElementById('splitBtn')?.addEventListener('click', doSplit);
+  D.copyRangeBtn?.addEventListener('click', copyRangeToClipboard);
 
   // Expose globals for HTML onclick attrs
-  window.downloadResult = downloadResult;
-  window.resetTool      = resetTool;
+  window.downloadResult       = downloadResult;
+  window.resetTool            = resetTool;
+  window.copyRangeToClipboard = copyRangeToClipboard;
 });
 
 /* ═══════════════════════════════════════════════════════════
@@ -719,6 +726,7 @@ function updateRangeFromInput() {
   if (!D.rangeInput || !TOTAL_PAGES) return;
   PAGE_SEL = new Set(parseRangeStr(D.rangeInput.value, TOTAL_PAGES));
   syncGridFromSel(); updateRangePreview();
+  updateRangeInputState();
   updateSplitPreview(); updateModeBadges(); updateSplitBtn();
 }
 
@@ -1011,6 +1019,7 @@ async function doSplit() {
   if (!FILE || D.splitBtn?.disabled) return;
 
   S('start');
+  _splitStartTime = Date.now();
 
   D.actionSection.hidden  = true;
   D.optsCard.hidden       = true;
@@ -1176,6 +1185,16 @@ function showResults(fileCount, totalPages, skipped, zipSizeKB) {
     if (D.resSkippedWrap) D.resSkippedWrap.classList.add('sp-res-stat-hidden');
   }
 
+  // Elapsed timer
+  if (_splitStartTime) {
+    const elapsed = (Date.now() - _splitStartTime) / 1000;
+    const label   = elapsed < 60
+      ? `${elapsed.toFixed(elapsed < 10 ? 1 : 0)}s`
+      : `${Math.floor(elapsed/60)}m ${Math.round(elapsed%60)}s`;
+    if (D.resTimer) D.resTimer.textContent = label;
+    if (D.resTimerWrap) D.resTimerWrap.classList.remove('sp-res-stat-hidden');
+  }
+
   D.progressCard.hidden = true;
   D.resultsCard.hidden  = false;
   updateFab();
@@ -1185,6 +1204,57 @@ function showResults(fileCount, totalPages, skipped, zipSizeKB) {
   }
 
   D.resultsCard?.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COPY RANGE TO CLIPBOARD
+═══════════════════════════════════════════════════════════ */
+function copyRangeToClipboard() {
+  const val = (SELECTED_MODE === 'range_groups'
+    ? D.rangeGroupsInput?.value
+    : D.rangeInput?.value
+  )?.trim();
+
+  if (!val) {
+    showToast('No range to copy — select pages first', 'info');
+    return;
+  }
+
+  const btn = D.copyRangeBtn;
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(val).then(() => {
+      showToast('Range copied to clipboard!', 'success');
+      S('success');
+      if (btn) {
+        const prev = btn.innerHTML;
+        btn.innerHTML = '<i class="fa fa-check"></i>';
+        btn.style.color = 'var(--green)';
+        setTimeout(() => { btn.innerHTML = prev; btn.style.color = ''; }, 1800);
+      }
+    }).catch(() => showToast('Copy unavailable — select text manually', 'info'));
+  } else {
+    showToast('Copy unavailable in this browser', 'info');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RANGE INPUT VISUAL STATE
+═══════════════════════════════════════════════════════════ */
+function updateRangeInputState() {
+  const inp = D.rangeInput;
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) {
+    inp.classList.remove('valid', 'invalid');
+    return;
+  }
+  if (!TOTAL_PAGES) {
+    inp.classList.remove('valid', 'invalid');
+    return;
+  }
+  const pages = parseRangeStr(val, TOTAL_PAGES);
+  inp.classList.toggle('valid',   pages.length > 0);
+  inp.classList.toggle('invalid', pages.length === 0);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1227,10 +1297,12 @@ function resetTool() {
   if (D.recommendBanner) D.recommendBanner.hidden = true;
 
   if (D.fileInput)         D.fileInput.value = '';
-  if (D.rangeInput)        D.rangeInput.value = '';
+  if (D.rangeInput)        { D.rangeInput.value = ''; D.rangeInput.classList.remove('valid','invalid'); }
   if (D.rangeGroupsInput)  D.rangeGroupsInput.value = '';
   if (D.progressSteps)     D.progressSteps.innerHTML = '';
   if (D.rangeGroupsPreview) D.rangeGroupsPreview.innerHTML = '<span class="sp-rp-hint">Each comma-separated range → its own PDF file</span>';
+  if (D.resTimerWrap)      D.resTimerWrap.classList.add('sp-res-stat-hidden');
+  _splitStartTime = 0;
 
   updateFab();
 

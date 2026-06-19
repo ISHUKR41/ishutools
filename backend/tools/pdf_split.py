@@ -1,5 +1,5 @@
 """
-pdf_split.py — Enterprise PDF Split Engine v5.0
+pdf_split.py — Enterprise PDF Split Engine v6.0
 IshuTools.fun | Created by Ishu Kumar (ISHUKR41 / ISHUKR75)
 https://ishutools.fun
 
@@ -40,6 +40,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 import zipfile
 from datetime import datetime, timezone
 from glob import glob
@@ -476,13 +477,28 @@ def auto_detect_mode(input_path: str, password: str = '') -> dict:
         }
 
     if headings >= 3 and text_pg > 0:
+        # Uniform sections (headings evenly distributed) → range_groups is ideal
+        pages_per_section = total / max(1, headings)
+        if 3 <= pages_per_section <= 25 and headings <= 20:
+            return {
+                'recommended_mode': 'range_groups',
+                'confidence': 0.82,
+                'reason': (f'Detected ~{headings} section headings (~{pages_per_section:.0f} pages each) — '
+                           f'"Range Groups" lets you define exact sections as separate files in one pass.'),
+                'alternatives': [
+                    {'mode': 'every_n', 'reason': f'Equal chunks of ~{int(pages_per_section)} pages'},
+                    {'mode': 'range',   'reason': 'Pick exact pages manually'},
+                ],
+                'estimated_output_count': headings,
+                'analysis': analysis,
+            }
         return {
             'recommended_mode': 'every_n',
             'confidence': 0.78,
-            'reason': f'Detected ~{headings} section headings — try "Every N Pages" or select exact ranges.',
+            'reason': f'Detected ~{headings} section headings — "Every N Pages" splits into equal chunks.',
             'alternatives': [
+                {'mode': 'range_groups', 'reason': 'Define each section range manually'},
                 {'mode': 'range',        'reason': 'Pick exact page ranges'},
-                {'mode': 'range_groups', 'reason': 'Each range → own file'},
             ],
             'estimated_output_count': headings,
             'analysis': analysis,
@@ -977,6 +993,7 @@ def split_pdf(
     """
     os.makedirs(out_dir, exist_ok=True)
     errors: List[str] = []
+    _t_start = time.time()
 
     # ── Open & authenticate ──────────────────────────────────────────────────
     try:
@@ -1346,17 +1363,18 @@ def split_pdf(
     ]
 
     return {
-        'result_zip':      result_zip,
-        'file_count':      len(output_files),
-        'total_pages':     total,
-        'skipped_blanks':  skipped_blanks,
-        'mode_used':       mode,
-        'output_files':    [os.path.basename(fp) for fp in output_files],
-        'file_sizes_kb':   file_sizes_kb,
-        'zip_size_kb':     round(os.path.getsize(result_zip) / 1024, 1),
-        'source_filename': source_filename,
-        'errors':          errors,
-        'quality_info':    {
+        'result_zip':         result_zip,
+        'file_count':         len(output_files),
+        'total_pages':        total,
+        'skipped_blanks':     skipped_blanks,
+        'mode_used':          mode,
+        'output_files':       [os.path.basename(fp) for fp in output_files],
+        'file_sizes_kb':      file_sizes_kb,
+        'zip_size_kb':        round(os.path.getsize(result_zip) / 1024, 1),
+        'source_filename':    source_filename,
+        'errors':             errors,
+        'processing_time_ms': round((time.time() - _t_start) * 1000),
+        'quality_info':       {
             'engine':    'pikepdf+fitz+pypdf cascade',
             'lossless':  True,
             're_encoded': False,
@@ -1390,6 +1408,7 @@ def split_ranges_to_multiple(
     os.makedirs(out_dir, exist_ok=True)
     results: List[dict] = []
     skipped_blanks = 0
+    _t_start = time.time()
 
     reader = PdfReader(input_path)
     if reader.is_encrypted:
@@ -1482,14 +1501,15 @@ def split_ranges_to_multiple(
     zip_size_kb = round(os.path.getsize(result_zip) / 1024, 1) if os.path.exists(result_zip) else 0.0
 
     return {
-        'file_count':     len(results),
-        'total_pages':    sum(r['page_count'] for r in results),
-        'skipped_blanks': skipped_blanks,
-        'zip_size_kb':    zip_size_kb,
-        'mode_used':      'range_groups',
-        'output_files':   [r['filename'] for r in results],
-        'files':          results,
-        'errors':         [],
+        'file_count':         len(results),
+        'total_pages':        sum(r['page_count'] for r in results),
+        'skipped_blanks':     skipped_blanks,
+        'zip_size_kb':        zip_size_kb,
+        'mode_used':          'range_groups',
+        'output_files':       [r['filename'] for r in results],
+        'files':              results,
+        'errors':             [],
+        'processing_time_ms': round((time.time() - _t_start) * 1000),
     }
 
 

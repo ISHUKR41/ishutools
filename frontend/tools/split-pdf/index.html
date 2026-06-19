@@ -320,11 +320,17 @@
 
     <!-- Range input (range mode) -->
     <div class="sp-opt-row" data-mode-opt id="opt-range" hidden>
-      <label class="sp-opt-label" for="rangeInput">
-        <i class="fa fa-list-ol" aria-hidden="true"></i>
-        Pages to extract
-        <span style="color:var(--text3);font-weight:400">(e.g. 1-5, 8, 12-15 · or click grid below)</span>
-      </label>
+      <div class="sp-opt-label-row">
+        <label class="sp-opt-label" for="rangeInput" style="margin-bottom:0">
+          <i class="fa fa-list-ol" aria-hidden="true"></i>
+          Pages to extract
+          <span style="color:var(--text3);font-weight:400">(e.g. 1-5, 8, 12-15 · or click grid below)</span>
+        </label>
+        <button class="sp-copy-btn" id="copyRangeBtn" type="button"
+                title="Copy range to clipboard" aria-label="Copy range to clipboard">
+          <i class="fa fa-copy" aria-hidden="true"></i>
+        </button>
+      </div>
       <input type="text" class="sp-range-input" id="rangeInput"
              placeholder="1-5, 8, 12-15 · odd · even · first 10 · last 5" autocomplete="off">
       <div class="sp-range-preview" id="rangePreview" aria-live="polite">
@@ -338,8 +344,10 @@
       <div class="sp-pgrid" id="pgrid" role="group" aria-label="Click pages to select"></div>
     </div>
 
-    <!-- Split preview -->
-    <div class="sp-split-preview" data-mode-opt id="opt-split-preview" hidden id="splitPreview" aria-live="polite"></div>
+    <!-- Split preview (wrapper toggled by showModeOptions, inner div updated by JS) -->
+    <div data-mode-opt id="opt-split-preview" hidden>
+      <div class="sp-split-preview" id="splitPreview" aria-live="polite"></div>
+    </div>
 
     <!-- Every N pages -->
     <div class="sp-opt-row" data-mode-opt id="opt-every-n" hidden>
@@ -520,6 +528,10 @@
       <div class="sp-res-stat sp-res-stat-hidden" id="resSkippedWrap" role="listitem">
         <div class="sp-res-stat-num" id="resSkipped">0</div>
         <div class="sp-res-stat-label">Blanks Removed</div>
+      </div>
+      <div class="sp-res-stat sp-res-stat-hidden" id="resTimerWrap" role="listitem">
+        <div class="sp-res-stat-num sp-res-stat-timer" id="resTimer">—</div>
+        <div class="sp-res-stat-label">Time Taken</div>
       </div>
     </div>
 
@@ -1069,7 +1081,7 @@
       <a href="/tools/rotate-pdf/">Rotate PDF</a>
     </nav>
     <p class="sp-footer-copy">
-      &copy; 2024–2025 IshuTools.fun · Built with ❤️ by
+      &copy; 2024–2026 IshuTools.fun · Built with ❤️ by
       <a href="https://github.com/ISHUKR41" rel="me noopener" target="_blank">Ishu Kumar (ISHUKR41)</a> ·
       Free forever · No signup
     </p>
