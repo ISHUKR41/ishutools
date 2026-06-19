@@ -237,6 +237,15 @@ def opensearch():
         mimetype='application/opensearchdescription+xml'
     )
 
+@app.route('/feed.xml')
+def rss_feed():
+    """Serve RSS feed — freshness signal for Google/Bing. IshuTools.fun by Ishu Kumar (ISHUKR41)."""
+    return send_from_directory(
+        os.path.join(os.path.dirname(__file__), '..', 'seo'),
+        'feed.xml',
+        mimetype='application/rss+xml'
+    )
+
 # ── Health Check ─────────────────────────────────────────────────────────────
 @app.route('/api/health')
 def health():

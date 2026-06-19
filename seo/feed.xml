@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  IshuTools.fun — RSS Feed
+  Created by Ishu Kumar (ISHUKR41 / ISHUKR75)
+  Website: https://ishutools.fun
+  GitHub: github.com/ISHUKR41
+  Last updated: 2026-06-19
+-->
+<rss version="2.0"
+  xmlns:atom="http://www.w3.org/2005/Atom"
+  xmlns:dc="http://purl.org/dc/elements/1.1/"
+  xmlns:content="http://purl.org/rss/1.0/modules/content/"
+  xmlns:media="http://search.yahoo.com/mrss/">
+
+  <channel>
+    <title>IshuTools.fun — Free PDF Tools by Ishu Kumar (ISHUKR41)</title>
+    <link>https://ishutools.fun</link>
+    <description>36+ free professional PDF tools by Ishu Kumar (ISHUKR41 / ISHUKR75). Split PDF, Merge PDF, Compress, Convert, OCR, Translate — all 100% free, no signup, zero quality loss. ishutools.fun</description>
+    <language>en-us</language>
+    <lastBuildDate>Thu, 19 Jun 2026 00:00:00 +0530</lastBuildDate>
+    <pubDate>Thu, 19 Jun 2026 00:00:00 +0530</pubDate>
+    <ttl>1440</ttl>
+    <copyright>Copyright 2026 Ishu Kumar (ISHUKR41) — ishutools.fun</copyright>
+    <managingEditor>ishutools.fun (Ishu Kumar)</managingEditor>
+    <webMaster>ishutools.fun (Ishu Kumar ISHUKR41)</webMaster>
+    <generator>IshuTools.fun by Ishu Kumar (ISHUKR41)</generator>
+    <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
+    <image>
+      <url>https://ishutools.fun/static/icons/og-image.png</url>
+      <title>IshuTools.fun by Ishu Kumar</title>
+      <link>https://ishutools.fun</link>
+      <width>144</width>
+      <height>144</height>
+      <description>IshuTools.fun — Free PDF Tools by Ishu Kumar (ISHUKR41)</description>
+    </image>
+
+    <atom:link href="https://ishutools.fun/feed.xml" rel="self" type="application/rss+xml"/>
+
+    <!-- ═══════════ SPLIT PDF ═══════════ -->
+    <item>
+      <title>Split PDF Online Free — 8 Modes by Ishu Kumar | IshuTools.fun</title>
+      <link>https://ishutools.fun/tools/split-pdf/</link>
+      <guid isPermaLink="true">https://ishutools.fun/tools/split-pdf/</guid>
+      <pubDate>Thu, 19 Jun 2026 00:00:00 +0530</pubDate>
+      <dc:creator>Ishu Kumar (ISHUKR41)</dc:creator>
+      <category>PDF Tools</category>
+      <category>Split PDF</category>
+      <category>Ishu Kumar</category>
+      <category>IshuTools</category>
+      <description><![CDATA[
+        <p>Split PDF online free with 8 professional modes by <strong>Ishu Kumar (ISHUKR41)</strong> at <a href="https://ishutools.fun/tools/split-pdf/">ishutools.fun/tools/split-pdf/</a></p>
+        <ul>
+          <li>All Pages — Burst every page into individual PDFs</li>
+          <li>Page Range — Extract specific pages</li>
+          <li>Range Groups — Each range its own PDF (unique feature by Ishu Kumar)</li>
+          <li>Every N Pages — Equal chunk splitting</li>
+          <li>By Bookmarks — One PDF per chapter</li>
+          <li>Blank Separator — Split at blank pages</li>
+          <li>By File Size — Split to target MB</li>
+          <li>Odd/Even — Separate odd and even pages</li>
+        </ul>
+        <p>Zero quality loss. No signup. No watermark. No file size limit. 100% free forever. Created by <strong>Ishu Kumar (ISHUKR41 / ISHUKR75)</strong> at ishutools.fun.</p>
+      ]]></description>
+      <media:content url="https://ishutools.fun/static/icons/og-image.png" medium="image" width="1200" height="630">
+        <media:title>Split PDF by Ishu Kumar — IshuTools.fun</media:title>
+        <media:description>Best free PDF splitter online — 8 modes by Ishu Kumar (ISHUKR41)</media:description>
+      </media:content>
+    </item>
+
+    <!-- ═══════════ MERGE PDF ═══════════ -->
+    <item>
+      <title>Merge PDF Online Free by Ishu Kumar | IshuTools.fun</title>
+      <link>https://ishutools.fun/tools/merge-pdf/</link>
+      <guid isPermaLink="true">https://ishutools.fun/tools/merge-pdf/</guid>
+      <pubDate>Thu, 19 Jun 2026 00:00:00 +0530</pubDate>
+      <dc:creator>Ishu Kumar (ISHUKR41)</dc:creator>
+      <category>PDF Tools</category>
+      <category>Merge PDF</category>
+      <category>Ishu Kumar</category>
+      <description><![CDATA[Merge multiple PDF files into one online for free. Drag-and-drop reordering, table of contents generation, page range selection per file. By Ishu Kumar (ISHUKR41) at ishutools.fun. No signup, no watermark, lossless quality.]]></description>
+    </item>
+
+    <!-- ═══════════ COMPRESS PDF ═══════════ -->
+    <item>
+      <title>Compress PDF Online Free by Ishu Kumar | IshuTools.fun</title>
+      <link>https://ishutools.fun/tools/compress-pdf/</link>
+      <guid isPermaLink="true">https://ishutools.fun/tools/compress-pdf/</guid>
+      <pubDate>Thu, 19 Jun 2026 00:00:00 +0530</pubDate>
+      <dc:creator>Ishu Kumar (ISHUKR41)</dc:creator>
+      <category>PDF Tools</category>
+      <category>Compress PDF</category>
+      <description><![CDATA[Reduce PDF file size online for free. Professional compression by Ishu Kumar (ISHUKR41) at ishutools.fun. No quality loss, no signup, no size limit.]]></description>
+    </item>
+
+    <!-- ═══════════ OCR PDF ═══════════ -->
+    <item>
+      <title>OCR PDF — Make Scanned PDF Searchable | Ishu Kumar | IshuTools.fun</title>
+      <link>https://ishutools.fun/tools/ocr/</link>
+      <guid isPermaLink="true">https://ishutools.fun/tools/ocr/</guid>
+      <pubDate>Thu, 19 Jun 2026 00:00:00 +0530</pubDate>
+      <dc:creator>Ishu Kumar (ISHUKR41)</dc:creator>
+      <category>PDF Tools</category>
+      <category>OCR</category>
+      <description><![CDATA[Convert scanned PDF to searchable text using OCR (Tesseract) by Ishu Kumar (ISHUKR41) at ishutools.fun. Free, no signup, supports 100+ languages.]]></description>
+    </item>
+
+    <!-- ═══════════ AI SUMMARIZE ═══════════ -->
+    <item>
+      <title>AI Summarize PDF Free by Ishu Kumar | IshuTools.fun</title>
+      <link>https://ishutools.fun/tools/summarize-pdf/</link>
+      <guid isPermaLink="true">https://ishutools.fun/tools/summarize-pdf/</guid>
+      <pubDate>Thu, 19 Jun 2026 00:00:00 +0530</pubDate>
+      <dc:creator>Ishu Kumar (ISHUKR41)</dc:creator>
+      <category>AI PDF Tools</category>
+      <category>PDF Summarizer</category>
+      <description><![CDATA[AI-powered PDF summarizer by Ishu Kumar (ISHUKR41) at ishutools.fun. Upload any PDF and get an instant intelligent summary. Free, no signup, no API key needed.]]></description>
+    </item>
+
+  </channel>
+</rss>
