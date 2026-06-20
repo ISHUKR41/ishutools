@@ -1854,3 +1854,17 @@ kbd {
   .cp-sbar-divider:nth-child(6),
   .cp-sbar-divider:nth-child(8) { display: none; }
 }
+
+/* ══ BYLINE (above-fold Ishu Kumar attribution) ═══════════════════════════ */
+.cp-tool-byline {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--t4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+.cp-tool-byline a { transition: color var(--dur) var(--ease); }
+.cp-tool-byline a:hover { color: var(--em) !important; text-decoration: underline; }

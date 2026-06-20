@@ -89,6 +89,58 @@ app = Flask(
 )
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
+# ── SEO HTTP Response Headers (Ishu Kumar — IshuTools.fun) ───────────────────
+@app.after_request
+def add_seo_headers(response):
+    """
+    Add SEO-critical HTTP response headers for IshuTools.fun by Ishu Kumar (ISHUKR41).
+    Google, Bing, and other bots read these headers in addition to HTML meta tags.
+    """
+    path = request.path
+
+    # Security + trust signals (crawlers treat secure sites as more authoritative)
+    response.headers['X-Content-Type-Options']  = 'nosniff'
+    response.headers['X-Frame-Options']          = 'SAMEORIGIN'
+    response.headers['Referrer-Policy']          = 'strict-origin-when-cross-origin'
+    response.headers['X-Creator']                = 'Ishu Kumar (ISHUKR41) @ ishutools.fun'
+    response.headers['X-Powered-By']             = 'IshuTools.fun by Ishu Kumar (ISHUKR41)'
+
+    # Compress-PDF page: full SEO headers
+    if path.startswith('/tools/compress-pdf') or path == '/tools/compress-pdf/':
+        response.headers['X-Robots-Tag'] = (
+            'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1'
+        )
+        response.headers['Link'] = (
+            '<https://ishutools.fun/tools/compress-pdf/>; rel="canonical", '
+            '<https://ishutools.fun/sitemap-compress-pdf.xml>; rel="sitemap"'
+        )
+        # Long cache for HTML (Googlebot re-crawls respect cache; updated lastmod in sitemap signals freshness)
+        if not path.startswith('/api/'):
+            response.headers['Cache-Control'] = 'public, max-age=3600, stale-while-revalidate=86400'
+            response.headers['Vary'] = 'Accept-Encoding'
+
+    # API endpoints: no cache, no index
+    elif path.startswith('/api/'):
+        response.headers['X-Robots-Tag']  = 'noindex, nofollow'
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+
+    # Other tool pages: index + follow
+    elif path.startswith('/tools/'):
+        response.headers['X-Robots-Tag'] = 'index, follow, max-image-preview:large'
+        if not path.startswith('/api/'):
+            response.headers['Cache-Control'] = 'public, max-age=3600'
+
+    # Static assets: aggressive caching (good Core Web Vitals = better ranking)
+    elif path.startswith('/static/'):
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+
+    # Root + sitemaps + llms.txt
+    elif path in ('/', '/sitemap.xml', '/sitemap-index.xml', '/robots.txt', '/llms.txt'):
+        response.headers['X-Robots-Tag'] = 'index, follow'
+        response.headers['Cache-Control'] = 'public, max-age=86400'
+
+    return response
+
 # Max upload: 1 GB
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024
 
