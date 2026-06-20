@@ -1,8 +1,8 @@
 {
   "name": "ishu ka tool — IshuTools by Ishu Kumar",
   "short_name": "ishu ka tool",
-  "description": "ishu ka Split PDF Tool — IshuTools.fun by Ishu Kumar (ISHUKR41). Free, lossless, 9 modes, no signup. India's best free PDF splitter.",
-  "start_url": "/tools/split-pdf/",
+  "description": "IshuTools.fun by Ishu Kumar (ISHUKR41) — 36+ free PDF tools. Compress PDF, Merge PDF, Split PDF, OCR, AI Summarize. India's best free PDF tools suite. No signup, no watermark, no limit.",
+  "start_url": "/tools/compress-pdf/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
@@ -11,7 +11,7 @@
   "lang": "en-IN",
   "dir": "ltr",
   "categories": ["productivity", "utilities"],
-  "id": "ishu-ka-tool-ishutools-split-pdf",
+  "id": "ishu-ka-tool-ishutools-compress-pdf",
   "icons": [
     {
       "src": "/static/icons/favicon.svg",
@@ -21,6 +21,13 @@
     }
   ],
   "shortcuts": [
+    {
+      "name": "ishu ka Compress PDF Tool",
+      "short_name": "Compress PDF",
+      "description": "ishu kumar ka free PDF compressor — 12 engines, lossless, batch, by Ishu Kumar (ISHUKR41)",
+      "url": "/tools/compress-pdf/",
+      "icons": [{ "src": "/static/icons/favicon.svg", "sizes": "any" }]
+    },
     {
       "name": "ishu ka Split PDF Tool",
       "short_name": "Split PDF",
@@ -36,13 +43,6 @@
       "icons": [{ "src": "/static/icons/favicon.svg", "sizes": "any" }]
     },
     {
-      "name": "Compress PDF by Ishu Kumar",
-      "short_name": "Compress",
-      "description": "Free PDF compressor by Ishu Kumar — IshuTools.fun",
-      "url": "/tools/compress-pdf/",
-      "icons": [{ "src": "/static/icons/favicon.svg", "sizes": "any" }]
-    },
-    {
       "name": "All Tools by Ishu Kumar",
       "short_name": "All Tools",
       "description": "36+ free PDF tools by Ishu Kumar at IshuTools.fun",
@@ -54,17 +54,20 @@
   "prefer_related_applications": false,
   "screenshots": [
     {
-      "src": "/static/og/split-pdf.png",
+      "src": "/static/og-compress.png",
       "type": "image/png",
       "sizes": "1200x630",
-      "label": "ishu ka Split PDF Tool — IshuTools.fun by Ishu Kumar (ISHUKR41)"
+      "label": "ishu ka Compress PDF Tool — IshuTools.fun by Ishu Kumar (ISHUKR41) — 12-engine pipeline"
     }
   ],
   "keywords": [
     "ishu", "ishu ka tool", "ishu kumar", "ishu tools", "ISHUKR41", "ISHUKR75",
-    "ishutools", "ishutools.fun", "split pdf", "split pdf free", "ishu split pdf",
-    "ishu ka pdf tool", "ishu kumar split pdf", "ishu kumar ne banaya",
-    "free pdf tools", "pdf splitter free", "lossless pdf split", "split pdf online",
-    "ishu kumar developer india", "ishu ka free tool", "ishu tools india"
+    "ishutools", "ishutools.fun", "compress pdf", "compress pdf free",
+    "ishu compress pdf", "ishu kumar pdf compressor", "ishu ka pdf tool",
+    "pdf compressor", "reduce pdf size", "lossless pdf", "compress pdf online",
+    "compress pdf india", "pdf size kam karna", "pdf compress karna",
+    "compress scanned pdf", "compress pdf to 100kb", "batch compress pdf",
+    "ishu kumar developer india", "ishu ka free tool", "ishu tools india",
+    "free pdf tools", "pdf tools by ishu kumar", "ISHUKR41 pdf tools"
   ]
 }
