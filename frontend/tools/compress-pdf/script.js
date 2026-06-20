@@ -1,49 +1,64 @@
 /**
- * compress-pdf/script.js — IshuTools.fun Compress PDF v6.0
+ * compress-pdf/script.js — IshuTools.fun v11.0
  * Author: Ishu Kumar (ISHUKR41 / ISHUKR75) — ishutools.fun
  *
  * Features:
- *   - Drag-and-drop + click + paste upload
- *   - 5 compression modes (screen/low/medium/high/lossless)
- *   - Advanced options: grayscale, strip metadata, remove annotations,
- *     linearize, target size
- *   - SSE real-time progress with 6 step chips
- *   - Sounds from /tools/merge-pdf/sounds/
- *   - Animated SVG reduction ring + size bars
- *   - Canvas confetti on significant reduction
- *   - Animated BG canvas
- *   - FAQ accordion, counter animation, theme toggle, sound toggle
- *   - Ctrl+Enter shortcut
+ *  - Drag-drop / click / paste upload — upload zone always first
+ *  - 5 compression modes (screen/low/medium/high/lossless)
+ *  - Advanced options: grayscale, strip metadata, annotations,
+ *    linearize, remove JS, embedded files, forms, target size, password
+ *  - SSE real-time progress with 6 step chips
+ *  - 7-engine pipeline status display
+ *  - Animated SVG reduction ring + size bars
+ *  - Canvas confetti on significant reduction (>30%)
+ *  - Animated BG canvas with particles
+ *  - Drop zone floating particles
+ *  - FAQ accordion (keyboard accessible)
+ *  - Counter animation (IntersectionObserver)
+ *  - Theme toggle (dark/light)
+ *  - Sound toggle (sounds from merge-pdf/sounds folder)
+ *  - Ctrl+Enter shortcut
+ *  - Download filename = original stem + "_compressed.pdf"
+ *  - fahhhhh.mp3 on download
+ *  - Advanced options count badge
+ *  - Share button (Web Share API / clipboard fallback)
+ *  - Grade system: S/A/B/C/D based on reduction %
  */
 
 'use strict';
 
-// ══════════════════════════════════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════════════════════════════════
-let FILE      = null;   // File object
-let RESULT    = null;   // server response blob URL
-let SEL_MODE  = 'screen';
-let JOB_ID    = null;
-let SSE_ES    = null;
+/* ═══════════════════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════════════════ */
+let FILE     = null;   // File object
+let RESULT   = null;   // Blob URL for download
+let SEL_MODE = 'medium';
+let JOB_ID   = null;
+let SSE_ES   = null;
 let SIM_TIMER = null;
-let SIM_PCT   = 0;
-let DL_STEM   = 'compressed';
+let SIM_PCT  = 0;
+let DL_STEM  = 'compressed';
+let _compStartTime = 0;
 
-// Options state
+// Advanced options state
 let OPT = {
-  grayscale: false,
-  stripMeta: false,
-  removeAnnot: false,
-  linearize: false,
-  targetMode: false,
-  targetKb: 500,
+  grayscale:     false,
+  stripMeta:     false,
+  removeAnnot:   false,
+  linearize:     false,
+  removeJs:      false,
+  removeEmbed:   false,
+  removeForms:   false,
+  targetMode:    false,
+  targetKb:      500,
+  pwMode:        false,
+  password:      '',
 };
 
 // Sounds
-let SOUND_ON   = true;
+let SOUND_ON    = true;
 let SOUND_CACHE = {};
-const SND_BASE = '/tools/merge-pdf/sounds/';
+const SND_BASE  = '/tools/merge-pdf/sounds/';
 const SND = {
   add:      'are_bhai_bhai_bhai.mp3',
   start:    'cameraman_focus_karo.mp3',
@@ -53,157 +68,162 @@ const SND = {
   warn:     'jaldi_waha_sa_hato.mp3',
 };
 
-function playSound(key) {
+function S(key) {
   if (!SOUND_ON) return;
-  const file = SND[key]; if (!file) return;
+  const file = SND[key];
+  if (!file) return;
   try {
     if (!SOUND_CACHE[key]) {
       SOUND_CACHE[key] = new Audio(SND_BASE + file);
-      SOUND_CACHE[key].volume = 0.5;
+      SOUND_CACHE[key].volume = 0.55;
     }
-    SOUND_CACHE[key].currentTime = 0;
-    SOUND_CACHE[key].play().catch(() => {});
+    const a = SOUND_CACHE[key];
+    a.currentTime = 0;
+    a.play().catch(() => {});
   } catch (_) {}
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// DOM REFS
-// ══════════════════════════════════════════════════════════════════════════
-let D = {};
+/* ═══════════════════════════════════════════════════════════════════════
+   DOM REFS
+═══════════════════════════════════════════════════════════════════════ */
+let D = null;
+
 function initDom() {
   D = {
-    // nav
-    soundBtn:   document.getElementById('soundBtn'),
-    soundIcon:  document.getElementById('soundIcon'),
-    themeBtn:   document.getElementById('themeBtn'),
-    themeIcon:  document.getElementById('themeIcon'),
-    // file input
-    fileInput:  document.getElementById('fileInput'),
-    // upload
-    dropzone:   document.getElementById('dropzone'),
-    browseBtn:  document.getElementById('browseBtn'),
-    fileCard:   document.getElementById('fileCard'),
-    fileName:   document.getElementById('fileName'),
-    fileMeta:   document.getElementById('fileMeta'),
-    fileChips:  document.getElementById('fileChips'),
-    removeBtn:  document.getElementById('removeBtn'),
-    // mode/options/action (shown after file)
-    modesWrap:  document.getElementById('modesWrap'),
-    advWrap:    document.getElementById('advWrap'),
-    actionArea: document.getElementById('actionArea'),
-    // advanced panel
-    advToggle:  document.getElementById('advToggle'),
-    advPanel:   document.getElementById('advPanel'),
-    advArrow:   document.getElementById('advArrow'),
+    // nav controls
+    soundBtn:     document.getElementById('soundBtn'),
+    soundIcon:    document.getElementById('soundIcon'),
+    themeBtn:     document.getElementById('themeBtn'),
+    themeIcon:    document.getElementById('themeIcon'),
+    // file input (hidden)
+    fileInput:    document.getElementById('fileInput'),
+    // upload zone
+    dropzone:     document.getElementById('dropzone'),
+    browseBtn:    document.getElementById('browseBtn'),
+    dzDragMsg:    document.getElementById('dzDragMsg'),
+    dzParticles:  document.getElementById('dzParticles'),
+    // file card
+    fileCard:     document.getElementById('fileCard'),
+    fileCardInner:document.getElementById('fileCardInner'),
+    fileName:     document.getElementById('fileName'),
+    fileMeta:     document.getElementById('fileMeta'),
+    fileChips:    document.getElementById('fileChips'),
+    removeBtn:    document.getElementById('removeBtn'),
+    // analyze bar
+    analyzeBar:   document.getElementById('analyzeBar'),
+    // modes
+    modesSection: document.getElementById('modesSection'),
+    // advanced
+    advSection:   document.getElementById('advSection'),
+    advToggle:    document.getElementById('advToggle'),
+    advPanel:     document.getElementById('advPanel'),
+    advArrow:     document.getElementById('advArrow'),
+    advCount:     document.getElementById('advCount'),
     // toggles
-    grayscaleTgl: document.getElementById('grayscaleToggle'),
+    gsTgl:        document.getElementById('grayscaleToggle'),
     metaTgl:      document.getElementById('metaToggle'),
     annotTgl:     document.getElementById('annotToggle'),
     linearTgl:    document.getElementById('linearToggle'),
+    jsTgl:        document.getElementById('jsToggle'),
+    embedTgl:     document.getElementById('embedToggle'),
+    formsTgl:     document.getElementById('formsToggle'),
     targetTgl:    document.getElementById('targetToggle'),
     targetSizeRow:document.getElementById('targetSizeRow'),
     targetSizeInp:document.getElementById('targetSizeInput'),
-    // compress btn
+    pwTgl:        document.getElementById('pwToggle'),
+    passwordRow:  document.getElementById('passwordRow'),
+    passwordInp:  document.getElementById('passwordInput'),
+    // action
+    actionArea:   document.getElementById('actionArea'),
     compressBtn:  document.getElementById('compressBtn'),
     compBtnIcon:  document.getElementById('compBtnIcon'),
     compBtnText:  document.getElementById('compBtnText'),
     // progress
-    progressWrap: document.getElementById('progressWrap'),
+    progressSection: document.getElementById('progressSection'),
     progTitle:    document.getElementById('progTitle'),
     progSub:      document.getElementById('progSub'),
     progPct:      document.getElementById('progPct'),
     progBar:      document.getElementById('progBar'),
+    progGlow:     document.getElementById('progGlow'),
     progBarWrap:  document.getElementById('progBarWrap'),
+    engineBar:    document.getElementById('engineBar'),
+    ebLabel:      document.getElementById('ebLabel'),
+    ebEngines:    document.getElementById('ebEngines'),
     // chips
-    chUpload:   document.getElementById('ch-upload'),
-    chAnalyze:  document.getElementById('ch-analyze'),
-    chGs:       document.getElementById('ch-gs'),
-    chFitz:     document.getElementById('ch-fitz'),
-    chPike:     document.getElementById('ch-pike'),
-    chDone:     document.getElementById('ch-done'),
-    // results
-    resultWrap: document.getElementById('resultWrap'),
-    resTitle:   document.getElementById('resTitle'),
-    resSub:     document.getElementById('resSub'),
-    ringFill:   document.getElementById('ringFill'),
-    ringNum:    document.getElementById('ringNum'),
-    ringSub:    document.getElementById('ringSub'),
-    stOrig:     document.getElementById('stOrig'),
-    stComp:     document.getElementById('stComp'),
-    stSaved:    document.getElementById('stSaved'),
-    stEngine:   document.getElementById('stEngine'),
-    barOrig:    document.getElementById('barOrig'),
-    barComp:    document.getElementById('barComp'),
-    barOrigLbl: document.getElementById('barOrigLbl'),
-    barCompLbl: document.getElementById('barCompLbl'),
-    qualNote:   document.getElementById('qualNote'),
-    qualNoteText:document.getElementById('qualNoteText'),
-    dlBtn:      document.getElementById('dlBtn'),
-    dlBtnText:  document.getElementById('dlBtnText'),
-    resetBtn:   document.getElementById('resetBtn'),
-    shareBtn:   document.getElementById('shareBtn'),
-    // toast
-    toastWrap:  document.getElementById('toastWrap'),
-    // canvases
-    bgCanvas:   document.getElementById('bgCanvas'),
-    confCanvas: document.getElementById('confettiCanvas'),
+    chUpload:     document.getElementById('ch-upload'),
+    chAnalyze:    document.getElementById('ch-analyze'),
+    chGs:         document.getElementById('ch-gs'),
+    chFitz:       document.getElementById('ch-fitz'),
+    chPike:       document.getElementById('ch-pike'),
+    chDone:       document.getElementById('ch-done'),
+    // result
+    resultSection:document.getElementById('resultSection'),
+    resIcon:      document.getElementById('resIcon'),
+    resTitle:     document.getElementById('resTitle'),
+    resSub:       document.getElementById('resSub'),
+    resGrade:     document.getElementById('resGrade'),
+    ringFill:     document.getElementById('ringFill'),
+    ringNum:      document.getElementById('ringNum'),
+    ringSub:      document.getElementById('ringSub'),
+    stOrig:       document.getElementById('stOrig'),
+    stComp:       document.getElementById('stComp'),
+    stSaved:      document.getElementById('stSaved'),
+    stEngine:     document.getElementById('stEngine'),
+    stTime:       document.getElementById('stTime'),
+    barOrig:      document.getElementById('barOrig'),
+    barComp:      document.getElementById('barComp'),
+    barOrigLbl:   document.getElementById('barOrigLbl'),
+    barCompLbl:   document.getElementById('barCompLbl'),
+    qualNote:     document.getElementById('qualNote'),
+    qualNoteText: document.getElementById('qualNoteText'),
+    dlBtn:        document.getElementById('dlBtn'),
+    dlBtnText:    document.getElementById('dlBtnText'),
+    resetBtn:     document.getElementById('resetBtn'),
+    shareBtn:     document.getElementById('shareBtn'),
+    // toasts
+    toastWrap:    document.getElementById('toastWrap'),
+    // canvas
+    bgCanvas:     document.getElementById('bgCanvas'),
+    // FAQ
+    faqList:      document.getElementById('faqList'),
+    // counters
+    counters:     document.querySelectorAll('.cp-cnt-num[data-count]'),
   };
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// TOAST
-// ══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════════════════════ */
 function toast(msg, type = 'info', dur = 3500) {
-  const icons = { info:'ℹ️', success:'✅', error:'❌', warn:'⚠️' };
+  if (!D || !D.toastWrap) return;
+  const icons = { info: 'ℹ️', success: '✅', error: '❌', warn: '⚠️' };
   const el = document.createElement('div');
   el.className = 'cp-toast';
   el.innerHTML = `<span class="cp-toast-ic">${icons[type] || 'ℹ️'}</span><span>${msg}</span>`;
   D.toastWrap.appendChild(el);
   setTimeout(() => {
     el.classList.add('cp-toast-out');
-    setTimeout(() => el.remove(), 350);
+    setTimeout(() => el.remove(), 380);
   }, dur);
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// FILE HANDLING
-// ══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════════════════════════════════ */
 function formatBytes(n) {
-  if (n < 1024)       return n + ' B';
-  if (n < 1024*1024)  return (n/1024).toFixed(1) + ' KB';
-  return (n/1024/1024).toFixed(2) + ' MB';
+  if (n < 1024)            return n + ' B';
+  if (n < 1024 * 1024)    return (n / 1024).toFixed(1) + ' KB';
+  if (n < 1024**3)        return (n / 1024 / 1024).toFixed(2) + ' MB';
+  return (n / 1024**3).toFixed(2) + ' GB';
 }
 
-function setFile(f) {
-  if (!f || f.type !== 'application/pdf') {
-    toast('Please choose a valid PDF file.', 'error');
-    playSound('error'); return;
-  }
-  FILE = f;
-  DL_STEM = f.name.replace(/\.pdf$/i, '');
-
-  // Show file card
-  D.dropzone.hidden = true;
-  D.fileCard.hidden = false;
-  D.fileName.textContent = f.name;
-  D.fileMeta.textContent = `${formatBytes(f.size)} · PDF document`;
-  D.fileChips.innerHTML = '';
-  addFileChip('📄 PDF', '#6366f1');
-  addFileChip(formatBytes(f.size), '#10b981');
-
-  // Show controls
-  D.modesWrap.hidden  = false;
-  D.advWrap.hidden    = false;
-  D.actionArea.hidden = false;
-
-  playSound('add');
-  toast('PDF loaded. Choose compression level.', 'success');
-
-  // Fetch analysis
-  analyzeFile(f);
+function formatMs(ms) {
+  if (ms < 1000) return ms + ' ms';
+  return (ms / 1000).toFixed(1) + 's';
 }
 
-function addFileChip(label, color) {
+function addChip(label, color) {
+  if (!D || !D.fileChips) return;
   const span = document.createElement('span');
   span.className = 'cp-chip-a';
   span.textContent = label;
@@ -211,620 +231,1000 @@ function addFileChip(label, color) {
   D.fileChips.appendChild(span);
 }
 
+function updateAdvCount() {
+  const active = Object.values(OPT).filter(v => v === true).length;
+  if (!D || !D.advCount) return;
+  if (active > 0) {
+    D.advCount.textContent = active + ' enabled';
+    D.advCount.hidden = false;
+  } else {
+    D.advCount.hidden = true;
+  }
+}
+
+function gradeFromPct(pct) {
+  if (pct >= 70) return 'S';
+  if (pct >= 50) return 'A';
+  if (pct >= 30) return 'B';
+  if (pct >= 15) return 'C';
+  return 'D';
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BACKGROUND CANVAS
+═══════════════════════════════════════════════════════════════════════ */
+function initBgCanvas() {
+  const canvas = D.bgCanvas;
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+  const DARK = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function mkParticle() {
+    return {
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 1.8 + .4,
+      vx: (Math.random() - .5) * .35,
+      vy: (Math.random() - .5) * .35,
+      alpha: Math.random() * .45 + .05,
+      hue: 150 + Math.random() * 30,
+    };
+  }
+
+  resize();
+  window.addEventListener('resize', resize, { passive: true });
+  particles = Array.from({ length: 90 }, mkParticle);
+
+  let raf;
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = isDark
+        ? `hsla(${p.hue},80%,60%,${p.alpha})`
+        : `hsla(${p.hue},65%,40%,${p.alpha * .5})`;
+      ctx.fill();
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > W) p.vx *= -1;
+      if (p.y < 0 || p.y > H) p.vy *= -1;
+    });
+    raf = requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DROP ZONE PARTICLES
+═══════════════════════════════════════════════════════════════════════ */
+function initDzParticles() {
+  const wrap = D.dzParticles;
+  if (!wrap) return;
+  for (let i = 0; i < 12; i++) {
+    const p = document.createElement('div');
+    p.className = 'cp-dz-part';
+    p.style.cssText = `
+      left:${10 + Math.random() * 80}%;
+      top:${20 + Math.random() * 60}%;
+      --dur:${2.5 + Math.random() * 2}s;
+      --delay:${Math.random() * 3}s;
+      width:${3 + Math.random() * 4}px;
+      height:${3 + Math.random() * 4}px;
+      opacity:0;
+    `;
+    wrap.appendChild(p);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FILE HANDLING
+═══════════════════════════════════════════════════════════════════════ */
+function setFile(f) {
+  if (!f) return;
+  if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
+    toast('Please upload a valid PDF file (.pdf)', 'error');
+    S('error');
+    return;
+  }
+
+  FILE    = f;
+  RESULT  = null;
+  DL_STEM = f.name.replace(/\.pdf$/i, '');
+
+  // Hide dropzone, show file card
+  D.dropzone.hidden    = true;
+  D.fileCard.hidden    = false;
+  D.analyzeBar.hidden  = false;
+
+  D.fileName.textContent = f.name;
+  D.fileMeta.textContent = `${formatBytes(f.size)} · PDF Document`;
+  D.fileChips.innerHTML  = '';
+  addChip('📄 PDF', '#6366f1');
+  addChip(formatBytes(f.size), '#10b981');
+  if (f.size > 50 * 1024 * 1024) addChip('Large file', '#f59e0b');
+
+  // Show controls
+  D.modesSection.hidden = false;
+  D.advSection.hidden   = false;
+  D.actionArea.hidden   = false;
+
+  // Hide result/progress from previous run
+  D.resultSection.hidden   = true;
+  D.progressSection.hidden = true;
+
+  S('add');
+  toast('PDF loaded — choose compression level below', 'success', 2500);
+
+  // Analyze file asynchronously
+  analyzeFile(f);
+}
+
 async function analyzeFile(f) {
   try {
     const fd = new FormData();
     fd.append('file', f);
-    const res = await fetch('/api/compress-pdf/analyze', { method:'POST', body:fd });
+    const res = await fetch('/api/compress-pdf/analyze', { method: 'POST', body: fd });
+    D.analyzeBar.hidden = true;
+
     if (!res.ok) return;
     const data = await res.json();
-    if (data.page_count) addFileChip(`${data.page_count} pages`, '#f59e0b');
-    if (data.image_count > 0) addFileChip(`${data.image_count} images`, '#ec4899');
-    if (data.has_javascript) { addFileChip('Has JS', '#ef4444'); playSound('warn'); toast('PDF contains JavaScript — check Advanced Options to remove it.', 'warn', 4000); }
+
+    // Chips
+    if (data.page_count)   addChip(`${data.page_count} pages`, '#6366f1');
+    if (data.image_count > 0) addChip(`${data.image_count} imgs`, '#ec4899');
+    if (data.has_javascript)  {
+      addChip('Has JS', '#ef4444');
+      S('warn');
+      toast('PDF contains JavaScript — enable "Remove JavaScript" in Advanced Options', 'warn', 5000);
+    }
+    if (data.has_forms)    addChip('Has Forms', '#f97316');
+    if (data.has_encryption) {
+      addChip('Encrypted', '#f59e0b');
+      toast('This PDF is encrypted — enter the password in Advanced Options', 'warn', 5000);
+    }
 
     // Update mode estimates
     const ests = data.estimated_reductions_by_preset || {};
     for (const [preset, pct] of Object.entries(ests)) {
       const el = document.getElementById(`est-${preset}`);
-      if (el && pct > 0) el.textContent = `~${Math.round(pct)}% off`;
+      if (el && pct > 0) el.textContent = `~${Math.round(pct)}% smaller`;
     }
 
-    // Auto-select recommended mode based on content
-    if (data.content_type === 'text_heavy') {
+    // Auto recommend mode
+    const ct = data.content_type || 'mixed';
+    if (ct === 'text_heavy') {
       selectMode('lossless');
-      toast('Text-heavy PDF detected — Lossless preset auto-selected.', 'info');
+      toast('Text-heavy PDF — Lossless preset auto-selected for best quality', 'info');
+    } else if (ct === 'scanned') {
+      selectMode('low');
+      toast('Scanned PDF detected — Low preset recommended for best compression', 'info');
     }
-  } catch (_) {}
+
+  } catch (_) {
+    if (D.analyzeBar) D.analyzeBar.hidden = true;
+  }
 }
 
 function removeFile() {
-  FILE = null; RESULT = null;
-  D.dropzone.hidden = false;
-  D.fileCard.hidden = true;
-  D.modesWrap.hidden  = true;
-  D.advWrap.hidden    = true;
-  D.actionArea.hidden = true;
-  D.progressWrap.hidden = true;
-  D.resultWrap.hidden   = true;
-  D.fileInput.value = '';
+  FILE   = null;
+  RESULT = null;
+  closeSSE();
+
+  D.dropzone.hidden      = false;
+  D.fileCard.hidden      = true;
+  D.analyzeBar.hidden    = true;
+  D.modesSection.hidden  = true;
+  D.advSection.hidden    = true;
+  D.actionArea.hidden    = true;
+  D.progressSection.hidden = true;
+  D.resultSection.hidden   = true;
+  D.fileInput.value        = '';
+
   // Reset estimates
-  ['screen','low','medium','high','lossless'].forEach(m => {
-    const el = document.getElementById(`est-${m}`);
-    if (el) el.textContent = {screen:'~75–90% off',low:'~55–75% off',medium:'~40–60% off',high:'~20–40% off',lossless:'~5–20% off'}[m];
-  });
+  const defaults = {
+    screen:'~75–90% smaller', low:'~55–75% smaller',
+    medium:'~40–60% smaller', high:'~20–45% smaller', lossless:'~5–25% smaller'
+  };
+  for (const [k, v] of Object.entries(defaults)) {
+    const el = document.getElementById(`est-${k}`);
+    if (el) el.textContent = v;
+  }
+
+  // Reset progress bar
+  setProgress(0, 'Compressing…', 'Starting 7-engine pipeline');
+  resetChips();
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// MODE SELECTION
-// ══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════════
+   MODE SELECTION
+═══════════════════════════════════════════════════════════════════════ */
 function selectMode(mode) {
   SEL_MODE = mode;
   document.querySelectorAll('.cp-mode').forEach(el => {
-    el.classList.toggle('active', el.dataset.mode === mode);
-    el.setAttribute('aria-checked', el.dataset.mode === mode ? 'true' : 'false');
+    const active = el.dataset.mode === mode;
+    el.classList.toggle('active', active);
+    el.setAttribute('aria-checked', active ? 'true' : 'false');
   });
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// TOGGLE SWITCHES
-// ══════════════════════════════════════════════════════════════════════════
-function wireToggle(el, key, cb) {
+/* ═══════════════════════════════════════════════════════════════════════
+   TOGGLE SWITCHES
+═══════════════════════════════════════════════════════════════════════ */
+function wireToggle(el, optKey, cb) {
   if (!el) return;
-  el.addEventListener('click', () => {
-    OPT[key] = !OPT[key];
-    el.classList.toggle('on', OPT[key]);
-    el.setAttribute('aria-checked', OPT[key] ? 'true' : 'false');
-    if (cb) cb(OPT[key]);
-  });
+  const toggle = () => {
+    OPT[optKey] = !OPT[optKey];
+    el.classList.toggle('on', OPT[optKey]);
+    el.setAttribute('aria-checked', OPT[optKey] ? 'true' : 'false');
+    updateAdvCount();
+    if (cb) cb(OPT[optKey]);
+  };
+  el.addEventListener('click', toggle);
   el.addEventListener('keydown', e => {
-    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); el.click(); }
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
   });
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// ADVANCED PANEL
-// ══════════════════════════════════════════════════════════════════════════
-function initAdvancedPanel() {
+/* ═══════════════════════════════════════════════════════════════════════
+   ADVANCED PANEL
+═══════════════════════════════════════════════════════════════════════ */
+function initAdvanced() {
   if (!D.advToggle) return;
+
   D.advToggle.addEventListener('click', () => {
     const open = D.advPanel.classList.toggle('open');
     D.advToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
-  wireToggle(D.grayscaleTgl, 'grayscale');
-  wireToggle(D.metaTgl,      'stripMeta');
-  wireToggle(D.annotTgl,     'removeAnnot');
-  wireToggle(D.linearTgl,    'linearize');
-  wireToggle(D.targetTgl,    'targetMode', (on) => {
+
+  wireToggle(D.gsTgl,     'grayscale');
+  wireToggle(D.metaTgl,   'stripMeta');
+  wireToggle(D.annotTgl,  'removeAnnot');
+  wireToggle(D.linearTgl, 'linearize');
+  wireToggle(D.jsTgl,     'removeJs');
+  wireToggle(D.embedTgl,  'removeEmbed');
+  wireToggle(D.formsTgl,  'removeForms');
+
+  wireToggle(D.targetTgl, 'targetMode', on => {
     if (D.targetSizeRow) D.targetSizeRow.hidden = !on;
   });
   if (D.targetSizeInp) {
-    D.targetSizeInp.addEventListener('input', () => {
-      OPT.targetKb = parseInt(D.targetSizeInp.value) || 500;
+    D.targetSizeInp.addEventListener('change', () => {
+      OPT.targetKb = Math.max(50, parseInt(D.targetSizeInp.value) || 500);
+    });
+  }
+
+  wireToggle(D.pwTgl, 'pwMode', on => {
+    if (D.passwordRow) D.passwordRow.hidden = !on;
+    if (on && D.passwordInp) D.passwordInp.focus();
+  });
+  if (D.passwordInp) {
+    D.passwordInp.addEventListener('input', () => {
+      OPT.password = D.passwordInp.value;
     });
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// PROGRESS CHIP HELPERS
-// ══════════════════════════════════════════════════════════════════════════
-const CHIPS_ORDER = ['chUpload','chAnalyze','chGs','chFitz','chPike','chDone'];
-
-function setChip(key, state) {
-  const el = D[key]; if (!el) return;
-  el.classList.remove('active','done');
-  if (state === 'active') el.classList.add('active');
-  if (state === 'done')   el.classList.add('done');
+/* ═══════════════════════════════════════════════════════════════════════
+   PROGRESS UI
+═══════════════════════════════════════════════════════════════════════ */
+function setProgress(pct, title, sub) {
+  if (!D) return;
+  const p = Math.min(100, Math.max(0, pct));
+  if (D.progBar)  D.progBar.style.width  = p + '%';
+  if (D.progGlow) D.progGlow.style.left  = Math.max(0, p - 5) + '%';
+  if (D.progPct)  D.progPct.textContent  = Math.round(p) + '%';
+  if (D.progBarWrap) D.progBarWrap.setAttribute('aria-valuenow', Math.round(p));
+  if (title && D.progTitle) D.progTitle.textContent = title;
+  if (sub   && D.progSub)   D.progSub.textContent   = sub;
 }
 
-function setProgress(pct, title, sub) {
-  pct = Math.min(100, Math.max(0, pct));
-  D.progBar.style.width = pct + '%';
-  D.progPct.textContent = Math.round(pct) + '%';
-  if (D.progBarWrap) D.progBarWrap.setAttribute('aria-valuenow', Math.round(pct));
-  if (title) D.progTitle.textContent = title;
-  if (sub)   D.progSub.textContent   = sub;
-  // Activate chip based on pct
-  const idx = pct < 10 ? 0 : pct < 25 ? 1 : pct < 50 ? 2 : pct < 70 ? 3 : pct < 90 ? 4 : 5;
-  CHIPS_ORDER.forEach((k, i) => {
-    setChip(k, i < idx ? 'done' : i === idx ? 'active' : '');
+function resetChips() {
+  [D.chUpload, D.chAnalyze, D.chGs, D.chFitz, D.chPike, D.chDone].forEach(ch => {
+    if (ch) { ch.classList.remove('active', 'done'); }
   });
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// SIMULATE PROGRESS (fallback while SSE not yet firing)
-// ══════════════════════════════════════════════════════════════════════════
-function startSim() {
-  SIM_PCT = 0;
-  SIM_TIMER = setInterval(() => {
-    SIM_PCT += Math.random() * 3;
-    if (SIM_PCT > 88) { SIM_PCT = 88; clearInterval(SIM_TIMER); }
-    setProgress(SIM_PCT);
-  }, 350);
+function activateChip(el) {
+  if (!el) return;
+  // Mark previous chip done
+  const chips = [D.chUpload, D.chAnalyze, D.chGs, D.chFitz, D.chPike, D.chDone];
+  const idx = chips.indexOf(el);
+  chips.forEach((c, i) => {
+    if (!c) return;
+    if (i < idx) { c.classList.remove('active'); c.classList.add('done'); }
+    else if (i === idx) { c.classList.add('active'); c.classList.remove('done'); }
+    else { c.classList.remove('active', 'done'); }
+  });
 }
 
-function stopSim() {
-  if (SIM_TIMER) { clearInterval(SIM_TIMER); SIM_TIMER = null; }
+function showEngineResults(enginesStr) {
+  if (!D.engineBar || !D.ebEngines) return;
+  D.engineBar.hidden = false;
+  D.ebEngines.innerHTML = '';
+  if (!enginesStr) return;
+  // Format: "gs=120KB,pymupdf=95KB,pikepdf=88KB"
+  const parts = enginesStr.split(',');
+  parts.forEach((part, i) => {
+    const div = document.createElement('div');
+    div.className = 'cp-eb-eng' + (i === parts.length - 1 ? ' best' : '');
+    div.textContent = part.trim();
+    D.ebEngines.appendChild(div);
+  });
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// SSE PROGRESS
-// ══════════════════════════════════════════════════════════════════════════
-function openSSE(jobId) {
+/* ═══════════════════════════════════════════════════════════════════════
+   SSE PROGRESS
+═══════════════════════════════════════════════════════════════════════ */
+function startSSE(jobId) {
   closeSSE();
+  JOB_ID = jobId;
+  const url = `/api/progress/${jobId}`;
+
   try {
-    SSE_ES = new EventSource(`/api/progress/${jobId}`);
-    SSE_ES.onmessage = (ev) => {
+    SSE_ES = new EventSource(url);
+
+    SSE_ES.onmessage = e => {
       try {
-        const data = JSON.parse(ev.data);
+        const data = JSON.parse(e.data);
         if (data.pct !== undefined) {
-          stopSim();
-          setProgress(data.pct, data.title, data.sub);
+          handleSSEProgress(data);
         }
       } catch (_) {}
     };
-    SSE_ES.onerror = () => closeSSE();
-  } catch (_) {}
+
+    SSE_ES.onerror = () => {
+      closeSSE();
+    };
+
+  } catch (_) {
+    startSimProgress();
+  }
+}
+
+function handleSSEProgress(data) {
+  const pct   = data.pct   || 0;
+  const stage = data.stage || '';
+  const msg   = data.msg   || '';
+
+  setProgress(pct, undefined, msg);
+
+  // Map stage → chip
+  const stageMap = {
+    'init':         D.chUpload,
+    'upload':       D.chUpload,
+    'ghostscript':  D.chGs,
+    'ghostscript_done': D.chGs,
+    'pymupdf':      D.chFitz,
+    'pymupdf_done': D.chFitz,
+    'pikepdf':      D.chPike,
+    'pikepdf_done': D.chPike,
+    'qpdf':         D.chPike,
+    'mutool':       D.chPike,
+    'pypdf':        D.chPike,
+    'done':         D.chDone,
+    'target_try_screen':  D.chGs,
+    'target_try_low':     D.chGs,
+    'target_try_medium':  D.chGs,
+    'target_try_high':    D.chGs,
+  };
+
+  const chip = stageMap[stage];
+  if (chip) activateChip(chip);
+
+  if (pct >= 30 && !D.chAnalyze.classList.contains('done')) {
+    activateChip(D.chGs);
+  }
 }
 
 function closeSSE() {
-  if (SSE_ES) { try { SSE_ES.close(); } catch(_){} SSE_ES = null; }
+  if (SSE_ES) { SSE_ES.close(); SSE_ES = null; }
+  if (SIM_TIMER) { clearInterval(SIM_TIMER); SIM_TIMER = null; }
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// COMPRESS
-// ══════════════════════════════════════════════════════════════════════════
+function startSimProgress() {
+  SIM_PCT = 0;
+  const steps = [
+    { pct: 12, stage: 'upload',      msg: 'Uploading PDF…' },
+    { pct: 22, stage: 'analyze',     msg: 'Analysing structure…' },
+    { pct: 38, stage: 'ghostscript', msg: 'Ghostscript engine running…' },
+    { pct: 52, stage: 'pymupdf',     msg: 'PyMuPDF engine running…' },
+    { pct: 65, stage: 'pikepdf',     msg: 'pikepdf engine running…' },
+    { pct: 76, stage: 'qpdf',        msg: 'qpdf engine running…' },
+    { pct: 85, stage: 'mutool',      msg: 'mutool engine running…' },
+    { pct: 92, stage: 'pypdf',       msg: 'pypdf engine running…' },
+    { pct: 97, stage: 'done',        msg: 'Picking best result…' },
+  ];
+  let stepIdx = 0;
+
+  SIM_TIMER = setInterval(() => {
+    if (stepIdx < steps.length) {
+      const s = steps[stepIdx++];
+      setProgress(s.pct, 'Compressing…', s.msg);
+      handleSSEProgress({ pct: s.pct, stage: s.stage, msg: s.msg });
+    }
+  }, 700);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   COMPRESS
+═══════════════════════════════════════════════════════════════════════ */
 async function doCompress() {
-  if (!FILE) { toast('Please upload a PDF first.', 'warn'); return; }
+  if (!FILE) { toast('Please upload a PDF first', 'warn'); return; }
+  if (D.compressBtn.disabled) return;
+
+  // State reset
+  closeSSE();
+  RESULT = null;
+  _compStartTime = Date.now();
 
   // UI: show progress
   D.compressBtn.disabled = true;
-  D.progressWrap.hidden  = false;
-  D.resultWrap.hidden    = true;
-  CHIPS_ORDER.forEach(k => setChip(k, ''));
-  setProgress(0, 'Uploading PDF…', 'Sending to server…');
+  D.modesSection.hidden  = true;
+  D.advSection.hidden    = true;
+  D.actionArea.hidden    = true;
+  D.resultSection.hidden = true;
+  D.progressSection.hidden = false;
 
-  // Generate job ID
-  JOB_ID = 'cp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+  resetChips();
+  setProgress(0, 'Compressing…', 'Starting 7-engine pipeline');
+  activateChip(D.chUpload);
 
-  // Start SSE + sim
-  openSSE(JOB_ID);
-  startSim();
-  playSound('start');
+  S('start');
+  toast('Compression started — 7-engine pipeline running…', 'info', 2000);
+
+  // Generate job ID for SSE
+  const jobId = 'cp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  startSSE(jobId);
+  startSimProgress();  // Always run sim as fallback
 
   // Build form data
   const fd = new FormData();
   fd.append('file', FILE);
-  fd.append('quality', SEL_MODE);
-  fd.append('job_id', JOB_ID);
-  fd.append('grayscale',          OPT.grayscale  ? '1' : '0');
-  fd.append('strip_metadata',     OPT.stripMeta  ? '1' : '0');
-  fd.append('remove_annotations', OPT.removeAnnot? '1' : '0');
-  fd.append('linearize',          OPT.linearize  ? '1' : '0');
+  fd.append('preset', SEL_MODE);
+  fd.append('job_id', jobId);
+  fd.append('grayscale',      OPT.grayscale     ? '1' : '0');
+  fd.append('strip_metadata', OPT.stripMeta     ? '1' : '0');
+  fd.append('remove_annotations', OPT.removeAnnot ? '1' : '0');
+  fd.append('linearize',      OPT.linearize     ? '1' : '0');
+  fd.append('remove_javascript', OPT.removeJs   ? '1' : '0');
+  fd.append('remove_embedded_files', OPT.removeEmbed ? '1' : '0');
+  fd.append('remove_forms',   OPT.removeForms   ? '1' : '0');
   if (OPT.targetMode && OPT.targetKb > 0) {
     fd.append('target_size_kb', OPT.targetKb);
   }
+  if (OPT.pwMode && OPT.password) {
+    fd.append('password', OPT.password);
+  }
 
   try {
-    const resp = await fetch('/api/compress-pdf', { method:'POST', body:fd });
+    setProgress(5, 'Uploading…', 'Sending PDF to server');
+    activateChip(D.chAnalyze);
 
-    stopSim(); closeSSE();
+    const res = await fetch('/api/compress-pdf', { method: 'POST', body: fd });
 
-    if (!resp.ok) {
-      let msg = `Server error ${resp.status}`;
-      try { const j = await resp.json(); msg = j.error || msg; } catch(_){}
-      throw new Error(msg);
+    closeSSE();
+
+    if (!res.ok) {
+      let errMsg = `Server error (${res.status})`;
+      try {
+        const errData = await res.json();
+        errMsg = errData.error || errMsg;
+      } catch (_) {}
+      throw new Error(errMsg);
     }
 
-    // Parse headers
-    const origKb   = parseFloat(resp.headers.get('X-Original-Size-KB')  || '0');
-    const compKb   = parseFloat(resp.headers.get('X-Compressed-Size-KB')|| '0');
-    const reductPct= parseFloat(resp.headers.get('X-Reduction-Pct')     || '0');
-    const method   = resp.headers.get('X-Method-Used') || 'multi-engine';
-    const procMs   = resp.headers.get('X-Processing-Ms');
+    // Extract response headers
+    const origKb   = parseFloat(res.headers.get('X-Original-Size-KB')  || '0');
+    const compKb   = parseFloat(res.headers.get('X-Compressed-Size-KB')|| '0');
+    const redPct   = parseFloat(res.headers.get('X-Reduction-Pct')     || '0');
+    const method   = res.headers.get('X-Method-Used')  || SEL_MODE;
+    const procMs   = parseInt(res.headers.get('X-Processing-Ms') || '0') || (Date.now() - _compStartTime);
+    const engTried = res.headers.get('X-Engines-Tried') || '';
 
-    // Get blob
-    const blob = await resp.blob();
+    // Download blob
+    const blob = await res.blob();
     RESULT = URL.createObjectURL(blob);
 
-    setProgress(100, 'Compression complete!', 'Ready to download');
-    CHIPS_ORDER.forEach(k => setChip(k,'done'));
+    setProgress(100, 'Done!', 'Compression complete');
+    activateChip(D.chDone);
+    [D.chUpload, D.chAnalyze, D.chGs, D.chFitz, D.chPike].forEach(c => {
+      if (c) { c.classList.remove('active'); c.classList.add('done'); }
+    });
+
+    if (engTried) showEngineResults(engTried);
 
     // Show results
-    setTimeout(() => {
-      D.progressWrap.hidden = true;
-      showResults(origKb, compKb, reductPct, method, procMs);
-    }, 600);
+    setTimeout(() => showResult({
+      origKb, compKb, redPct, method, procMs, engTried
+    }), 350);
 
   } catch (err) {
-    stopSim(); closeSSE();
-    setProgress(0, 'Compression failed', err.message || 'Unknown error');
-    CHIPS_ORDER.forEach(k => setChip(k,''));
-    toast('Compression failed: ' + (err.message || 'Unknown error'), 'error', 5000);
-    playSound('error');
+    closeSSE();
+    setProgress(0, 'Error', err.message || 'Compression failed');
+
     D.compressBtn.disabled = false;
+    D.modesSection.hidden  = false;
+    D.advSection.hidden    = false;
+    D.actionArea.hidden    = false;
+    D.progressSection.hidden = true;
+
+    S('error');
+    toast('Compression failed: ' + (err.message || 'Unknown error'), 'error', 6000);
+    console.error('Compress error:', err);
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// SHOW RESULTS
-// ══════════════════════════════════════════════════════════════════════════
-function showResults(origKb, compKb, reductPct, method, procMs) {
-  D.resultWrap.hidden = false;
-  playSound('success');
+/* ═══════════════════════════════════════════════════════════════════════
+   SHOW RESULT
+═══════════════════════════════════════════════════════════════════════ */
+function showResult({ origKb, compKb, redPct, method, procMs, engTried }) {
+  D.progressSection.hidden = true;
+  D.resultSection.hidden   = false;
+
+  const pct   = Math.max(0, redPct);
+  const grade = gradeFromPct(pct);
 
   // Header
-  const emoji = reductPct >= 70 ? '🎉' : reductPct >= 40 ? '✅' : reductPct >= 10 ? '📉' : '📄';
-  D.resTitle.textContent = `${emoji} Compressed! ${Math.round(reductPct)}% Smaller`;
-  D.resSub.textContent   = procMs ? `Done in ${(procMs/1000).toFixed(1)}s` : 'Done!';
+  D.resIcon.textContent  = pct >= 50 ? '🎉' : pct >= 25 ? '✅' : '📦';
+  D.resTitle.textContent = pct > 1 ? 'Compression Complete!' : 'Optimization Complete!';
+  D.resSub.textContent   = pct > 1
+    ? `Reduced by ${pct.toFixed(1)}% — ${formatBytes(origKb * 1024)} → ${formatBytes(compKb * 1024)}`
+    : 'PDF structure optimized (already efficient or text-only)';
+
+  D.resGrade.textContent  = grade;
+  D.resGrade.className    = 'cp-res-grade grade-' + grade;
+
+  // Ring animation
+  const circumference = 326.7;
+  const offset = circumference - (pct / 100) * circumference;
+  D.ringFill.style.strokeDashoffset = String(offset);
+
+  // Ring colour by grade
+  const ringColors = { S:'#34d399', A:'#6ee7b7', B:'#fcd34d', C:'#fb923c', D:'#f87171' };
+  D.ringFill.style.stroke = ringColors[grade] || '#10b981';
+
+  // Animate number
+  animateNum(D.ringNum, 0, pct, 1400, v => v.toFixed(1) + '%');
+
+  D.ringSub.textContent = `Grade ${grade} compression`;
 
   // Stats
-  const savedKb = origKb - compKb;
-  D.stOrig.textContent   = origKb > 1024 ? (origKb/1024).toFixed(2)+' MB' : origKb.toFixed(1)+' KB';
-  D.stComp.textContent   = compKb > 1024 ? (compKb/1024).toFixed(2)+' MB' : compKb.toFixed(1)+' KB';
-  D.stSaved.textContent  = savedKb > 0 ? (savedKb > 1024 ? (savedKb/1024).toFixed(2)+' MB' : savedKb.toFixed(1)+' KB') + ' saved' : 'No change';
-  D.stEngine.textContent = method;
-
-  // Ring
-  const circumf = 301.6;
-  const offset  = circumf * (1 - reductPct / 100);
-  D.ringFill.style.strokeDashoffset = Math.max(0, offset);
-  animateNum(D.ringNum, 0, Math.round(reductPct), 1300, '%');
-  D.ringSub.textContent = `${origKb.toFixed(0)} KB → ${compKb.toFixed(0)} KB`;
+  D.stOrig.textContent   = formatBytes(origKb * 1024);
+  D.stComp.textContent   = formatBytes(compKb * 1024);
+  D.stSaved.textContent  = formatBytes(Math.max(0, (origKb - compKb) * 1024)) + ' saved';
+  D.stEngine.textContent = method || '—';
+  D.stTime.textContent   = formatMs(procMs);
 
   // Bars
-  const ratio = origKb > 0 ? compKb / origKb : 0;
-  D.barOrig.style.width = '100%';
-  D.barComp.style.width = Math.round(ratio * 100) + '%';
-  D.barOrigLbl.textContent = origKb > 1024 ? (origKb/1024).toFixed(2)+' MB' : origKb.toFixed(1)+' KB';
-  D.barCompLbl.textContent = compKb > 1024 ? (compKb/1024).toFixed(2)+' MB' : compKb.toFixed(1)+' KB';
+  const origW = 100;
+  const compW = origKb > 0 ? Math.max(2, (compKb / origKb) * 100) : 50;
+  setTimeout(() => {
+    D.barOrig.style.width = origW + '%';
+    D.barComp.style.width = compW + '%';
+  }, 200);
+  D.barOrigLbl.textContent = formatBytes(origKb * 1024);
+  D.barCompLbl.textContent = formatBytes(compKb * 1024);
 
   // Quality note
-  const noteMap = {
-    screen:   'Screen preset (72 DPI) — images were downsampled for maximum size reduction.',
-    low:      'Low preset (96 DPI) — good for email. Small file with acceptable image quality.',
-    medium:   'Medium preset (150 DPI) — balanced. Recommended for most documents.',
-    high:     'High preset (200 DPI) — near-lossless quality with solid compression.',
-    lossless: 'Lossless preset — no image quality change. Only PDF structure was optimized.',
+  const presetNotes = {
+    screen:   'Screen preset (72 DPI) — suitable for on-screen viewing. Images significantly downsampled.',
+    low:      'Low preset (96 DPI) — email-quality. Some visible reduction at high zoom.',
+    medium:   'Medium preset (150 DPI) — excellent balance of quality and size. Recommended.',
+    high:     'High preset (200 DPI) — near-lossless. Minimal visual change at any zoom.',
+    lossless: 'Lossless preset — zero image quality loss. Structure and streams only.',
   };
-  D.qualNoteText.textContent = noteMap[SEL_MODE] || 'Compression complete.';
+  D.qualNoteText.textContent = presetNotes[SEL_MODE] || 'Compression complete.';
 
   // Download button
-  const dlName = DL_STEM + '_compressed.pdf';
-  D.dlBtnText.textContent = `Download (${compKb.toFixed(0)} KB)`;
-  D.dlBtn.onclick = () => {
-    const a = document.createElement('a');
-    a.href = RESULT; a.download = dlName;
-    a.click();
-    playSound('download');
-    toast(`Downloaded: ${dlName}`, 'success');
-  };
+  D.dlBtnText.textContent = `Download (${formatBytes(compKb * 1024)})`;
+  D.compressBtn.disabled  = false;
 
-  // Confetti for big reductions
-  if (reductPct >= 30) launchConfetti();
-
-  D.compressBtn.disabled = false;
-  D.resultWrap.scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-function animateNum(el, from, to, dur, sfx = '') {
-  const start = performance.now();
-  function step(now) {
-    const t = Math.min((now - start) / dur, 1);
-    const ease = 1 - Math.pow(1 - t, 3);
-    el.textContent = Math.round(from + (to - from) * ease) + sfx;
-    if (t < 1) requestAnimationFrame(step);
+  // Confetti + sound
+  S('success');
+  if (pct >= 30) {
+    launchConfetti();
+    S('download');
   }
-  requestAnimationFrame(step);
+
+  // Scroll to result
+  D.resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// CONFETTI
-// ══════════════════════════════════════════════════════════════════════════
+function animateNum(el, from, to, dur, fmt) {
+  if (!el) return;
+  const start = performance.now();
+  const update = ts => {
+    const elapsed = ts - start;
+    const progress = Math.min(elapsed / dur, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    el.textContent = fmt(from + (to - from) * ease);
+    if (progress < 1) requestAnimationFrame(update);
+  };
+  requestAnimationFrame(update);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DOWNLOAD
+═══════════════════════════════════════════════════════════════════════ */
+function doDownload() {
+  if (!RESULT) {
+    toast('No compressed file available — compress first', 'warn');
+    return;
+  }
+  const a = document.createElement('a');
+  a.href     = RESULT;
+  a.download = DL_STEM + '_compressed.pdf';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  S('download');
+  toast('Download started! 🎉', 'success', 2000);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RESET
+═══════════════════════════════════════════════════════════════════════ */
+function doReset() {
+  if (RESULT) {
+    try { URL.revokeObjectURL(RESULT); } catch (_) {}
+  }
+  removeFile();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CONFETTI
+═══════════════════════════════════════════════════════════════════════ */
 function launchConfetti() {
   if (typeof confetti === 'function') {
-    const opts = { particleCount:80, spread:70, origin:{y:.55}, colors:['#10b981','#34d399','#6ee7b7','#059669','#d1fae5'] };
-    confetti(opts);
-    setTimeout(() => confetti({ ...opts, origin:{x:.2,y:.6} }), 350);
-    setTimeout(() => confetti({ ...opts, origin:{x:.8,y:.6} }), 650);
+    const colors = ['#10b981', '#34d399', '#6ee7b7', '#6366f1', '#8b5cf6'];
+    confetti({ particleCount: 80, spread: 70, origin: { y: .55 }, colors });
+    setTimeout(() => confetti({ particleCount: 40, spread: 90, origin: { y: .45, x: .2 }, colors }), 350);
+    setTimeout(() => confetti({ particleCount: 40, spread: 90, origin: { y: .45, x: .8 }, colors }), 600);
   } else {
-    // CSS fallback
-    const canvas = D.confCanvas;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
-    const particles = Array.from({length:80}, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height * 0.5,
-      vx:(Math.random()-.5)*4,
-      vy:(Math.random()*3+1),
-      r: Math.random()*5+3,
-      c:`hsl(${140+Math.random()*30},80%,${50+Math.random()*20}%)`,
-      a:1,
-    }));
-    function draw() {
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      let alive = false;
-      particles.forEach(p => {
-        p.x += p.vx; p.y += p.vy; p.a -= .012;
-        if (p.a > 0) { alive = true; }
-        ctx.globalAlpha = Math.max(0,p.a);
-        ctx.fillStyle = p.c;
-        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
-      });
-      ctx.globalAlpha = 1;
-      if (alive) requestAnimationFrame(draw);
-      else ctx.clearRect(0,0,canvas.width,canvas.height);
+    // CSS fallback particles
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < 24; i++) {
+      const p = document.createElement('div');
+      p.style.cssText = `
+        position:fixed;
+        left:${10 + Math.random()*80}%;
+        top:${20 + Math.random()*30}%;
+        width:${6 + Math.random()*8}px;
+        height:${6 + Math.random()*8}px;
+        border-radius:50%;
+        background:hsl(${140 + Math.random()*60},80%,60%);
+        z-index:9998;
+        pointer-events:none;
+        animation:cp-conf-fall ${1 + Math.random()}s ease-in forwards;
+      `;
+      frag.appendChild(p);
     }
-    requestAnimationFrame(draw);
+    document.body.appendChild(frag);
+    setTimeout(() => document.querySelectorAll('[style*="cp-conf-fall"]').forEach(el => el.remove()), 2000);
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// RESET
-// ══════════════════════════════════════════════════════════════════════════
-function reset() {
-  if (RESULT) { URL.revokeObjectURL(RESULT); RESULT = null; }
-  stopSim(); closeSSE();
-  D.progressWrap.hidden = true;
-  D.resultWrap.hidden   = true;
-  removeFile();
-  window.scrollTo({ top:0, behavior:'smooth' });
-}
+/* ═══════════════════════════════════════════════════════════════════════
+   SHARE
+═══════════════════════════════════════════════════════════════════════ */
+async function doShare() {
+  const url = window.location.href;
+  const text = 'Compress PDF free online — up to 90% size reduction! By Ishu Kumar (ISHUKR41) at ishutools.fun';
 
-// ══════════════════════════════════════════════════════════════════════════
-// BG CANVAS
-// ══════════════════════════════════════════════════════════════════════════
-function initBgCanvas() {
-  const canvas = D.bgCanvas;
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const DOTS = [];
-  const N = 55;
-  function resize() {
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'IshuTools PDF Compressor', text, url });
+      return;
+    } catch (_) {}
   }
-  resize();
-  window.addEventListener('resize', resize, {passive:true});
-  for (let i = 0; i < N; i++) {
-    DOTS.push({
-      x:  Math.random() * innerWidth,
-      y:  Math.random() * innerHeight,
-      vx: (Math.random()-.5)*0.35,
-      vy: (Math.random()-.5)*0.35,
-      r:  Math.random()*2+.5,
-      a:  Math.random()*.6+.2,
-    });
+
+  // Clipboard fallback
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('Link copied to clipboard!', 'success', 2000);
+  } catch (_) {
+    toast('Share: ' + url, 'info', 5000);
   }
-  function draw() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    DOTS.forEach(d => {
-      d.x += d.vx; d.y += d.vy;
-      if (d.x < 0) d.x = canvas.width;
-      if (d.x > canvas.width)  d.x = 0;
-      if (d.y < 0) d.y = canvas.height;
-      if (d.y > canvas.height) d.y = 0;
-      ctx.beginPath();
-      ctx.arc(d.x,d.y,d.r,0,Math.PI*2);
-      ctx.fillStyle = `rgba(16,185,129,${d.a})`;
-      ctx.fill();
-    });
-    // lines
-    for (let i = 0; i < DOTS.length; i++) {
-      for (let j = i+1; j < DOTS.length; j++) {
-        const dx = DOTS[i].x-DOTS[j].x, dy = DOTS[i].y-DOTS[j].y;
-        const dist = Math.sqrt(dx*dx+dy*dy);
-        if (dist < 120) {
-          ctx.beginPath();
-          ctx.moveTo(DOTS[i].x,DOTS[i].y);
-          ctx.lineTo(DOTS[j].x,DOTS[j].y);
-          ctx.strokeStyle = `rgba(16,185,129,${0.08*(1-dist/120)})`;
-          ctx.lineWidth = .5;
-          ctx.stroke();
-        }
-      }
-    }
-    requestAnimationFrame(draw);
-  }
-  requestAnimationFrame(draw);
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// COUNTERS
-// ══════════════════════════════════════════════════════════════════════════
-function initCounters() {
-  const els = document.querySelectorAll('.cp-cnt-num[data-count]');
-  if (!els.length) return;
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      io.unobserve(entry.target);
-      const el    = entry.target;
-      const target= parseFloat(el.dataset.count);
-      const sfx   = el.dataset.sfx || '';
-      const dur   = 1600;
-      const start = performance.now();
-      const isFloat = String(target).includes('.');
-      function step(now) {
-        const t = Math.min((now - start)/dur, 1);
-        const ease = 1-(1-t)**3;
-        const val = target * ease;
-        el.textContent = (isFloat ? val.toFixed(1) : Math.round(val)) + sfx;
-        if (t < 1) requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
-    });
-  }, { threshold:.5 });
-  els.forEach(el => io.observe(el));
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// FAQ ACCORDION
-// ══════════════════════════════════════════════════════════════════════════
-function initFaq() {
-  document.querySelectorAll('.cp-fq').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const faq = btn.closest('.cp-faq');
-      const wasOpen = faq.classList.contains('open');
-      document.querySelectorAll('.cp-faq.open').forEach(f => f.classList.remove('open'));
-      if (!wasOpen) faq.classList.add('open');
-      btn.setAttribute('aria-expanded', !wasOpen ? 'true' : 'false');
-    });
-    btn.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); }
-    });
-  });
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// THEME
-// ══════════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════════
+   THEME
+═══════════════════════════════════════════════════════════════════════ */
 function initTheme() {
-  const saved = localStorage.getItem('cpTheme') || 'dark';
-  document.documentElement.setAttribute('data-theme', saved);
-  updateThemeIcon(saved);
-  if (!D.themeBtn) return;
-  D.themeBtn.addEventListener('click', () => {
-    const cur  = document.documentElement.getAttribute('data-theme') || 'dark';
-    const next = cur === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('cpTheme', next);
-    updateThemeIcon(next);
-  });
+  const saved = localStorage.getItem('cp-theme') || 'dark';
+  applyTheme(saved);
+
+  if (D.themeBtn) {
+    D.themeBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next    = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      localStorage.setItem('cp-theme', next);
+    });
+  }
 }
 
-function updateThemeIcon(theme) {
-  if (!D.themeIcon) return;
-  D.themeIcon.className = theme === 'dark' ? 'fa fa-moon' : 'fa fa-sun';
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  if (D && D.themeIcon) {
+    D.themeIcon.className = theme === 'dark' ? 'fa fa-moon' : 'fa fa-sun';
+  }
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// SOUND TOGGLE
-// ══════════════════════════════════════════════════════════════════════════
-function initSoundToggle() {
-  SOUND_ON = localStorage.getItem('cpSound') !== '0';
+/* ═══════════════════════════════════════════════════════════════════════
+   SOUND TOGGLE
+═══════════════════════════════════════════════════════════════════════ */
+function initSound() {
+  SOUND_ON = localStorage.getItem('cp-sound') !== 'off';
   updateSoundIcon();
-  if (!D.soundBtn) return;
-  D.soundBtn.addEventListener('click', () => {
-    SOUND_ON = !SOUND_ON;
-    localStorage.setItem('cpSound', SOUND_ON ? '1' : '0');
-    updateSoundIcon();
-    if (SOUND_ON) playSound('add');
-  });
+
+  if (D.soundBtn) {
+    D.soundBtn.addEventListener('click', () => {
+      SOUND_ON = !SOUND_ON;
+      localStorage.setItem('cp-sound', SOUND_ON ? 'on' : 'off');
+      updateSoundIcon();
+      if (SOUND_ON) S('add');
+      toast(SOUND_ON ? 'Sounds on 🔊' : 'Sounds off 🔇', 'info', 1500);
+    });
+  }
 }
 
 function updateSoundIcon() {
-  if (!D.soundIcon) return;
+  if (!D || !D.soundIcon) return;
   D.soundIcon.className = SOUND_ON ? 'fa fa-volume-high' : 'fa fa-volume-xmark';
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// SHARE
-// ══════════════════════════════════════════════════════════════════════════
-function initShare() {
-  if (!D.shareBtn) return;
-  D.shareBtn.addEventListener('click', async () => {
-    const url  = 'https://ishutools.fun/tools/compress-pdf/';
-    const text = 'Free PDF compressor — up to 90% reduction, no signup! By Ishu Kumar';
-    if (navigator.share) {
-      try { await navigator.share({ title:'IshuTools Compress PDF', text, url }); } catch(_){}
-    } else {
-      try { await navigator.clipboard.writeText(url); toast('Link copied!', 'success'); } catch(_){}
+/* ═══════════════════════════════════════════════════════════════════════
+   FAQ
+═══════════════════════════════════════════════════════════════════════ */
+function initFaq() {
+  const faqs = document.querySelectorAll('.cp-faq');
+  faqs.forEach(faq => {
+    const btn  = faq.querySelector('.cp-fq');
+    if (!btn) return;
+    btn.setAttribute('role', 'button');
+    btn.setAttribute('tabindex', '0');
+    const toggle = () => {
+      const open = !faq.classList.contains('open');
+      faqs.forEach(f => f.classList.remove('open'));  // close others
+      faq.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    btn.addEventListener('click', toggle);
+    btn.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   COUNTER ANIMATION
+═══════════════════════════════════════════════════════════════════════ */
+function initCounters() {
+  const els = document.querySelectorAll('.cp-cnt-num[data-count]');
+  if (!els.length) return;
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el  = entry.target;
+      const max = parseInt(el.dataset.count);
+      const dur = 1800;
+      const suf = el.nextElementSibling?.classList.contains('cp-cnt-suf')
+        ? el.nextElementSibling.textContent : '';
+
+      animateNum(el, 0, max, dur, v => {
+        const n = Math.round(v);
+        if (max >= 1000000) return (n / 1000000).toFixed(1) + 'M+';
+        if (max >= 1000)    return (n / 1000).toFixed(0) + 'K+';
+        return String(n);
+      });
+      io.unobserve(el);
+    });
+  }, { threshold: .5 });
+
+  els.forEach(el => io.observe(el));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUT
+═══════════════════════════════════════════════════════════════════════ */
+function initKeyboard() {
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (FILE && !D.compressBtn.disabled) doCompress();
+    }
+    // Escape: close advanced panel
+    if (e.key === 'Escape' && D.advPanel.classList.contains('open')) {
+      D.advPanel.classList.remove('open');
+      D.advToggle.setAttribute('aria-expanded', 'false');
     }
   });
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// GSAP ENTRANCE ANIMATIONS (if available)
-// ══════════════════════════════════════════════════════════════════════════
-function initGsap() {
-  if (typeof gsap === 'undefined') return;
-  gsap.from('.cp-hero-compact', { y:20, opacity:0, duration:.6, ease:'power2.out' });
-  gsap.from('.cp-dz',           { y:24, opacity:0, duration:.7, delay:.15, ease:'power2.out' });
-  gsap.from('.cp-marquee-strip',{ opacity:0, duration:.5, delay:.4 });
-}
+/* ═══════════════════════════════════════════════════════════════════════
+   DRAG AND DROP
+═══════════════════════════════════════════════════════════════════════ */
+function initDragDrop() {
+  const dz = D.dropzone;
+  if (!dz) return;
 
-// ══════════════════════════════════════════════════════════════════════════
-// MAIN INIT (DOMContentLoaded)
-// ══════════════════════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-  initDom();
-  initBgCanvas();
-  initTheme();
-  initSoundToggle();
-  initAdvancedPanel();
-  initFaq();
-  initCounters();
-  initShare();
+  // Prevent default drag on whole document
+  document.addEventListener('dragover',  e => e.preventDefault(), { passive: false });
+  document.addEventListener('drop',      e => e.preventDefault());
 
-  // ── File input (hidden) ──
-  D.fileInput.addEventListener('change', () => {
-    if (D.fileInput.files[0]) setFile(D.fileInput.files[0]);
+  dz.addEventListener('dragenter', e => {
+    e.preventDefault();
+    dz.classList.add('drag-over');
+  });
+  dz.addEventListener('dragleave', e => {
+    if (!dz.contains(e.relatedTarget)) dz.classList.remove('drag-over');
+  });
+  dz.addEventListener('dragover', e => {
+    e.preventDefault();
+    dz.classList.add('drag-over');
+  });
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    const f = e.dataTransfer?.files?.[0];
+    if (f) setFile(f);
   });
 
-  // ── Browse button ──
-  D.browseBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    D.fileInput.click();
-  });
+  // Click to browse
+  const openInput = e => {
+    if (e.target === D.browseBtn || dz.contains(e.target)) {
+      D.fileInput.click();
+    }
+  };
+  dz.addEventListener('click', openInput);
 
-  // ── Drop zone click (NOT browseBtn — handled above) ──
-  D.dropzone.addEventListener('click', (e) => {
-    if (e.target === D.browseBtn || D.browseBtn.contains(e.target)) return;
-    D.fileInput.click();
-  });
-
-  // ── Keyboard on dropzone ──
-  D.dropzone.addEventListener('keydown', (e) => {
+  // Keyboard activate
+  dz.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); D.fileInput.click(); }
   });
 
-  // ── Drag-and-drop ──
-  D.dropzone.addEventListener('dragover', (e) => { e.preventDefault(); D.dropzone.classList.add('drag-over'); });
-  D.dropzone.addEventListener('dragleave', ()  => D.dropzone.classList.remove('drag-over'));
-  D.dropzone.addEventListener('drop', (e)       => {
-    e.preventDefault(); D.dropzone.classList.remove('drag-over');
-    const f = e.dataTransfer.files[0];
-    if (f) setFile(f);
+  // Browse button (explicit)
+  if (D.browseBtn) {
+    D.browseBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      D.fileInput.click();
+    });
+  }
+
+  // File input change
+  if (D.fileInput) {
+    D.fileInput.addEventListener('change', e => {
+      const f = e.target.files?.[0];
+      if (f) setFile(f);
+    });
+  }
+
+  // Paste support
+  document.addEventListener('paste', e => {
+    const items = e.clipboardData?.items || [];
+    for (const item of items) {
+      if (item.kind === 'file' && (item.type === 'application/pdf' || item.type === '')) {
+        const f = item.getAsFile();
+        if (f) { setFile(f); break; }
+      }
+    }
   });
-  document.body.addEventListener('dragover', (e) => e.preventDefault());
-  document.body.addEventListener('drop',     (e) => e.preventDefault());
 
-  // ── Paste ──
-  document.addEventListener('paste', (e) => {
-    const item = [...(e.clipboardData?.items || [])].find(i => i.type === 'application/pdf');
-    if (item) setFile(item.getAsFile());
+  // Document-level drop (outside the drop zone)
+  document.addEventListener('drop', e => {
+    if (dz.contains(e.target)) return;  // already handled above
+    const f = e.dataTransfer?.files?.[0];
+    if (f && (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))) {
+      setFile(f);
+    }
   });
+}
 
-  // ── Remove file ──
-  D.removeBtn.addEventListener('click', removeFile);
+/* ═══════════════════════════════════════════════════════════════════════
+   SCROLL ANIMATION (sections fade in from bottom)
+═══════════════════════════════════════════════════════════════════════ */
+function initScrollAnim() {
+  const style = document.createElement('style');
+  style.textContent = `
+    .cp-anim-hidden { opacity:0; transform:translateY(28px); }
+    .cp-anim-visible { opacity:1; transform:translateY(0);
+      transition: opacity .55s ease, transform .55s ease; }
+  `;
+  document.head.appendChild(style);
 
-  // ── Mode cards ──
-  document.querySelectorAll('.cp-mode').forEach(el => {
-    el.addEventListener('click',   () => selectMode(el.dataset.mode));
-    el.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectMode(el.dataset.mode); }
+  const targets = document.querySelectorAll(
+    '.cp-section, .cp-counters-band, .cp-seo-section, .cp-author-card'
+  );
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.replace('cp-anim-hidden', 'cp-anim-visible');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: .08 });
+
+  targets.forEach(el => {
+    el.classList.add('cp-anim-hidden');
+    io.observe(el);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MODE CARD KEYBOARD
+═══════════════════════════════════════════════════════════════════════ */
+function initModeCards() {
+  document.querySelectorAll('.cp-mode').forEach(card => {
+    card.addEventListener('click', () => selectMode(card.dataset.mode));
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectMode(card.dataset.mode); }
     });
   });
+}
 
-  // ── Compress button ──
-  D.compressBtn.addEventListener('click', doCompress);
+/* ═══════════════════════════════════════════════════════════════════════
+   ENTRY POINT
+═══════════════════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  initDom();
 
-  // ── Reset / Compress Another ──
-  if (D.resetBtn) D.resetBtn.addEventListener('click', reset);
+  // Feature checks (graceful)
+  initTheme();
+  initSound();
+  initBgCanvas();
+  initDzParticles();
+  initDragDrop();
+  initModeCards();
+  initAdvanced();
+  initFaq();
+  initCounters();
+  initScrollAnim();
+  initKeyboard();
 
-  // ── Keyboard shortcut: Ctrl+Enter ──
-  document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && FILE && !D.compressBtn.disabled) {
-      e.preventDefault(); doCompress();
-    }
-    if (e.key === 'Escape' && D.resultWrap && !D.resultWrap.hidden) reset();
-  });
+  // Default mode active visual
+  selectMode(SEL_MODE);
 
-  // ── GSAP (with timeout to let defer load) ──
-  setTimeout(initGsap, 200);
+  // Remove btn
+  if (D.removeBtn) {
+    D.removeBtn.addEventListener('click', e => { e.stopPropagation(); removeFile(); });
+  }
 
-  // Select default mode
-  selectMode('screen');
+  // Compress btn
+  if (D.compressBtn) {
+    D.compressBtn.addEventListener('click', doCompress);
+  }
+
+  // Download btn
+  if (D.dlBtn) {
+    D.dlBtn.addEventListener('click', doDownload);
+  }
+
+  // Reset btn
+  if (D.resetBtn) {
+    D.resetBtn.addEventListener('click', doReset);
+  }
+
+  // Share btn
+  if (D.shareBtn) {
+    D.shareBtn.addEventListener('click', doShare);
+  }
+
+  // Greeting
+  console.log(
+    '%cIshuTools PDF Compressor v11.0\n%cBy Ishu Kumar (ISHUKR41) — ishutools.fun',
+    'color:#10b981;font-weight:bold;font-size:14px',
+    'color:#a7f3d0;font-size:11px'
+  );
 });

@@ -874,10 +874,15 @@ def api_compress_pdf_analyze():
             'image_count':   data.get('image_count', 0),
             'font_count':    data.get('font_count', 0),
             'file_size_kb':  data.get('file_size_kb', 0),
-            'content_type':  data.get('content_type', 'unknown'),
-            'ghostscript_available': data.get('ghostscript_available', False),
-            'qpdf_available':        data.get('qpdf_available', False),
+            'content_type':  data.get('content_type', 'mixed'),
+            'has_javascript': data.get('has_javascript', False),
+            'has_forms':     data.get('has_forms', False),
+            'has_encryption': data.get('has_encryption', False),
+            'has_annotations': data.get('has_annotations', False),
+            'has_embedded_files': data.get('has_embedded_files', False),
+            'is_linearized': data.get('is_linearized', False),
             'estimated_reductions_by_preset': data.get('estimated_reductions_by_preset', {}),
+            'engines_available': data.get('engines', []),
         })
     except Exception as e:
         logger.exception("compress-pdf/analyze error")
