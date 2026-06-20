@@ -1,28 +1,24 @@
 /**
- * compress-pdf/script.js — IshuTools.fun v11.0
+ * IshuTools Compress PDF — script.js v15.0
  * Author: Ishu Kumar (ISHUKR41 / ISHUKR75) — ishutools.fun
  *
  * Features:
- *  - Drag-drop / click / paste upload — upload zone always first
- *  - 5 compression modes (screen/low/medium/high/lossless)
- *  - Advanced options: grayscale, strip metadata, annotations,
- *    linearize, remove JS, embedded files, forms, target size, password
- *  - SSE real-time progress with 6 step chips
- *  - 7-engine pipeline status display
- *  - Animated SVG reduction ring + size bars
- *  - Canvas confetti on significant reduction (>30%)
- *  - Animated BG canvas with particles
- *  - Drop zone floating particles
- *  - FAQ accordion (keyboard accessible)
- *  - Counter animation (IntersectionObserver)
- *  - Theme toggle (dark/light)
- *  - Sound toggle (sounds from merge-pdf/sounds folder)
- *  - Ctrl+Enter shortcut
- *  - Download filename = original stem + "_compressed.pdf"
- *  - fahhhhh.mp3 on download
- *  - Advanced options count badge
- *  - Share button (Web Share API / clipboard fallback)
- *  - Grade system: S/A/B/C/D based on reduction %
+ * - Drop zone upload (drag+drop, click, paste, document-level drop)
+ * - 5 compression presets (keyboard + mouse)
+ * - Advanced options: 9 toggles + sub-rows for target size, password
+ * - Real-time SSE progress with per-chip updates
+ * - Result section: ring, bars, stats, grade, confetti on ≥30% savings
+ * - Download with fahhhhh.mp3 sound effect
+ * - Sounds: are_bhai_bhai_bhai=add, cameraman_focus_karo=start,
+ *           waah_kya_scene_hai=success, fahhhhh=download,
+ *           eh_eh_eh_ehhhhhh=error, jaldi_waha_sa_hato=warning
+ * - Theme toggle (dark/light)
+ * - Sound toggle (on/off)
+ * - Animated bg canvas (particle field)
+ * - IntersectionObserver counters
+ * - FAQ accordion
+ * - Scroll reveal (y-only, no opacity:0 flash)
+ * - Ctrl+Enter keyboard shortcut
  */
 
 'use strict';
@@ -30,910 +26,58 @@
 /* ═══════════════════════════════════════════════════════════════════════
    STATE
 ═══════════════════════════════════════════════════════════════════════ */
-let FILE     = null;   // File object
-let RESULT   = null;   // Blob URL for download
-let SEL_MODE = 'medium';
-let JOB_ID   = null;
-let SSE_ES   = null;
-let SIM_TIMER = null;
-let SIM_PCT  = 0;
-let DL_STEM  = 'compressed';
-let _compStartTime = 0;
+let FILE      = null;  // File object
+let JOB_ID    = null;  // Server job id
+let SEL_MODE  = 'medium';
+let RESULT    = null;  // Last compression result dict
+let SSE_SRC   = null;  // EventSource
+let _origStem = '';    // Original file stem for download name
 
-// Advanced options state
-let OPT = {
-  grayscale:     false,
-  stripMeta:     false,
-  removeAnnot:   false,
-  linearize:     false,
-  removeJs:      false,
-  removeEmbed:   false,
-  removeForms:   false,
-  targetMode:    false,
-  targetKb:      500,
-  pwMode:        false,
-  password:      '',
-};
+/* DOM references — populated in DOMContentLoaded */
+let D = null;
 
-// Sounds
-let SOUND_ON    = true;
-let SOUND_CACHE = {};
-const SND_BASE  = '/tools/merge-pdf/sounds/';
+/* ═══════════════════════════════════════════════════════════════════════
+   SOUNDS  (from /tools/merge-pdf/sounds/)
+═══════════════════════════════════════════════════════════════════════ */
+const SOUNDS_BASE = '/tools/merge-pdf/sounds/';
 const SND = {
-  add:      'are_bhai_bhai_bhai.mp3',
-  start:    'cameraman_focus_karo.mp3',
-  success:  'waah_kya_scene_hai.mp3',
-  download: 'fahhhhh.mp3',
-  error:    'eh_eh_eh_ehhhhhh.mp3',
-  warn:     'jaldi_waha_sa_hato.mp3',
+  add:     'are_bhai_bhai_bhai.mp3',
+  start:   'cameraman_focus_karo.mp3',
+  success: 'waah_kya_scene_hai.mp3',
+  dl:      'fahhhhh.mp3',
+  error:   'eh_eh_eh_ehhhhhh.mp3',
+  warning: 'jaldi_waha_sa_hato.mp3',
 };
+
+let SOUND_ON = true;
 
 function S(key) {
   if (!SOUND_ON) return;
-  const file = SND[key];
-  if (!file) return;
+  const src = SOUNDS_BASE + (SND[key] || '');
+  if (!src) return;
   try {
-    if (!SOUND_CACHE[key]) {
-      SOUND_CACHE[key] = new Audio(SND_BASE + file);
-      SOUND_CACHE[key].volume = 0.55;
-    }
-    const a = SOUND_CACHE[key];
-    a.currentTime = 0;
+    const a = new Audio(src);
+    a.volume = 0.55;
     a.play().catch(() => {});
-  } catch (_) {}
+  } catch (e) {}
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
-   DOM REFS
-═══════════════════════════════════════════════════════════════════════ */
-let D = null;
-
-function initDom() {
-  D = {
-    // nav controls
-    soundBtn:     document.getElementById('soundBtn'),
-    soundIcon:    document.getElementById('soundIcon'),
-    themeBtn:     document.getElementById('themeBtn'),
-    themeIcon:    document.getElementById('themeIcon'),
-    // file input (hidden)
-    fileInput:    document.getElementById('fileInput'),
-    // upload zone
-    dropzone:     document.getElementById('dropzone'),
-    browseBtn:    document.getElementById('browseBtn'),
-    dzDragMsg:    document.getElementById('dzDragMsg'),
-    dzParticles:  document.getElementById('dzParticles'),
-    // file card
-    fileCard:     document.getElementById('fileCard'),
-    fileCardInner:document.getElementById('fileCardInner'),
-    fileName:     document.getElementById('fileName'),
-    fileMeta:     document.getElementById('fileMeta'),
-    fileChips:    document.getElementById('fileChips'),
-    removeBtn:    document.getElementById('removeBtn'),
-    // analyze bar
-    analyzeBar:   document.getElementById('analyzeBar'),
-    // modes
-    modesSection: document.getElementById('modesSection'),
-    // advanced
-    advSection:   document.getElementById('advSection'),
-    advToggle:    document.getElementById('advToggle'),
-    advPanel:     document.getElementById('advPanel'),
-    advArrow:     document.getElementById('advArrow'),
-    advCount:     document.getElementById('advCount'),
-    // toggles
-    gsTgl:        document.getElementById('grayscaleToggle'),
-    metaTgl:      document.getElementById('metaToggle'),
-    annotTgl:     document.getElementById('annotToggle'),
-    linearTgl:    document.getElementById('linearToggle'),
-    jsTgl:        document.getElementById('jsToggle'),
-    embedTgl:     document.getElementById('embedToggle'),
-    formsTgl:     document.getElementById('formsToggle'),
-    targetTgl:    document.getElementById('targetToggle'),
-    targetSizeRow:document.getElementById('targetSizeRow'),
-    targetSizeInp:document.getElementById('targetSizeInput'),
-    pwTgl:        document.getElementById('pwToggle'),
-    passwordRow:  document.getElementById('passwordRow'),
-    passwordInp:  document.getElementById('passwordInput'),
-    // action
-    actionArea:   document.getElementById('actionArea'),
-    compressBtn:  document.getElementById('compressBtn'),
-    compBtnIcon:  document.getElementById('compBtnIcon'),
-    compBtnText:  document.getElementById('compBtnText'),
-    // progress
-    progressSection: document.getElementById('progressSection'),
-    progTitle:    document.getElementById('progTitle'),
-    progSub:      document.getElementById('progSub'),
-    progPct:      document.getElementById('progPct'),
-    progBar:      document.getElementById('progBar'),
-    progGlow:     document.getElementById('progGlow'),
-    progBarWrap:  document.getElementById('progBarWrap'),
-    engineBar:    document.getElementById('engineBar'),
-    ebLabel:      document.getElementById('ebLabel'),
-    ebEngines:    document.getElementById('ebEngines'),
-    // chips
-    chUpload:     document.getElementById('ch-upload'),
-    chAnalyze:    document.getElementById('ch-analyze'),
-    chGs:         document.getElementById('ch-gs'),
-    chFitz:       document.getElementById('ch-fitz'),
-    chPike:       document.getElementById('ch-pike'),
-    chDone:       document.getElementById('ch-done'),
-    // result
-    resultSection:document.getElementById('resultSection'),
-    resIcon:      document.getElementById('resIcon'),
-    resTitle:     document.getElementById('resTitle'),
-    resSub:       document.getElementById('resSub'),
-    resGrade:     document.getElementById('resGrade'),
-    ringFill:     document.getElementById('ringFill'),
-    ringNum:      document.getElementById('ringNum'),
-    ringSub:      document.getElementById('ringSub'),
-    stOrig:       document.getElementById('stOrig'),
-    stComp:       document.getElementById('stComp'),
-    stSaved:      document.getElementById('stSaved'),
-    stEngine:     document.getElementById('stEngine'),
-    stTime:       document.getElementById('stTime'),
-    barOrig:      document.getElementById('barOrig'),
-    barComp:      document.getElementById('barComp'),
-    barOrigLbl:   document.getElementById('barOrigLbl'),
-    barCompLbl:   document.getElementById('barCompLbl'),
-    qualNote:     document.getElementById('qualNote'),
-    qualNoteText: document.getElementById('qualNoteText'),
-    dlBtn:        document.getElementById('dlBtn'),
-    dlBtnText:    document.getElementById('dlBtnText'),
-    resetBtn:     document.getElementById('resetBtn'),
-    shareBtn:     document.getElementById('shareBtn'),
-    // toasts
-    toastWrap:    document.getElementById('toastWrap'),
-    // canvas
-    bgCanvas:     document.getElementById('bgCanvas'),
-    // FAQ
-    faqList:      document.getElementById('faqList'),
-    // counters
-    counters:     document.querySelectorAll('.cp-cnt-num[data-count]'),
-  };
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   TOAST
-═══════════════════════════════════════════════════════════════════════ */
-function toast(msg, type = 'info', dur = 3500) {
-  if (!D || !D.toastWrap) return;
-  const icons = { info: 'ℹ️', success: '✅', error: '❌', warn: '⚠️' };
-  const el = document.createElement('div');
-  el.className = 'cp-toast';
-  el.innerHTML = `<span class="cp-toast-ic">${icons[type] || 'ℹ️'}</span><span>${msg}</span>`;
-  D.toastWrap.appendChild(el);
-  setTimeout(() => {
-    el.classList.add('cp-toast-out');
-    setTimeout(() => el.remove(), 380);
-  }, dur);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   UTILITIES
-═══════════════════════════════════════════════════════════════════════ */
-function formatBytes(n) {
-  if (n < 1024)            return n + ' B';
-  if (n < 1024 * 1024)    return (n / 1024).toFixed(1) + ' KB';
-  if (n < 1024**3)        return (n / 1024 / 1024).toFixed(2) + ' MB';
-  return (n / 1024**3).toFixed(2) + ' GB';
-}
-
-function formatMs(ms) {
-  if (ms < 1000) return ms + ' ms';
-  return (ms / 1000).toFixed(1) + 's';
-}
-
-function addChip(label, color) {
-  if (!D || !D.fileChips) return;
-  const span = document.createElement('span');
-  span.className = 'cp-chip-a';
-  span.textContent = label;
-  if (color) span.style.color = color;
-  D.fileChips.appendChild(span);
-}
-
-function updateAdvCount() {
-  const active = Object.values(OPT).filter(v => v === true).length;
-  if (!D || !D.advCount) return;
-  if (active > 0) {
-    D.advCount.textContent = active + ' enabled';
-    D.advCount.hidden = false;
-  } else {
-    D.advCount.hidden = true;
-  }
-}
-
-function gradeFromPct(pct) {
-  if (pct >= 70) return 'S';
-  if (pct >= 50) return 'A';
-  if (pct >= 30) return 'B';
-  if (pct >= 15) return 'C';
-  return 'D';
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   BACKGROUND CANVAS
-═══════════════════════════════════════════════════════════════════════ */
-function initBgCanvas() {
-  const canvas = D.bgCanvas;
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  let W, H, particles = [];
-  const DARK = document.documentElement.getAttribute('data-theme') !== 'light';
-
-  function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-  }
-
-  function mkParticle() {
-    return {
-      x: Math.random() * W,
-      y: Math.random() * H,
-      r: Math.random() * 1.8 + .4,
-      vx: (Math.random() - .5) * .35,
-      vy: (Math.random() - .5) * .35,
-      alpha: Math.random() * .45 + .05,
-      hue: 150 + Math.random() * 30,
-    };
-  }
-
-  resize();
-  window.addEventListener('resize', resize, { passive: true });
-  particles = Array.from({ length: 90 }, mkParticle);
-
-  let raf;
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-    particles.forEach(p => {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = isDark
-        ? `hsla(${p.hue},80%,60%,${p.alpha})`
-        : `hsla(${p.hue},65%,40%,${p.alpha * .5})`;
-      ctx.fill();
-      p.x += p.vx; p.y += p.vy;
-      if (p.x < 0 || p.x > W) p.vx *= -1;
-      if (p.y < 0 || p.y > H) p.vy *= -1;
-    });
-    raf = requestAnimationFrame(draw);
-  }
-  draw();
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   DROP ZONE PARTICLES
-═══════════════════════════════════════════════════════════════════════ */
-function initDzParticles() {
-  const wrap = D.dzParticles;
-  if (!wrap) return;
-  for (let i = 0; i < 12; i++) {
-    const p = document.createElement('div');
-    p.className = 'cp-dz-part';
-    p.style.cssText = `
-      left:${10 + Math.random() * 80}%;
-      top:${20 + Math.random() * 60}%;
-      --dur:${2.5 + Math.random() * 2}s;
-      --delay:${Math.random() * 3}s;
-      width:${3 + Math.random() * 4}px;
-      height:${3 + Math.random() * 4}px;
-      opacity:0;
-    `;
-    wrap.appendChild(p);
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   FILE HANDLING
-═══════════════════════════════════════════════════════════════════════ */
-function setFile(f) {
-  if (!f) return;
-  if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
-    toast('Please upload a valid PDF file (.pdf)', 'error');
-    S('error');
-    return;
-  }
-
-  FILE    = f;
-  RESULT  = null;
-  DL_STEM = f.name.replace(/\.pdf$/i, '');
-
-  // Hide dropzone, show file card
-  D.dropzone.hidden    = true;
-  D.fileCard.hidden    = false;
-  D.analyzeBar.hidden  = false;
-
-  D.fileName.textContent = f.name;
-  D.fileMeta.textContent = `${formatBytes(f.size)} · PDF Document`;
-  D.fileChips.innerHTML  = '';
-  addChip('📄 PDF', '#6366f1');
-  addChip(formatBytes(f.size), '#10b981');
-  if (f.size > 50 * 1024 * 1024) addChip('Large file', '#f59e0b');
-
-  // Show controls
-  D.modesSection.hidden = false;
-  D.advSection.hidden   = false;
-  D.actionArea.hidden   = false;
-
-  // Hide result/progress from previous run
-  D.resultSection.hidden   = true;
-  D.progressSection.hidden = true;
-
-  S('add');
-  toast('PDF loaded — choose compression level below', 'success', 2500);
-
-  // Analyze file asynchronously
-  analyzeFile(f);
-}
-
-async function analyzeFile(f) {
-  try {
-    const fd = new FormData();
-    fd.append('file', f);
-    const res = await fetch('/api/compress-pdf/analyze', { method: 'POST', body: fd });
-    D.analyzeBar.hidden = true;
-
-    if (!res.ok) return;
-    const data = await res.json();
-
-    // Chips
-    if (data.page_count)   addChip(`${data.page_count} pages`, '#6366f1');
-    if (data.image_count > 0) addChip(`${data.image_count} imgs`, '#ec4899');
-    if (data.has_javascript)  {
-      addChip('Has JS', '#ef4444');
-      S('warn');
-      toast('PDF contains JavaScript — enable "Remove JavaScript" in Advanced Options', 'warn', 5000);
-    }
-    if (data.has_forms)    addChip('Has Forms', '#f97316');
-    if (data.has_encryption) {
-      addChip('Encrypted', '#f59e0b');
-      toast('This PDF is encrypted — enter the password in Advanced Options', 'warn', 5000);
-    }
-
-    // Update mode estimates
-    const ests = data.estimated_reductions_by_preset || {};
-    for (const [preset, pct] of Object.entries(ests)) {
-      const el = document.getElementById(`est-${preset}`);
-      if (el && pct > 0) el.textContent = `~${Math.round(pct)}% smaller`;
-    }
-
-    // Auto recommend mode
-    const ct = data.content_type || 'mixed';
-    if (ct === 'text_heavy') {
-      selectMode('lossless');
-      toast('Text-heavy PDF — Lossless preset auto-selected for best quality', 'info');
-    } else if (ct === 'scanned') {
-      selectMode('low');
-      toast('Scanned PDF detected — Low preset recommended for best compression', 'info');
-    }
-
-  } catch (_) {
-    if (D.analyzeBar) D.analyzeBar.hidden = true;
-  }
-}
-
-function removeFile() {
-  FILE   = null;
-  RESULT = null;
-  closeSSE();
-
-  D.dropzone.hidden      = false;
-  D.fileCard.hidden      = true;
-  D.analyzeBar.hidden    = true;
-  D.modesSection.hidden  = true;
-  D.advSection.hidden    = true;
-  D.actionArea.hidden    = true;
-  D.progressSection.hidden = true;
-  D.resultSection.hidden   = true;
-  D.fileInput.value        = '';
-
-  // Reset estimates
-  const defaults = {
-    screen:'~75–90% smaller', low:'~55–75% smaller',
-    medium:'~40–60% smaller', high:'~20–45% smaller', lossless:'~5–25% smaller'
-  };
-  for (const [k, v] of Object.entries(defaults)) {
-    const el = document.getElementById(`est-${k}`);
-    if (el) el.textContent = v;
-  }
-
-  // Reset progress bar
-  setProgress(0, 'Compressing…', 'Starting 7-engine pipeline');
-  resetChips();
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   MODE SELECTION
-═══════════════════════════════════════════════════════════════════════ */
-function selectMode(mode) {
-  SEL_MODE = mode;
-  document.querySelectorAll('.cp-mode').forEach(el => {
-    const active = el.dataset.mode === mode;
-    el.classList.toggle('active', active);
-    el.setAttribute('aria-checked', active ? 'true' : 'false');
-  });
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   TOGGLE SWITCHES
-═══════════════════════════════════════════════════════════════════════ */
-function wireToggle(el, optKey, cb) {
-  if (!el) return;
-  const toggle = () => {
-    OPT[optKey] = !OPT[optKey];
-    el.classList.toggle('on', OPT[optKey]);
-    el.setAttribute('aria-checked', OPT[optKey] ? 'true' : 'false');
-    updateAdvCount();
-    if (cb) cb(OPT[optKey]);
-  };
-  el.addEventListener('click', toggle);
-  el.addEventListener('keydown', e => {
-    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
-  });
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   ADVANCED PANEL
-═══════════════════════════════════════════════════════════════════════ */
-function initAdvanced() {
-  if (!D.advToggle) return;
-
-  D.advToggle.addEventListener('click', () => {
-    const open = D.advPanel.classList.toggle('open');
-    D.advToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
-
-  wireToggle(D.gsTgl,     'grayscale');
-  wireToggle(D.metaTgl,   'stripMeta');
-  wireToggle(D.annotTgl,  'removeAnnot');
-  wireToggle(D.linearTgl, 'linearize');
-  wireToggle(D.jsTgl,     'removeJs');
-  wireToggle(D.embedTgl,  'removeEmbed');
-  wireToggle(D.formsTgl,  'removeForms');
-
-  wireToggle(D.targetTgl, 'targetMode', on => {
-    if (D.targetSizeRow) D.targetSizeRow.hidden = !on;
-  });
-  if (D.targetSizeInp) {
-    D.targetSizeInp.addEventListener('change', () => {
-      OPT.targetKb = Math.max(50, parseInt(D.targetSizeInp.value) || 500);
-    });
-  }
-
-  wireToggle(D.pwTgl, 'pwMode', on => {
-    if (D.passwordRow) D.passwordRow.hidden = !on;
-    if (on && D.passwordInp) D.passwordInp.focus();
-  });
-  if (D.passwordInp) {
-    D.passwordInp.addEventListener('input', () => {
-      OPT.password = D.passwordInp.value;
+function initSound() {
+  const saved = localStorage.getItem('cp-sound');
+  SOUND_ON = saved !== 'off';
+  _updateSoundBtn();
+  if (D.soundBtn) {
+    D.soundBtn.addEventListener('click', () => {
+      SOUND_ON = !SOUND_ON;
+      localStorage.setItem('cp-sound', SOUND_ON ? 'on' : 'off');
+      _updateSoundBtn();
     });
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
-   PROGRESS UI
-═══════════════════════════════════════════════════════════════════════ */
-function setProgress(pct, title, sub) {
-  if (!D) return;
-  const p = Math.min(100, Math.max(0, pct));
-  if (D.progBar)  D.progBar.style.width  = p + '%';
-  if (D.progGlow) D.progGlow.style.left  = Math.max(0, p - 5) + '%';
-  if (D.progPct)  D.progPct.textContent  = Math.round(p) + '%';
-  if (D.progBarWrap) D.progBarWrap.setAttribute('aria-valuenow', Math.round(p));
-  if (title && D.progTitle) D.progTitle.textContent = title;
-  if (sub   && D.progSub)   D.progSub.textContent   = sub;
-}
-
-function resetChips() {
-  [D.chUpload, D.chAnalyze, D.chGs, D.chFitz, D.chPike, D.chDone].forEach(ch => {
-    if (ch) { ch.classList.remove('active', 'done'); }
-  });
-}
-
-function activateChip(el) {
-  if (!el) return;
-  // Mark previous chip done
-  const chips = [D.chUpload, D.chAnalyze, D.chGs, D.chFitz, D.chPike, D.chDone];
-  const idx = chips.indexOf(el);
-  chips.forEach((c, i) => {
-    if (!c) return;
-    if (i < idx) { c.classList.remove('active'); c.classList.add('done'); }
-    else if (i === idx) { c.classList.add('active'); c.classList.remove('done'); }
-    else { c.classList.remove('active', 'done'); }
-  });
-}
-
-function showEngineResults(enginesStr) {
-  if (!D.engineBar || !D.ebEngines) return;
-  D.engineBar.hidden = false;
-  D.ebEngines.innerHTML = '';
-  if (!enginesStr) return;
-  // Format: "gs=120KB,pymupdf=95KB,pikepdf=88KB"
-  const parts = enginesStr.split(',');
-  parts.forEach((part, i) => {
-    const div = document.createElement('div');
-    div.className = 'cp-eb-eng' + (i === parts.length - 1 ? ' best' : '');
-    div.textContent = part.trim();
-    D.ebEngines.appendChild(div);
-  });
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SSE PROGRESS
-═══════════════════════════════════════════════════════════════════════ */
-function startSSE(jobId) {
-  closeSSE();
-  JOB_ID = jobId;
-  const url = `/api/progress/${jobId}`;
-
-  try {
-    SSE_ES = new EventSource(url);
-
-    SSE_ES.onmessage = e => {
-      try {
-        const data = JSON.parse(e.data);
-        if (data.pct !== undefined) {
-          handleSSEProgress(data);
-        }
-      } catch (_) {}
-    };
-
-    SSE_ES.onerror = () => {
-      closeSSE();
-    };
-
-  } catch (_) {
-    startSimProgress();
-  }
-}
-
-function handleSSEProgress(data) {
-  const pct   = data.pct   || 0;
-  const stage = data.stage || '';
-  const msg   = data.msg   || '';
-
-  setProgress(pct, undefined, msg);
-
-  // Map stage → chip
-  const stageMap = {
-    'init':         D.chUpload,
-    'upload':       D.chUpload,
-    'ghostscript':  D.chGs,
-    'ghostscript_done': D.chGs,
-    'pymupdf':      D.chFitz,
-    'pymupdf_done': D.chFitz,
-    'pikepdf':      D.chPike,
-    'pikepdf_done': D.chPike,
-    'qpdf':         D.chPike,
-    'mutool':       D.chPike,
-    'pypdf':        D.chPike,
-    'done':         D.chDone,
-    'target_try_screen':  D.chGs,
-    'target_try_low':     D.chGs,
-    'target_try_medium':  D.chGs,
-    'target_try_high':    D.chGs,
-  };
-
-  const chip = stageMap[stage];
-  if (chip) activateChip(chip);
-
-  if (pct >= 30 && !D.chAnalyze.classList.contains('done')) {
-    activateChip(D.chGs);
-  }
-}
-
-function closeSSE() {
-  if (SSE_ES) { SSE_ES.close(); SSE_ES = null; }
-  if (SIM_TIMER) { clearInterval(SIM_TIMER); SIM_TIMER = null; }
-}
-
-function startSimProgress() {
-  SIM_PCT = 0;
-  const steps = [
-    { pct: 12, stage: 'upload',      msg: 'Uploading PDF…' },
-    { pct: 22, stage: 'analyze',     msg: 'Analysing structure…' },
-    { pct: 38, stage: 'ghostscript', msg: 'Ghostscript engine running…' },
-    { pct: 52, stage: 'pymupdf',     msg: 'PyMuPDF engine running…' },
-    { pct: 65, stage: 'pikepdf',     msg: 'pikepdf engine running…' },
-    { pct: 76, stage: 'qpdf',        msg: 'qpdf engine running…' },
-    { pct: 85, stage: 'mutool',      msg: 'mutool engine running…' },
-    { pct: 92, stage: 'pypdf',       msg: 'pypdf engine running…' },
-    { pct: 97, stage: 'done',        msg: 'Picking best result…' },
-  ];
-  let stepIdx = 0;
-
-  SIM_TIMER = setInterval(() => {
-    if (stepIdx < steps.length) {
-      const s = steps[stepIdx++];
-      setProgress(s.pct, 'Compressing…', s.msg);
-      handleSSEProgress({ pct: s.pct, stage: s.stage, msg: s.msg });
-    }
-  }, 700);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   COMPRESS
-═══════════════════════════════════════════════════════════════════════ */
-async function doCompress() {
-  if (!FILE) { toast('Please upload a PDF first', 'warn'); return; }
-  if (D.compressBtn.disabled) return;
-
-  // State reset
-  closeSSE();
-  RESULT = null;
-  _compStartTime = Date.now();
-
-  // UI: show progress
-  D.compressBtn.disabled = true;
-  D.modesSection.hidden  = true;
-  D.advSection.hidden    = true;
-  D.actionArea.hidden    = true;
-  D.resultSection.hidden = true;
-  D.progressSection.hidden = false;
-
-  resetChips();
-  setProgress(0, 'Compressing…', 'Starting 7-engine pipeline');
-  activateChip(D.chUpload);
-
-  S('start');
-  toast('Compression started — 7-engine pipeline running…', 'info', 2000);
-
-  // Generate job ID for SSE
-  const jobId = 'cp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-  startSSE(jobId);
-  startSimProgress();  // Always run sim as fallback
-
-  // Build form data
-  const fd = new FormData();
-  fd.append('file', FILE);
-  fd.append('preset', SEL_MODE);
-  fd.append('job_id', jobId);
-  fd.append('grayscale',      OPT.grayscale     ? '1' : '0');
-  fd.append('strip_metadata', OPT.stripMeta     ? '1' : '0');
-  fd.append('remove_annotations', OPT.removeAnnot ? '1' : '0');
-  fd.append('linearize',      OPT.linearize     ? '1' : '0');
-  fd.append('remove_javascript', OPT.removeJs   ? '1' : '0');
-  fd.append('remove_embedded_files', OPT.removeEmbed ? '1' : '0');
-  fd.append('remove_forms',   OPT.removeForms   ? '1' : '0');
-  if (OPT.targetMode && OPT.targetKb > 0) {
-    fd.append('target_size_kb', OPT.targetKb);
-  }
-  if (OPT.pwMode && OPT.password) {
-    fd.append('password', OPT.password);
-  }
-
-  try {
-    setProgress(5, 'Uploading…', 'Sending PDF to server');
-    activateChip(D.chAnalyze);
-
-    const res = await fetch('/api/compress-pdf', { method: 'POST', body: fd });
-
-    closeSSE();
-
-    if (!res.ok) {
-      let errMsg = `Server error (${res.status})`;
-      try {
-        const errData = await res.json();
-        errMsg = errData.error || errMsg;
-      } catch (_) {}
-      throw new Error(errMsg);
-    }
-
-    // Extract response headers
-    const origKb   = parseFloat(res.headers.get('X-Original-Size-KB')  || '0');
-    const compKb   = parseFloat(res.headers.get('X-Compressed-Size-KB')|| '0');
-    const redPct   = parseFloat(res.headers.get('X-Reduction-Pct')     || '0');
-    const method   = res.headers.get('X-Method-Used')  || SEL_MODE;
-    const procMs   = parseInt(res.headers.get('X-Processing-Ms') || '0') || (Date.now() - _compStartTime);
-    const engTried = res.headers.get('X-Engines-Tried') || '';
-
-    // Download blob
-    const blob = await res.blob();
-    RESULT = URL.createObjectURL(blob);
-
-    setProgress(100, 'Done!', 'Compression complete');
-    activateChip(D.chDone);
-    [D.chUpload, D.chAnalyze, D.chGs, D.chFitz, D.chPike].forEach(c => {
-      if (c) { c.classList.remove('active'); c.classList.add('done'); }
-    });
-
-    if (engTried) showEngineResults(engTried);
-
-    // Show results
-    setTimeout(() => showResult({
-      origKb, compKb, redPct, method, procMs, engTried
-    }), 350);
-
-  } catch (err) {
-    closeSSE();
-    setProgress(0, 'Error', err.message || 'Compression failed');
-
-    D.compressBtn.disabled = false;
-    D.modesSection.hidden  = false;
-    D.advSection.hidden    = false;
-    D.actionArea.hidden    = false;
-    D.progressSection.hidden = true;
-
-    S('error');
-    toast('Compression failed: ' + (err.message || 'Unknown error'), 'error', 6000);
-    console.error('Compress error:', err);
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SHOW RESULT
-═══════════════════════════════════════════════════════════════════════ */
-function showResult({ origKb, compKb, redPct, method, procMs, engTried }) {
-  D.progressSection.hidden = true;
-  D.resultSection.hidden   = false;
-
-  const pct   = Math.max(0, redPct);
-  const grade = gradeFromPct(pct);
-
-  // Header
-  D.resIcon.textContent  = pct >= 50 ? '🎉' : pct >= 25 ? '✅' : '📦';
-  D.resTitle.textContent = pct > 1 ? 'Compression Complete!' : 'Optimization Complete!';
-  D.resSub.textContent   = pct > 1
-    ? `Reduced by ${pct.toFixed(1)}% — ${formatBytes(origKb * 1024)} → ${formatBytes(compKb * 1024)}`
-    : 'PDF structure optimized (already efficient or text-only)';
-
-  D.resGrade.textContent  = grade;
-  D.resGrade.className    = 'cp-res-grade grade-' + grade;
-
-  // Ring animation
-  const circumference = 326.7;
-  const offset = circumference - (pct / 100) * circumference;
-  D.ringFill.style.strokeDashoffset = String(offset);
-
-  // Ring colour by grade
-  const ringColors = { S:'#34d399', A:'#6ee7b7', B:'#fcd34d', C:'#fb923c', D:'#f87171' };
-  D.ringFill.style.stroke = ringColors[grade] || '#10b981';
-
-  // Animate number
-  animateNum(D.ringNum, 0, pct, 1400, v => v.toFixed(1) + '%');
-
-  D.ringSub.textContent = `Grade ${grade} compression`;
-
-  // Stats
-  D.stOrig.textContent   = formatBytes(origKb * 1024);
-  D.stComp.textContent   = formatBytes(compKb * 1024);
-  D.stSaved.textContent  = formatBytes(Math.max(0, (origKb - compKb) * 1024)) + ' saved';
-  D.stEngine.textContent = method || '—';
-  D.stTime.textContent   = formatMs(procMs);
-
-  // Bars
-  const origW = 100;
-  const compW = origKb > 0 ? Math.max(2, (compKb / origKb) * 100) : 50;
-  setTimeout(() => {
-    D.barOrig.style.width = origW + '%';
-    D.barComp.style.width = compW + '%';
-  }, 200);
-  D.barOrigLbl.textContent = formatBytes(origKb * 1024);
-  D.barCompLbl.textContent = formatBytes(compKb * 1024);
-
-  // Quality note
-  const presetNotes = {
-    screen:   'Screen preset (72 DPI) — suitable for on-screen viewing. Images significantly downsampled.',
-    low:      'Low preset (96 DPI) — email-quality. Some visible reduction at high zoom.',
-    medium:   'Medium preset (150 DPI) — excellent balance of quality and size. Recommended.',
-    high:     'High preset (200 DPI) — near-lossless. Minimal visual change at any zoom.',
-    lossless: 'Lossless preset — zero image quality loss. Structure and streams only.',
-  };
-  D.qualNoteText.textContent = presetNotes[SEL_MODE] || 'Compression complete.';
-
-  // Download button
-  D.dlBtnText.textContent = `Download (${formatBytes(compKb * 1024)})`;
-  D.compressBtn.disabled  = false;
-
-  // Confetti + sound
-  S('success');
-  if (pct >= 30) {
-    launchConfetti();
-    S('download');
-  }
-
-  // Scroll to result
-  D.resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function animateNum(el, from, to, dur, fmt) {
-  if (!el) return;
-  const start = performance.now();
-  const update = ts => {
-    const elapsed = ts - start;
-    const progress = Math.min(elapsed / dur, 1);
-    const ease = 1 - Math.pow(1 - progress, 3);
-    el.textContent = fmt(from + (to - from) * ease);
-    if (progress < 1) requestAnimationFrame(update);
-  };
-  requestAnimationFrame(update);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   DOWNLOAD
-═══════════════════════════════════════════════════════════════════════ */
-function doDownload() {
-  if (!RESULT) {
-    toast('No compressed file available — compress first', 'warn');
-    return;
-  }
-  const a = document.createElement('a');
-  a.href     = RESULT;
-  a.download = DL_STEM + '_compressed.pdf';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-
-  S('download');
-  toast('Download started! 🎉', 'success', 2000);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   RESET
-═══════════════════════════════════════════════════════════════════════ */
-function doReset() {
-  if (RESULT) {
-    try { URL.revokeObjectURL(RESULT); } catch (_) {}
-  }
-  removeFile();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   CONFETTI
-═══════════════════════════════════════════════════════════════════════ */
-function launchConfetti() {
-  if (typeof confetti === 'function') {
-    const colors = ['#10b981', '#34d399', '#6ee7b7', '#6366f1', '#8b5cf6'];
-    confetti({ particleCount: 80, spread: 70, origin: { y: .55 }, colors });
-    setTimeout(() => confetti({ particleCount: 40, spread: 90, origin: { y: .45, x: .2 }, colors }), 350);
-    setTimeout(() => confetti({ particleCount: 40, spread: 90, origin: { y: .45, x: .8 }, colors }), 600);
-  } else {
-    // CSS fallback particles
-    const frag = document.createDocumentFragment();
-    for (let i = 0; i < 24; i++) {
-      const p = document.createElement('div');
-      p.style.cssText = `
-        position:fixed;
-        left:${10 + Math.random()*80}%;
-        top:${20 + Math.random()*30}%;
-        width:${6 + Math.random()*8}px;
-        height:${6 + Math.random()*8}px;
-        border-radius:50%;
-        background:hsl(${140 + Math.random()*60},80%,60%);
-        z-index:9998;
-        pointer-events:none;
-        animation:cp-conf-fall ${1 + Math.random()}s ease-in forwards;
-      `;
-      frag.appendChild(p);
-    }
-    document.body.appendChild(frag);
-    setTimeout(() => document.querySelectorAll('[style*="cp-conf-fall"]').forEach(el => el.remove()), 2000);
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   SHARE
-═══════════════════════════════════════════════════════════════════════ */
-async function doShare() {
-  const url = window.location.href;
-  const text = 'Compress PDF free online — up to 90% size reduction! By Ishu Kumar (ISHUKR41) at ishutools.fun';
-
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: 'IshuTools PDF Compressor', text, url });
-      return;
-    } catch (_) {}
-  }
-
-  // Clipboard fallback
-  try {
-    await navigator.clipboard.writeText(url);
-    toast('Link copied to clipboard!', 'success', 2000);
-  } catch (_) {
-    toast('Share: ' + url, 'info', 5000);
-  }
+function _updateSoundBtn() {
+  if (!D.soundIcon) return;
+  D.soundIcon.className = SOUND_ON ? 'fa fa-volume-high' : 'fa fa-volume-xmark';
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -941,139 +85,199 @@ async function doShare() {
 ═══════════════════════════════════════════════════════════════════════ */
 function initTheme() {
   const saved = localStorage.getItem('cp-theme') || 'dark';
-  applyTheme(saved);
+  document.documentElement.setAttribute('data-theme', saved);
+  _updateThemeBtn(saved);
 
   if (D.themeBtn) {
     D.themeBtn.addEventListener('click', () => {
-      const current = document.documentElement.getAttribute('data-theme') || 'dark';
-      const next    = current === 'dark' ? 'light' : 'dark';
-      applyTheme(next);
+      const cur  = document.documentElement.getAttribute('data-theme');
+      const next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
       localStorage.setItem('cp-theme', next);
+      _updateThemeBtn(next);
     });
   }
 }
 
-function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  if (D && D.themeIcon) {
-    D.themeIcon.className = theme === 'dark' ? 'fa fa-moon' : 'fa fa-sun';
-  }
+function _updateThemeBtn(theme) {
+  if (!D.themeIcon) return;
+  D.themeIcon.className = theme === 'dark' ? 'fa fa-sun' : 'fa fa-moon';
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   SOUND TOGGLE
+   DOM INIT
 ═══════════════════════════════════════════════════════════════════════ */
-function initSound() {
-  SOUND_ON = localStorage.getItem('cp-sound') !== 'off';
-  updateSoundIcon();
-
-  if (D.soundBtn) {
-    D.soundBtn.addEventListener('click', () => {
-      SOUND_ON = !SOUND_ON;
-      localStorage.setItem('cp-sound', SOUND_ON ? 'on' : 'off');
-      updateSoundIcon();
-      if (SOUND_ON) S('add');
-      toast(SOUND_ON ? 'Sounds on 🔊' : 'Sounds off 🔇', 'info', 1500);
-    });
-  }
-}
-
-function updateSoundIcon() {
-  if (!D || !D.soundIcon) return;
-  D.soundIcon.className = SOUND_ON ? 'fa fa-volume-high' : 'fa fa-volume-xmark';
+function initDom() {
+  D = {
+    /* upload */
+    dropzone:      document.getElementById('dropzone'),
+    browseBtn:     document.getElementById('browseBtn'),
+    fileInput:     document.getElementById('fileInput'),
+    dzDragMsg:     document.getElementById('dzDragMsg'),
+    dzParticles:   document.getElementById('dzParticles'),
+    fileCard:      document.getElementById('fileCard'),
+    fileCardInner: document.getElementById('fileCardInner'),
+    fcThumb:       document.querySelector('.cp-fc-thumb'),
+    fileName:      document.getElementById('fileName'),
+    fileMeta:      document.getElementById('fileMeta'),
+    fileChips:     document.getElementById('fileChips'),
+    removeBtn:     document.getElementById('removeBtn'),
+    analyzeBar:    document.getElementById('analyzeBar'),
+    /* modes */
+    modesSection:  document.getElementById('modesSection'),
+    estEls:        {
+      screen:   document.getElementById('est-screen'),
+      low:      document.getElementById('est-low'),
+      medium:   document.getElementById('est-medium'),
+      high:     document.getElementById('est-high'),
+      lossless: document.getElementById('est-lossless'),
+    },
+    /* advanced */
+    advSection:    document.getElementById('advSection'),
+    advToggle:     document.getElementById('advToggle'),
+    advPanel:      document.getElementById('advPanel'),
+    advArrow:      document.getElementById('advArrow'),
+    advCount:      document.getElementById('advCount'),
+    /* toggles */
+    grayscaleToggle: document.getElementById('grayscaleToggle'),
+    metaToggle:      document.getElementById('metaToggle'),
+    annotToggle:     document.getElementById('annotToggle'),
+    linearToggle:    document.getElementById('linearToggle'),
+    jsToggle:        document.getElementById('jsToggle'),
+    embedToggle:     document.getElementById('embedToggle'),
+    formsToggle:     document.getElementById('formsToggle'),
+    targetToggle:    document.getElementById('targetToggle'),
+    pwToggle:        document.getElementById('pwToggle'),
+    /* sub-rows */
+    targetSizeRow:  document.getElementById('targetSizeRow'),
+    targetSizeInput: document.getElementById('targetSizeInput'),
+    passwordRow:    document.getElementById('passwordRow'),
+    passwordInput:  document.getElementById('passwordInput'),
+    /* action */
+    actionArea:    document.getElementById('actionArea'),
+    compressBtn:   document.getElementById('compressBtn'),
+    compBtnIcon:   document.getElementById('compBtnIcon'),
+    compBtnText:   document.getElementById('compBtnText'),
+    actionHint:    document.getElementById('actionHint'),
+    /* progress */
+    progressSection: document.getElementById('progressSection'),
+    progTitle:     document.getElementById('progTitle'),
+    progSub:       document.getElementById('progSub'),
+    progPct:       document.getElementById('progPct'),
+    progBar:       document.getElementById('progBar'),
+    progGlow:      document.getElementById('progGlow'),
+    progBarWrap:   document.getElementById('progBarWrap'),
+    chips: {
+      upload:  document.getElementById('ch-upload'),
+      analyze: document.getElementById('ch-analyze'),
+      gs:      document.getElementById('ch-gs'),
+      fitz:    document.getElementById('ch-fitz'),
+      pike:    document.getElementById('ch-pike'),
+      done:    document.getElementById('ch-done'),
+    },
+    engineBar:     document.getElementById('engineBar'),
+    ebLabel:       document.getElementById('ebLabel'),
+    ebEngines:     document.getElementById('ebEngines'),
+    /* result */
+    resultSection: document.getElementById('resultSection'),
+    resIcon:       document.getElementById('resIcon'),
+    resTitle:      document.getElementById('resTitle'),
+    resSub:        document.getElementById('resSub'),
+    resGrade:      document.getElementById('resGrade'),
+    ringFill:      document.getElementById('ringFill'),
+    ringNum:       document.getElementById('ringNum'),
+    ringSub:       document.getElementById('ringSub'),
+    stOrig:        document.getElementById('stOrig'),
+    stComp:        document.getElementById('stComp'),
+    stSaved:       document.getElementById('stSaved'),
+    stEngine:      document.getElementById('stEngine'),
+    stTime:        document.getElementById('stTime'),
+    barOrig:       document.getElementById('barOrig'),
+    barComp:       document.getElementById('barComp'),
+    barOrigLbl:    document.getElementById('barOrigLbl'),
+    barCompLbl:    document.getElementById('barCompLbl'),
+    barCompPct:    document.getElementById('barCompPct'),
+    qualNote:      document.getElementById('qualNote'),
+    qualNoteText:  document.getElementById('qualNoteText'),
+    dlBtn:         document.getElementById('dlBtn'),
+    dlBtnText:     document.getElementById('dlBtnText'),
+    resetBtn:      document.getElementById('resetBtn'),
+    shareBtn:      document.getElementById('shareBtn'),
+    /* nav */
+    soundBtn:      document.getElementById('soundBtn'),
+    soundIcon:     document.getElementById('soundIcon'),
+    themeBtn:      document.getElementById('themeBtn'),
+    themeIcon:     document.getElementById('themeIcon'),
+    /* misc */
+    toastWrap:     document.getElementById('toastWrap'),
+    faqList:       document.getElementById('faqList'),
+    bgCanvas:      document.getElementById('bgCanvas'),
+  };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   FAQ
+   TOAST
 ═══════════════════════════════════════════════════════════════════════ */
-function initFaq() {
-  const faqs = document.querySelectorAll('.cp-faq');
-  faqs.forEach(faq => {
-    const btn  = faq.querySelector('.cp-fq');
-    if (!btn) return;
-    btn.setAttribute('role', 'button');
-    btn.setAttribute('tabindex', '0');
-    const toggle = () => {
-      const open = !faq.classList.contains('open');
-      faqs.forEach(f => f.classList.remove('open'));  // close others
-      faq.classList.toggle('open', open);
-      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    };
-    btn.addEventListener('click', toggle);
-    btn.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
-    });
-  });
+function toast(msg, type = 'info', dur = 3400) {
+  const icons = {
+    success: 'fa-circle-check',
+    error:   'fa-circle-xmark',
+    info:    'fa-circle-info',
+    warning: 'fa-triangle-exclamation',
+  };
+  const el = document.createElement('div');
+  el.className = `cp-toast ${type}`;
+  el.innerHTML = `<i class="fa ${icons[type] || icons.info}"></i><span>${msg}</span>`;
+  D.toastWrap.appendChild(el);
+
+  const hide = () => {
+    el.classList.add('out');
+    setTimeout(() => el.remove(), 320);
+  };
+  setTimeout(hide, dur);
+  el.addEventListener('click', hide);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   COUNTER ANIMATION
+   FORMAT HELPERS
 ═══════════════════════════════════════════════════════════════════════ */
-function initCounters() {
-  const els = document.querySelectorAll('.cp-cnt-num[data-count]');
-  if (!els.length) return;
+function fmtBytes(b) {
+  if (b === undefined || b === null) return '—';
+  b = Number(b);
+  if (b < 1024)       return b + ' B';
+  if (b < 1048576)    return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1048576).toFixed(2) + ' MB';
+}
 
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      const el  = entry.target;
-      const max = parseInt(el.dataset.count);
-      const dur = 1800;
-      const suf = el.nextElementSibling?.classList.contains('cp-cnt-suf')
-        ? el.nextElementSibling.textContent : '';
+function fmtMs(ms) {
+  if (!ms) return '—';
+  if (ms < 1000) return ms + ' ms';
+  return (ms / 1000).toFixed(1) + ' s';
+}
 
-      animateNum(el, 0, max, dur, v => {
-        const n = Math.round(v);
-        if (max >= 1000000) return (n / 1000000).toFixed(1) + 'M+';
-        if (max >= 1000)    return (n / 1000).toFixed(0) + 'K+';
-        return String(n);
-      });
-      io.unobserve(el);
-    });
-  }, { threshold: .5 });
-
-  els.forEach(el => io.observe(el));
+function getGrade(pct) {
+  if (pct >= 70) return 'S';
+  if (pct >= 50) return 'A';
+  if (pct >= 30) return 'B';
+  if (pct >= 10) return 'C';
+  return 'D';
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   KEYBOARD SHORTCUT
-═══════════════════════════════════════════════════════════════════════ */
-function initKeyboard() {
-  document.addEventListener('keydown', e => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      if (FILE && !D.compressBtn.disabled) doCompress();
-    }
-    // Escape: close advanced panel
-    if (e.key === 'Escape' && D.advPanel.classList.contains('open')) {
-      D.advPanel.classList.remove('open');
-      D.advToggle.setAttribute('aria-expanded', 'false');
-    }
-  });
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   DRAG AND DROP
+   DROP ZONE
 ═══════════════════════════════════════════════════════════════════════ */
 function initDragDrop() {
   const dz = D.dropzone;
   if (!dz) return;
 
-  // Prevent default drag on whole document
   document.addEventListener('dragover',  e => e.preventDefault(), { passive: false });
-  document.addEventListener('drop',      e => e.preventDefault());
+  document.addEventListener('drop',      e => { e.preventDefault(); });
 
-  dz.addEventListener('dragenter', e => {
-    e.preventDefault();
-    dz.classList.add('drag-over');
-  });
+  dz.addEventListener('dragenter', e => { e.preventDefault(); dz.classList.add('drag-over'); });
   dz.addEventListener('dragleave', e => {
     if (!dz.contains(e.relatedTarget)) dz.classList.remove('drag-over');
   });
-  dz.addEventListener('dragover', e => {
-    e.preventDefault();
-    dz.classList.add('drag-over');
-  });
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
   dz.addEventListener('drop', e => {
     e.preventDefault();
     dz.classList.remove('drag-over');
@@ -1081,90 +285,178 @@ function initDragDrop() {
     if (f) setFile(f);
   });
 
-  // Click to browse
-  const openInput = e => {
-    if (e.target === D.browseBtn || dz.contains(e.target)) {
-      D.fileInput.click();
-    }
-  };
-  dz.addEventListener('click', openInput);
-
-  // Keyboard activate
+  /* click on dropzone opens file picker */
+  dz.addEventListener('click', e => {
+    if (e.target === D.browseBtn) return;  // browseBtn has own handler
+    D.fileInput.click();
+  });
   dz.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); D.fileInput.click(); }
   });
 
-  // Browse button (explicit)
-  if (D.browseBtn) {
-    D.browseBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      D.fileInput.click();
-    });
-  }
+  /* browse button */
+  D.browseBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    D.fileInput.click();
+  });
 
-  // File input change
-  if (D.fileInput) {
-    D.fileInput.addEventListener('change', e => {
-      const f = e.target.files?.[0];
-      if (f) setFile(f);
-    });
-  }
+  /* file input */
+  D.fileInput?.addEventListener('change', e => {
+    const f = e.target.files?.[0];
+    if (f) setFile(f);
+    D.fileInput.value = '';
+  });
 
-  // Paste support
+  /* paste support */
   document.addEventListener('paste', e => {
     const items = e.clipboardData?.items || [];
     for (const item of items) {
-      if (item.kind === 'file' && (item.type === 'application/pdf' || item.type === '')) {
+      if (item.kind === 'file' &&
+          (item.type === 'application/pdf' || item.type === '' || item.name?.endsWith('.pdf'))) {
         const f = item.getAsFile();
         if (f) { setFile(f); break; }
       }
     }
   });
 
-  // Document-level drop (outside the drop zone)
+  /* document-level drop (outside dropzone) */
   document.addEventListener('drop', e => {
-    if (dz.contains(e.target)) return;  // already handled above
+    if (D.dropzone?.contains(e.target)) return;
     const f = e.dataTransfer?.files?.[0];
-    if (f && (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))) {
+    if (f && (f.type === 'application/pdf' || f.name?.toLowerCase().endsWith('.pdf'))) {
       setFile(f);
     }
   });
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   SCROLL ANIMATION (sections fade in from bottom)
+   SET FILE
 ═══════════════════════════════════════════════════════════════════════ */
-function initScrollAnim() {
-  const style = document.createElement('style');
-  style.textContent = `
-    .cp-anim-hidden { opacity:0; transform:translateY(28px); }
-    .cp-anim-visible { opacity:1; transform:translateY(0);
-      transition: opacity .55s ease, transform .55s ease; }
-  `;
-  document.head.appendChild(style);
+function setFile(file) {
+  if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+    toast('Please upload a PDF file (.pdf)', 'error');
+    S('error');
+    if (D.dropzone) {
+      D.dropzone.style.animation = 'cp-shake .4s ease';
+      setTimeout(() => { if (D.dropzone) D.dropzone.style.animation = ''; }, 500);
+    }
+    return;
+  }
 
-  const targets = document.querySelectorAll(
-    '.cp-section, .cp-counters-band, .cp-seo-section, .cp-author-card'
-  );
+  FILE = file;
+  S('add');
 
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.replace('cp-anim-hidden', 'cp-anim-visible');
-        io.unobserve(entry.target);
+  /* Compute file stem for download naming */
+  _origStem = file.name.replace(/\.pdf$/i, '').trim() || 'compressed';
+
+  /* Update file card */
+  if (D.fileName)  D.fileName.textContent  = file.name;
+  if (D.fileMeta)  D.fileMeta.textContent  = fmtBytes(file.size) + ' · PDF';
+  if (D.fileChips) D.fileChips.innerHTML   = '';
+
+  /* Show file card, hide dropzone (smooth) */
+  D.dropzone.hidden = true;
+  D.fileCard.hidden  = false;
+
+  /* Show controls */
+  D.modesSection.hidden = false;
+  D.advSection.hidden   = false;
+  D.actionArea.hidden   = false;
+
+  /* Reset result + progress */
+  hideResult();
+  hideProgress();
+
+  /* Analyze file */
+  analyzeFile(file);
+
+  /* Scroll to modes */
+  setTimeout(() => {
+    D.modesSection?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 300);
+}
+
+/* Analyze file via /api/compress-pdf/analyze */
+async function analyzeFile(file) {
+  if (!D.analyzeBar) return;
+  D.analyzeBar.hidden = false;
+
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+
+    const resp = await fetch('/api/compress-pdf/analyze', { method: 'POST', body: fd });
+    if (!resp.ok) throw new Error('Analyze failed');
+
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error || 'Analyze error');
+
+    /* Update mode estimates */
+    const ests = data.estimated_reductions_by_preset || {};
+    Object.entries(D.estEls).forEach(([preset, el]) => {
+      const pct = ests[preset];
+      if (el && pct !== undefined) {
+        el.textContent = `~${pct}% smaller`;
       }
     });
-  }, { threshold: .08 });
 
-  targets.forEach(el => {
-    el.classList.add('cp-anim-hidden');
-    io.observe(el);
-  });
+    /* Build info chips */
+    const chips = [];
+    if (data.page_count)        chips.push({ icon: 'fa-file', text: `${data.page_count} pages`, cls: '' });
+    if (data.image_count)       chips.push({ icon: 'fa-image', text: `${data.image_count} images`, cls: '' });
+    if (data.has_javascript)    chips.push({ icon: 'fa-code', text: 'Has JavaScript', cls: 'cp-fchip-warn' });
+    if (data.has_forms)         chips.push({ icon: 'fa-table-list', text: 'Has Forms', cls: 'cp-fchip-info' });
+    if (data.has_encryption)    chips.push({ icon: 'fa-lock', text: 'Encrypted', cls: 'cp-fchip-warn' });
+    if (data.has_annotations)   chips.push({ icon: 'fa-comment', text: 'Has Annotations', cls: 'cp-fchip-info' });
+    if (data.is_linearized)     chips.push({ icon: 'fa-bolt', text: 'Already Web-Optimized', cls: '' });
+    if (data.content_type)      chips.push({ icon: 'fa-layer-group', text: data.content_type.replace('_', '-'), cls: '' });
+
+    if (D.fileChips) {
+      D.fileChips.innerHTML = chips.map(c =>
+        `<span class="cp-fchip ${c.cls}"><i class="fa ${c.icon}"></i>${c.text}</span>`
+      ).join('');
+    }
+
+  } catch (e) {
+    /* Non-fatal: just hide the bar */
+  } finally {
+    if (D.analyzeBar) D.analyzeBar.hidden = true;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   MODE CARD KEYBOARD
+   REMOVE FILE
 ═══════════════════════════════════════════════════════════════════════ */
+function removeFile() {
+  FILE    = null;
+  JOB_ID  = null;
+  RESULT  = null;
+  _origStem = '';
+
+  /* Abort any running SSE */
+  if (SSE_SRC) { try { SSE_SRC.close(); } catch(e) {} SSE_SRC = null; }
+
+  D.dropzone.hidden   = false;
+  D.fileCard.hidden   = true;
+  D.modesSection.hidden = true;
+  D.advSection.hidden   = true;
+  D.actionArea.hidden   = true;
+  hideProgress();
+  hideResult();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MODE SELECTION
+═══════════════════════════════════════════════════════════════════════ */
+function selectMode(mode) {
+  SEL_MODE = mode;
+  document.querySelectorAll('.cp-mode').forEach(card => {
+    const active = card.dataset.mode === mode;
+    card.classList.toggle('active', active);
+    card.setAttribute('aria-checked', active ? 'true' : 'false');
+  });
+}
+
 function initModeCards() {
   document.querySelectorAll('.cp-mode').forEach(card => {
     card.addEventListener('click', () => selectMode(card.dataset.mode));
@@ -1175,12 +467,760 @@ function initModeCards() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   ADVANCED OPTIONS
+═══════════════════════════════════════════════════════════════════════ */
+function initAdvanced() {
+  /* Accordion */
+  if (D.advToggle && D.advPanel) {
+    D.advToggle.addEventListener('click', () => {
+      const open = D.advPanel.classList.toggle('open');
+      D.advToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+
+  /* Toggle switches */
+  const toggleDefs = [
+    { id: 'grayscaleToggle', key: 'grayscale' },
+    { id: 'metaToggle',      key: 'strip_metadata' },
+    { id: 'annotToggle',     key: 'remove_annotations' },
+    { id: 'linearToggle',    key: 'linearize' },
+    { id: 'jsToggle',        key: 'remove_javascript' },
+    { id: 'embedToggle',     key: 'remove_embedded_files' },
+    { id: 'formsToggle',     key: 'remove_forms' },
+    { id: 'targetToggle',    key: '_target', sub: 'targetSizeRow' },
+    { id: 'pwToggle',        key: '_pw', sub: 'passwordRow' },
+  ];
+
+  toggleDefs.forEach(({ id, key, sub }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    const toggle = () => {
+      const checked = el.getAttribute('aria-checked') === 'true';
+      const next    = !checked;
+      el.setAttribute('aria-checked', next ? 'true' : 'false');
+
+      /* Show/hide sub-rows */
+      if (sub && D[sub]) D[sub].hidden = !next;
+
+      updateAdvCount();
+    };
+
+    el.addEventListener('click',   toggle);
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    });
+  });
+}
+
+function isToggleOn(elId) {
+  const el = document.getElementById(elId);
+  return el?.getAttribute('aria-checked') === 'true';
+}
+
+function updateAdvCount() {
+  const toggleIds = [
+    'grayscaleToggle', 'metaToggle', 'annotToggle', 'linearToggle',
+    'jsToggle', 'embedToggle', 'formsToggle', 'targetToggle', 'pwToggle',
+  ];
+  const count = toggleIds.filter(id => isToggleOn(id)).length;
+
+  if (D.advCount) {
+    if (count > 0) {
+      D.advCount.textContent = `${count} on`;
+      D.advCount.hidden = false;
+    } else {
+      D.advCount.hidden = true;
+    }
+  }
+}
+
+function getOptions() {
+  return {
+    grayscale:             isToggleOn('grayscaleToggle'),
+    strip_metadata:        isToggleOn('metaToggle'),
+    remove_annotations:    isToggleOn('annotToggle'),
+    linearize:             isToggleOn('linearToggle'),
+    remove_javascript:     isToggleOn('jsToggle'),
+    remove_embedded_files: isToggleOn('embedToggle'),
+    remove_forms:          isToggleOn('formsToggle'),
+    target_size_kb: isToggleOn('targetToggle')
+      ? (parseInt(D.targetSizeInput?.value) || 0)
+      : 0,
+    password: isToggleOn('pwToggle')
+      ? (D.passwordInput?.value || '')
+      : '',
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PROGRESS
+═══════════════════════════════════════════════════════════════════════ */
+function showProgress() {
+  D.progressSection.hidden = false;
+  resetChips();
+  setProgress(0, 'Starting…', 'Initializing 7-engine pipeline');
+}
+
+function hideProgress() {
+  if (D.progressSection) D.progressSection.hidden = true;
+}
+
+function setProgress(pct, title, sub) {
+  const p = Math.min(100, Math.max(0, pct));
+  if (D.progBar)   D.progBar.style.width   = p + '%';
+  if (D.progGlow)  D.progGlow.style.width  = p + '%';
+  if (D.progPct)   D.progPct.textContent   = Math.round(p) + '%';
+  if (D.progTitle) D.progTitle.textContent = title || 'Compressing…';
+  if (D.progSub)   D.progSub.textContent   = sub   || '';
+  if (D.progBarWrap) D.progBarWrap.setAttribute('aria-valuenow', Math.round(p));
+}
+
+function resetChips() {
+  Object.values(D.chips).forEach(c => {
+    if (c) { c.classList.remove('active', 'done'); }
+  });
+}
+
+function setChip(key, state) {
+  const c = D.chips[key];
+  if (!c) return;
+  c.classList.remove('active', 'done');
+  if (state === 'active') c.classList.add('active');
+  if (state === 'done')   c.classList.add('done');
+}
+
+/* Map SSE stage → chip + progress */
+const STAGE_MAP = {
+  'init':             { chip: 'upload',  pct: 5,  sub: 'Uploading & validating PDF' },
+  'ghostscript':      { chip: 'gs',      pct: 8,  sub: 'Ghostscript distiller running…' },
+  'ghostscript_done': { chip: 'gs',      pct: 30, sub: 'Ghostscript done ✓' },
+  'pymupdf':          { chip: 'fitz',    pct: 32, sub: 'PyMuPDF image re-encoding…' },
+  'pymupdf_done':     { chip: 'fitz',    pct: 50, sub: 'PyMuPDF done ✓' },
+  'pikepdf':          { chip: 'pike',    pct: 52, sub: 'pikepdf stream recompression…' },
+  'pikepdf_done':     { chip: 'pike',    pct: 65, sub: 'pikepdf done ✓' },
+  'qpdf':             { chip: 'pike',    pct: 67, sub: 'qpdf stream optimize…' },
+  'qpdf_done':        { chip: 'pike',    pct: 76, sub: 'qpdf done ✓' },
+  'mutool':           { chip: 'pike',    pct: 77, sub: 'mutool clean pass…' },
+  'mutool_done':      { chip: 'pike',    pct: 84, sub: 'mutool done ✓' },
+  'pypdf':            { chip: 'done',    pct: 86, sub: 'pypdf content streams…' },
+  'pypdf_done':       { chip: 'done',    pct: 90, sub: 'pypdf done ✓' },
+  'done':             { chip: 'done',    pct: 98, sub: 'Selecting best result…' },
+  'analyze':          { chip: 'analyze', pct: 3,  sub: 'Analyzing PDF structure…' },
+  'target_screen':    { chip: 'gs',      pct: 10, sub: 'Target mode: trying Screen preset…' },
+  'target_low':       { chip: 'gs',      pct: 28, sub: 'Target mode: trying Low preset…' },
+  'target_medium':    { chip: 'fitz',    pct: 46, sub: 'Target mode: trying Medium preset…' },
+  'target_high':      { chip: 'pike',    pct: 64, sub: 'Target mode: trying High preset…' },
+  'target_lossless':  { chip: 'done',    pct: 82, sub: 'Target mode: trying Lossless preset…' },
+  'benchmark':        { chip: 'analyze', pct: 50, sub: 'Benchmarking presets…' },
+};
+
+/* Simulated progress fallback (when no SSE) */
+let _simTimer = null;
+function startSimProgress(startPct = 5) {
+  let pct = startPct;
+  _simTimer = setInterval(() => {
+    pct = Math.min(93, pct + (93 - pct) * 0.04 + 0.3);
+    setProgress(pct, 'Compressing…', '7-engine pipeline running…');
+    if (pct >= 92) clearInterval(_simTimer);
+  }, 400);
+}
+function stopSimProgress() {
+  if (_simTimer) { clearInterval(_simTimer); _simTimer = null; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SSE
+═══════════════════════════════════════════════════════════════════════ */
+function openSSE(jobId) {
+  if (SSE_SRC) { try { SSE_SRC.close(); } catch(e) {} }
+
+  const url = `/api/progress/${jobId}`;
+  try {
+    SSE_SRC = new EventSource(url);
+  } catch (e) {
+    startSimProgress();
+    return;
+  }
+
+  SSE_SRC.addEventListener('message', e => {
+    try {
+      const data = JSON.parse(e.data);
+      const stage = data.stage || data.event || '';
+      const sm = STAGE_MAP[stage];
+
+      if (sm) {
+        /* Mark previous chips done */
+        if (sm.chip !== _lastChip && _lastChip) {
+          setChip(_lastChip, 'done');
+        }
+        setChip(sm.chip, 'active');
+        _lastChip = sm.chip;
+
+        const pct = data.progress !== undefined
+          ? Math.round(data.progress)
+          : sm.pct;
+
+        setProgress(pct, 'Compressing…', sm.sub);
+        stopSimProgress();
+      }
+
+      /* Engine result chips */
+      if (data.engines_tried && Array.isArray(data.engines_tried)) {
+        _updateEngineBar(data.engines_tried);
+      }
+
+      if (stage === 'done' || data.complete) {
+        closeSSE();
+      }
+    } catch (err) {}
+  });
+
+  SSE_SRC.addEventListener('error', () => {
+    closeSSE();
+  });
+
+  SSE_SRC.addEventListener('ping', () => {});
+}
+
+let _lastChip = null;
+function closeSSE() {
+  if (SSE_SRC) { try { SSE_SRC.close(); } catch(e) {} SSE_SRC = null; }
+  stopSimProgress();
+}
+
+function _updateEngineBar(engines) {
+  if (!D.engineBar || !D.ebEngines) return;
+  D.engineBar.hidden = false;
+  if (engines.length === 0) return;
+
+  /* Parse "gs=123KB" pairs */
+  const parsed = engines.map(s => {
+    const [name, rest] = s.split('=');
+    return { name, val: rest || '' };
+  });
+
+  /* Find smallest */
+  let minIdx = 0;
+  parsed.forEach((e, i) => {
+    const kbA = parseInt(parsed[minIdx].val) || Infinity;
+    const kbB = parseInt(e.val) || Infinity;
+    if (kbB < kbA) minIdx = i;
+  });
+
+  D.ebEngines.innerHTML = parsed.map((e, i) =>
+    `<span class="cp-eb-eng ${i === minIdx ? 'best' : ''}">${e.name}: ${e.val}</span>`
+  ).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DO COMPRESS
+═══════════════════════════════════════════════════════════════════════ */
+async function doCompress() {
+  if (!FILE) { toast('Please upload a PDF first', 'warning'); S('warning'); return; }
+
+  /* Disable btn */
+  if (D.compressBtn) {
+    D.compressBtn.disabled = true;
+    D.compBtnText.textContent = 'Compressing…';
+    D.compBtnIcon.className   = 'fa fa-spinner fa-spin';
+  }
+
+  hideResult();
+  showProgress();
+  setChip('upload', 'active');
+  _lastChip = 'upload';
+
+  S('start');
+
+  /* Build FormData */
+  const fd = new FormData();
+  fd.append('file', FILE);
+  fd.append('preset', SEL_MODE);
+
+  const opts = getOptions();
+  Object.entries(opts).forEach(([k, v]) => {
+    if (v !== '' && v !== 0 && v !== false) {
+      fd.append(k, String(v));
+    }
+  });
+
+  try {
+    const resp = await fetch('/api/compress-pdf', {
+      method: 'POST',
+      body: fd,
+    });
+
+    stopSimProgress();
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
+      throw new Error(err.error || `Server error ${resp.status}`);
+    }
+
+    /* Check for job_id in headers (SSE mode) */
+    const jobId = resp.headers.get('X-Job-Id');
+    if (jobId) {
+      JOB_ID = jobId;
+      openSSE(jobId);
+      /* Poll for completion */
+      await pollResult(jobId);
+    } else {
+      /* Direct result in response body */
+      const data = await resp.json();
+      if (!data.success) throw new Error(data.error || 'Compression failed');
+      RESULT = data;
+      closeSSE();
+      showResult(data);
+    }
+
+  } catch (err) {
+    closeSSE();
+    setProgress(0, 'Error', err.message);
+    toast(err.message || 'Compression failed — please try again', 'error');
+    S('error');
+    resetCompressBtn();
+  }
+}
+
+async function pollResult(jobId) {
+  /* Poll /api/progress/{job_id} for final result via repeated fetch */
+  const MAX = 180; /* 3 min max */
+  let attempts = 0;
+
+  while (attempts < MAX) {
+    await sleep(1500);
+    attempts++;
+
+    try {
+      const r = await fetch(`/api/progress/${jobId}`);
+      if (!r.ok) continue;
+
+      const txt = await r.text();
+      /* SSE responses come as "data: {...}\n\n" — try to find complete result */
+      const lines = txt.split('\n');
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        try {
+          const d = JSON.parse(line.slice(5).trim());
+          if (d.result && d.result.success !== undefined) {
+            if (d.result.success) {
+              RESULT = d.result;
+              closeSSE();
+              showResult(d.result);
+              return;
+            } else if (d.result.error) {
+              throw new Error(d.result.error);
+            }
+          }
+        } catch (e2) {
+          if (e2.message && !e2.message.startsWith('JSON')) throw e2;
+        }
+      }
+    } catch (e) {
+      /* Keep polling unless it's a server error */
+      if (e.message && e.message !== 'Failed to fetch') throw e;
+    }
+  }
+
+  /* Timeout — try to get result from /api/compress-pdf/result/{jobId} */
+  throw new Error('Compression timed out — please try a smaller preset or smaller file');
+}
+
+function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SHOW RESULT
+═══════════════════════════════════════════════════════════════════════ */
+function showResult(data) {
+  /* Mark all chips done */
+  Object.keys(D.chips).forEach(k => setChip(k, 'done'));
+  setProgress(100, 'Done!', 'Compression complete');
+
+  setTimeout(() => {
+    hideProgress();
+    _renderResult(data);
+    D.resultSection.hidden = false;
+    D.resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    resetCompressBtn();
+    S('success');
+
+    /* Confetti on ≥30% reduction */
+    const pct = data.reduction_pct || 0;
+    if (pct >= 30) {
+      launchConfetti();
+    }
+  }, 700);
+}
+
+function _renderResult(data) {
+  const inSz  = data.input_size_bytes  || 0;
+  const outSz = data.output_size_bytes || 0;
+  const saved = data.reduction_bytes   || 0;
+  const pct   = parseFloat(data.reduction_pct || 0);
+  const grade = getGrade(pct);
+
+  /* Header */
+  D.resIcon.textContent  = pct >= 30 ? '🎉' : pct >= 10 ? '✅' : '📋';
+  D.resTitle.textContent = pct >= 50 ? 'Excellent Compression!' :
+                           pct >= 20 ? 'Compression Complete!'  :
+                           'Compression Finished';
+  D.resSub.textContent   = `${data.method_used || 'multi-engine'} · ${fmtMs(data.processing_time_ms)}`;
+
+  /* Grade */
+  D.resGrade.textContent = grade;
+  D.resGrade.className   = `cp-res-grade grade-${grade}`;
+
+  /* SVG ring */
+  const circ = 326.7;
+  const offset = circ * (1 - Math.min(pct, 100) / 100);
+  D.ringFill.style.strokeDashoffset = offset;
+
+  /* Ring number (animated) */
+  _animNum(D.ringNum, 0, pct, 1400, v => Math.round(v) + '%');
+  D.ringSub.textContent = `${fmtBytes(saved)} saved`;
+
+  /* Stats */
+  D.stOrig.textContent   = fmtBytes(inSz);
+  D.stComp.textContent   = fmtBytes(outSz);
+  D.stSaved.textContent  = `${fmtBytes(saved)} (${pct.toFixed(1)}%)`;
+  D.stEngine.textContent = data.method_used || '—';
+  D.stTime.textContent   = fmtMs(data.processing_time_ms);
+
+  /* Bars */
+  const compRatio = outSz / Math.max(inSz, 1) * 100;
+  setTimeout(() => {
+    D.barOrig.style.width = '100%';
+    D.barComp.style.width = compRatio.toFixed(1) + '%';
+  }, 100);
+  D.barOrigLbl.textContent = `Original: ${fmtBytes(inSz)}`;
+  D.barCompLbl.textContent = `Compressed: ${fmtBytes(outSz)}`;
+  D.barCompPct.textContent = `${(100 - pct).toFixed(1)}% of original`;
+
+  /* Quality note */
+  D.qualNoteText.textContent = data.quality_note || '';
+
+  /* Download button label */
+  const dlName = `${_origStem}_compressed.pdf`;
+  D.dlBtnText.textContent = `Download ${dlName.length > 32 ? 'Compressed PDF' : dlName}`;
+}
+
+function hideResult() {
+  if (D.resultSection) D.resultSection.hidden = true;
+  if (D.ringFill) D.ringFill.style.strokeDashoffset = 326.7;
+  if (D.barOrig)  D.barOrig.style.width = '0%';
+  if (D.barComp)  D.barComp.style.width = '0%';
+  if (D.ebEngines) D.ebEngines.innerHTML = '';
+  if (D.engineBar) D.engineBar.hidden = true;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DOWNLOAD
+═══════════════════════════════════════════════════════════════════════ */
+function doDownload() {
+  if (!RESULT || !RESULT.download_url) {
+    toast('No compressed file ready — please compress first', 'warning');
+    S('warning');
+    return;
+  }
+
+  S('dl');  /* fahhhhh.mp3 */
+
+  const dlName = `${_origStem}_compressed.pdf`;
+  const a = document.createElement('a');
+  a.href     = RESULT.download_url;
+  a.download = dlName;
+  a.click();
+
+  toast(`Downloading ${dlName}`, 'success');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RESET
+═══════════════════════════════════════════════════════════════════════ */
+function doReset() {
+  hideResult();
+  hideProgress();
+  removeFile();
+  closeSSE();
+  RESULT = null;
+  _origStem = '';
+
+  /* Scroll up */
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SHARE
+═══════════════════════════════════════════════════════════════════════ */
+function doShare() {
+  const url  = 'https://ishutools.fun/tools/compress-pdf/';
+  const text = 'Compress PDF online free — up to 90% reduction, no signup, no watermark! By Ishu Kumar (ISHUKR41) at ishutools.fun';
+  if (navigator.share) {
+    navigator.share({ title: 'IshuTools PDF Compressor', text, url }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(url).then(() => {
+      toast('Link copied to clipboard!', 'success');
+    }).catch(() => {
+      prompt('Copy this link:', url);
+    });
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RESET COMPRESS BUTTON
+═══════════════════════════════════════════════════════════════════════ */
+function resetCompressBtn() {
+  if (!D.compressBtn) return;
+  D.compressBtn.disabled     = false;
+  D.compBtnText.textContent  = 'Compress PDF Now';
+  D.compBtnIcon.className    = 'fa fa-compress';
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CONFETTI
+═══════════════════════════════════════════════════════════════════════ */
+function launchConfetti() {
+  if (typeof confetti === 'function') {
+    const base = { particleCount: 60, spread: 80, origin: { y: 0.55 } };
+    confetti({ ...base, colors: ['#10b981', '#34d399', '#6ee7b7', '#ffffff'] });
+    setTimeout(() => confetti({ ...base, particleCount: 40, origin: { x: 0.3, y: 0.6 } }), 250);
+    setTimeout(() => confetti({ ...base, particleCount: 40, origin: { x: 0.7, y: 0.6 } }), 500);
+  } else {
+    /* CSS fallback */
+    for (let i = 0; i < 18; i++) {
+      const p = document.createElement('div');
+      p.style.cssText = [
+        'position:fixed', 'z-index:9999', 'pointer-events:none',
+        `left:${20 + Math.random() * 60}%`, `top:${30 + Math.random() * 30}%`,
+        `width:${6 + Math.random() * 8}px`, `height:${6 + Math.random() * 8}px`,
+        'border-radius:50%',
+        `background:${['#10b981','#34d399','#6ee7b7','#fbbf24','#f472b6'][Math.floor(Math.random()*5)]}`,
+        `animation:cp-float ${1 + Math.random() * 1.5}s ease forwards`,
+        `animation-delay:${Math.random() * 0.4}s`,
+      ].join(';');
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 2500);
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BACKGROUND CANVAS
+═══════════════════════════════════════════════════════════════════════ */
+function initBgCanvas() {
+  const canvas = D.bgCanvas;
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize, { passive: true });
+
+  class Particle {
+    constructor() { this.reset(); }
+    reset() {
+      this.x = Math.random() * W;
+      this.y = Math.random() * H;
+      this.r = 0.8 + Math.random() * 1.8;
+      this.vx = (Math.random() - 0.5) * 0.25;
+      this.vy = (Math.random() - 0.5) * 0.25;
+      this.alpha = 0.1 + Math.random() * 0.35;
+      this.color = Math.random() > 0.5 ? '#10b981' : '#6366f1';
+    }
+    update() {
+      this.x += this.vx; this.y += this.vy;
+      if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
+    }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.globalAlpha = this.alpha;
+      ctx.fill();
+    }
+  }
+
+  for (let i = 0; i < 70; i++) particles.push(new Particle());
+
+  let raf;
+  function frame() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+    particles.forEach(p => { p.update(); p.draw(); });
+
+    /* Draw connecting lines between nearby particles */
+    ctx.globalAlpha = 0.04;
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 0.6;
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    raf = requestAnimationFrame(frame);
+  }
+  frame();
+
+  /* Pause when hidden */
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { cancelAnimationFrame(raf); }
+    else { frame(); }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DROP ZONE PARTICLES (micro-animation inside dropzone)
+═══════════════════════════════════════════════════════════════════════ */
+function initDzParticles() {
+  const container = D.dzParticles;
+  if (!container) return;
+
+  for (let i = 0; i < 8; i++) {
+    const p = document.createElement('div');
+    const size = 3 + Math.random() * 5;
+    p.style.cssText = [
+      'position:absolute', 'border-radius:50%',
+      'pointer-events:none',
+      `width:${size}px`, `height:${size}px`,
+      `left:${Math.random() * 100}%`, `top:${Math.random() * 100}%`,
+      `background:${Math.random() > 0.5 ? '#10b981' : '#6366f1'}`,
+      `opacity:${0.08 + Math.random() * 0.18}`,
+      `animation:cp-float ${3 + Math.random() * 4}s ease-in-out infinite`,
+      `animation-delay:${Math.random() * 3}s`,
+    ].join(';');
+    container.appendChild(p);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FAQ ACCORDION
+═══════════════════════════════════════════════════════════════════════ */
+function initFaq() {
+  if (!D.faqList) return;
+
+  D.faqList.querySelectorAll('.cp-faq').forEach(faq => {
+    const btn = faq.querySelector('.cp-fq');
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+      const isOpen = faq.classList.contains('open');
+      /* Close all */
+      D.faqList.querySelectorAll('.cp-faq.open').forEach(f => {
+        f.classList.remove('open');
+        f.querySelector('.cp-fq')?.setAttribute('aria-expanded', 'false');
+      });
+      /* Open current */
+      if (!isOpen) {
+        faq.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+
+    btn.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); }
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   COUNTER ANIMATION
+═══════════════════════════════════════════════════════════════════════ */
+function _animNum(el, from, to, dur, fmt) {
+  const start = performance.now();
+  function frame(now) {
+    const t = Math.min(1, (now - start) / dur);
+    const ease = 1 - Math.pow(1 - t, 3);
+    el.textContent = fmt(from + (to - from) * ease);
+    if (t < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+function initCounters() {
+  const els = document.querySelectorAll('.cp-cnt-num[data-count]');
+  if (!els.length) return;
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el  = entry.target;
+      const max = parseInt(el.dataset.count);
+      io.unobserve(el);
+      _animNum(el, 0, max, 1800, v => {
+        const n = Math.round(v);
+        if (max >= 1000000) return (n / 1000000).toFixed(1) + 'M+';
+        if (max >= 1000)    return (n / 1000).toFixed(0) + 'K+';
+        return String(n);
+      });
+    });
+  }, { threshold: .5 });
+
+  els.forEach(el => io.observe(el));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SCROLL ANIMATION (y-only, never opacity:0 to avoid flash)
+═══════════════════════════════════════════════════════════════════════ */
+function initScrollAnim() {
+  const targets = document.querySelectorAll(
+    '.cp-section, .cp-counters-band, .cp-seo-section, .cp-author-section'
+  );
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.replace('cp-anim-hidden', 'cp-anim-visible');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: .06 });
+
+  targets.forEach(el => {
+    el.classList.add('cp-anim-hidden');
+    io.observe(el);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUT
+═══════════════════════════════════════════════════════════════════════ */
+function initKeyboard() {
+  document.addEventListener('keydown', e => {
+    /* Ctrl/Cmd+Enter → compress */
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (FILE && D.compressBtn && !D.compressBtn.disabled) doCompress();
+    }
+    /* Escape → close advanced panel */
+    if (e.key === 'Escape' && D.advPanel?.classList.contains('open')) {
+      D.advPanel.classList.remove('open');
+      D.advToggle?.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    ENTRY POINT
 ═══════════════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
   initDom();
 
-  // Feature checks (graceful)
+  /* Feature initializations */
   initTheme();
   initSound();
   initBgCanvas();
@@ -1193,38 +1233,21 @@ document.addEventListener('DOMContentLoaded', () => {
   initScrollAnim();
   initKeyboard();
 
-  // Default mode active visual
+  /* Default mode */
   selectMode(SEL_MODE);
 
-  // Remove btn
-  if (D.removeBtn) {
-    D.removeBtn.addEventListener('click', e => { e.stopPropagation(); removeFile(); });
-  }
+  /* Button wiring */
+  D.removeBtn?.addEventListener('click', e => { e.stopPropagation(); removeFile(); });
+  D.compressBtn?.addEventListener('click', doCompress);
+  D.dlBtn?.addEventListener('click', doDownload);
+  D.resetBtn?.addEventListener('click', doReset);
+  D.shareBtn?.addEventListener('click', doShare);
 
-  // Compress btn
-  if (D.compressBtn) {
-    D.compressBtn.addEventListener('click', doCompress);
-  }
-
-  // Download btn
-  if (D.dlBtn) {
-    D.dlBtn.addEventListener('click', doDownload);
-  }
-
-  // Reset btn
-  if (D.resetBtn) {
-    D.resetBtn.addEventListener('click', doReset);
-  }
-
-  // Share btn
-  if (D.shareBtn) {
-    D.shareBtn.addEventListener('click', doShare);
-  }
-
-  // Greeting
+  /* Console greeting */
   console.log(
-    '%cIshuTools PDF Compressor v11.0\n%cBy Ishu Kumar (ISHUKR41) — ishutools.fun',
-    'color:#10b981;font-weight:bold;font-size:14px',
-    'color:#a7f3d0;font-size:11px'
+    '%cIshuTools PDF Compressor v15.0\n%cBy Ishu Kumar (ISHUKR41 / ISHUKR75) — ishutools.fun\n%c7 engines · No limits · No watermark · Free forever',
+    'color:#10b981;font-weight:bold;font-size:15px',
+    'color:#34d399;font-size:11px',
+    'color:#64748b;font-size:10px'
   );
 });
