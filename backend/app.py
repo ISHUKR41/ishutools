@@ -858,29 +858,168 @@ def api_split_pdf_color_analysis():
         return error_response(str(e))
 
 
-@app.route('/api/compress-pdf', methods=['POST'])
-def api_compress_pdf():
-    """Compress and reduce PDF file size."""
+@app.route('/api/compress-pdf/analyze', methods=['POST'])
+def api_compress_pdf_analyze():
+    """Analyze a PDF before compression — returns page count, image count, estimates."""
     try:
-        file    = request.files.get('file')
+        file = request.files.get('file')
         if not file:
             return error_response('No file uploaded.')
-        quality = request.form.get('quality', 'medium')
-        stem = file_stem(file)
+        path = save_uploaded_file(file)
+        from tools.pdf_compress import get_compression_estimate
+        data = get_compression_estimate(path)
+        return jsonify({
+            'success': True,
+            'page_count':    data.get('page_count', 0),
+            'image_count':   data.get('image_count', 0),
+            'font_count':    data.get('font_count', 0),
+            'file_size_kb':  data.get('file_size_kb', 0),
+            'content_type':  data.get('content_type', 'unknown'),
+            'ghostscript_available': data.get('ghostscript_available', False),
+            'qpdf_available':        data.get('qpdf_available', False),
+            'estimated_reductions_by_preset': data.get('estimated_reductions_by_preset', {}),
+        })
+    except Exception as e:
+        logger.exception("compress-pdf/analyze error")
+        return error_response(str(e))
+
+
+@app.route('/api/compress-pdf', methods=['POST'])
+def api_compress_pdf():
+    """
+    Compress PDF — multi-engine pipeline with SSE progress.
+    Options: quality, grayscale, strip_metadata, remove_annotations, linearize, target_size_kb, job_id
+    Response headers: X-Original-Size, X-Compressed-Size, X-Reduction, X-Method-Used,
+                      X-Page-Count, X-Image-Count, X-Processing-Ms
+    """
+    import time as _time
+    t_start = _time.time()
+    try:
+        file = request.files.get('file')
+        if not file:
+            return error_response('No file uploaded.')
+
+        quality            = request.form.get('quality', 'medium').strip()
+        grayscale          = request.form.get('grayscale', 'false').lower() == 'true'
+        strip_metadata     = request.form.get('strip_metadata', 'false').lower() == 'true'
+        remove_annotations = request.form.get('remove_annotations', 'false').lower() == 'true'
+        linearize          = request.form.get('linearize', 'false').lower() == 'true'
+        target_size_kb     = int(request.form.get('target_size_kb', '0') or '0')
+        job_id             = request.form.get('job_id', '').strip()[:64]
+
+        def push(pct, title='', sub=''):
+            if job_id:
+                _push_progress(job_id, pct, title, sub)
+
+        stem    = file_stem(file)
         path    = save_uploaded_file(file)
         out     = output_path('compressed.pdf')
+
         original_size = os.path.getsize(path)
-        compress_pdf(path, out, quality=quality)
-        new_size = os.path.getsize(out)
+        push(10, 'Analysing PDF…', 'Checking content type and images…')
+
+        # Analyse first (for header info)
+        page_count  = 0
+        image_count = 0
+        try:
+            from tools.pdf_compress import get_compression_estimate
+            info = get_compression_estimate(path)
+            page_count  = info.get('page_count', 0)
+            image_count = info.get('image_count', 0)
+        except Exception:
+            pass
+
+        push(22, 'Compressing…', f'Mode: {quality} · Engines: Ghostscript + PyMuPDF + pikepdf')
+
+        # ── Target-size mode (binary search across presets) ──────────────────
+        method_used = 'multi-engine'
+        if target_size_kb > 0:
+            push(30, 'Target Size Mode…', f'Aiming for ≤ {target_size_kb} KB')
+            try:
+                from tools.pdf_compress import compress_to_target_size
+                res = compress_to_target_size(path, out, target_kb=target_size_kb)
+                method_used = f"target-size ({res.get('quality_used','auto')})"
+            except Exception as e:
+                logger.warning(f'target-size failed: {e}, falling back to quality mode')
+                compress_pdf(path, out, quality=quality)
+        else:
+            push(30, 'Ghostscript…', 'Applying distiller preset…')
+            compress_pdf(path, out, quality=quality)
+            push(60, 'PyMuPDF + pikepdf…', 'Recompressing images and streams…')
+
+        push(72, 'Applying extra options…', 'Grayscale / metadata / annotations…')
+
+        # ── Post-processing: grayscale ───────────────────────────────────────
+        if grayscale:
+            try:
+                from tools.pdf_compress import compress_grayscale
+                gs_out = out + '_gray.pdf'
+                compress_grayscale(out, gs_out)
+                if os.path.exists(gs_out) and os.path.getsize(gs_out) > 0:
+                    os.replace(gs_out, out)
+                    method_used += '+grayscale'
+            except Exception as e:
+                logger.warning(f'grayscale conversion failed: {e}')
+
+        # ── Post-processing: strip metadata ──────────────────────────────────
+        if strip_metadata:
+            try:
+                from tools.pdf_compress import compress_remove_metadata
+                meta_out = out + '_meta.pdf'
+                compress_remove_metadata(out, meta_out)
+                if os.path.exists(meta_out) and os.path.getsize(meta_out) > 0:
+                    os.replace(meta_out, out)
+                    method_used += '+strip-meta'
+            except Exception as e:
+                logger.warning(f'strip metadata failed: {e}')
+
+        # ── Post-processing: remove annotations ──────────────────────────────
+        if remove_annotations:
+            try:
+                from tools.pdf_compress import compress_flatten_annotations
+                annot_out = out + '_annot.pdf'
+                compress_flatten_annotations(out, annot_out)
+                if os.path.exists(annot_out) and os.path.getsize(annot_out) > 0:
+                    os.replace(annot_out, out)
+                    method_used += '+strip-annot'
+            except Exception as e:
+                logger.warning(f'annotation removal failed: {e}')
+
+        # ── Post-processing: linearize ────────────────────────────────────────
+        if linearize:
+            try:
+                import pikepdf as _pikepdf
+                lin_out = out + '_linear.pdf'
+                with _pikepdf.open(out, suppress_warnings=True) as _pdf:
+                    _pdf.save(lin_out, linearize=True, compress_streams=True)
+                if os.path.exists(lin_out) and os.path.getsize(lin_out) > 0:
+                    os.replace(lin_out, out)
+                    method_used += '+linearized'
+            except Exception as e:
+                logger.warning(f'linearize failed: {e}')
+
+        push(92, 'Finalising…', 'Preparing your download…')
+
+        new_size    = os.path.getsize(out) if os.path.exists(out) else original_size
+        reduction   = round((original_size - new_size) / max(original_size, 1) * 100, 1)
+        proc_ms     = int((_time.time() - t_start) * 1000)
+
+        push(100, 'Done! ✓', '', done=True)
+
         resp = send_result(out, f'{stem}_compressed.pdf')
-        resp.headers['X-Original-Size']  = str(original_size)
+        expose = 'X-Original-Size,X-Compressed-Size,X-Reduction,X-Method-Used,X-Page-Count,X-Image-Count,X-Processing-Ms'
+        resp.headers['X-Original-Size']   = str(original_size)
         resp.headers['X-Compressed-Size'] = str(new_size)
-        reduction = round((original_size - new_size) / max(original_size, 1) * 100, 1)
-        resp.headers['X-Reduction']      = f"{reduction}%"
-        resp.headers['Access-Control-Expose-Headers'] = 'X-Original-Size,X-Compressed-Size,X-Reduction'
+        resp.headers['X-Reduction']       = f'{reduction}%'
+        resp.headers['X-Method-Used']     = method_used
+        resp.headers['X-Page-Count']      = str(page_count)
+        resp.headers['X-Image-Count']     = str(image_count)
+        resp.headers['X-Processing-Ms']   = str(proc_ms)
+        resp.headers['Access-Control-Expose-Headers'] = expose
         return resp
+
     except Exception as e:
-        logger.exception("compress-pdf error")
+        logger.exception('compress-pdf error')
         return error_response(str(e))
 
 @app.route('/api/remove-pages', methods=['POST'])
