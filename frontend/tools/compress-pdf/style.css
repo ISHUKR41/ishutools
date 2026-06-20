@@ -1990,3 +1990,116 @@ kbd {
   line-height: 1.7;
 }
 .cp-ind-footer strong { color: var(--em); }
+
+/* ══ DOCUMENT TYPE SECTION — Ishu Kumar India Guide ══════════════════════ */
+.cp-doctype-section {
+  padding: var(--sp-12) var(--sp-6);
+  background: linear-gradient(160deg, rgba(16,185,129,.05) 0%, rgba(99,102,241,.06) 100%);
+  border-top: 1px solid var(--bdr);
+}
+.cp-doctype-inner { max-width: var(--sec-max); margin: 0 auto; }
+.cp-doctype-intro {
+  text-align: center;
+  color: var(--t2);
+  font-size: var(--fs-lg);
+  max-width: 750px;
+  margin: 0 auto var(--sp-10);
+  line-height: 1.75;
+}
+.cp-dt-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-5);
+}
+@media (max-width: 1100px) { .cp-dt-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 580px) { .cp-dt-grid { grid-template-columns: 1fr; } }
+
+.cp-dt-card {
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-xl);
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  transition: transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease);
+}
+.cp-dt-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0,0,0,.3);
+  border-color: rgba(99,102,241,.3);
+}
+.cp-dt-top {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.cp-dt-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+.cp-dt-name {
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: var(--t1);
+  margin: 0 0 .2rem;
+}
+.cp-dt-limit {
+  font-size: .8rem;
+  color: var(--t4);
+}
+.cp-dt-limit strong { color: var(--am); }
+.cp-dt-desc {
+  font-size: .88rem;
+  color: var(--t3);
+  line-height: 1.6;
+}
+.cp-dt-steps {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+.cp-dt-step {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .83rem;
+  color: var(--t3);
+}
+.cp-dt-snum {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(99,102,241,.25);
+  color: var(--in3);
+  font-size: .72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.cp-dt-kw {
+  font-size: .78rem;
+  color: var(--t4);
+  border-top: 1px solid var(--bdr);
+  padding-top: var(--sp-2);
+  line-height: 1.5;
+}
+.cp-dt-footer {
+  margin-top: var(--sp-10);
+  text-align: center;
+  padding: var(--sp-6) var(--sp-8);
+  background: rgba(16,185,129,.06);
+  border: 1px solid rgba(16,185,129,.18);
+  border-radius: var(--r-xl);
+  color: var(--t2);
+  font-size: var(--fs-base);
+  line-height: 1.7;
+}

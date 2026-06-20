@@ -317,6 +317,54 @@ def rss_feed():
         mimetype='application/rss+xml'
     )
 
+@app.route('/ishutools-ishukr41-indexnow-compress-pdf.txt')
+def indexnow_key():
+    """IndexNow key verification file — Ishu Kumar (ISHUKR41)."""
+    return send_from_directory(
+        os.path.join(os.path.dirname(__file__), '..', 'seo'),
+        'ishutools-ishukr41-indexnow-compress-pdf.txt',
+        mimetype='text/plain'
+    )
+
+@app.route('/api/indexnow', methods=['POST', 'GET'])
+def indexnow_ping():
+    """IndexNow auto-ping — notifies Bing and Yandex instantly when compress-pdf is updated.
+    Created by Ishu Kumar (ISHUKR41) — ishutools.fun
+    """
+    import urllib.request
+    import json as _json
+
+    key = 'ishutools-ishukr41-indexnow-compress-pdf'
+    urls = [
+        'https://ishutools.fun/tools/compress-pdf/',
+        'https://ishutools.fun/',
+        'https://ishutools.fun/tools/split-pdf/',
+        'https://ishutools.fun/tools/merge-pdf/',
+    ]
+    payload = _json.dumps({
+        'host': 'ishutools.fun',
+        'key': key,
+        'keyLocation': f'https://ishutools.fun/{key}.txt',
+        'urlList': urls
+    }).encode('utf-8')
+
+    results = {}
+    for engine in ['https://api.indexnow.org/indexnow', 'https://www.bing.com/indexnow']:
+        try:
+            req = urllib.request.Request(
+                engine,
+                data=payload,
+                headers={'Content-Type': 'application/json; charset=utf-8'},
+                method='POST'
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                results[engine] = resp.status
+        except Exception as e:
+            results[engine] = str(e)
+
+    return {'status': 'pinged', 'results': results, 'urls': urls,
+            'author': 'Ishu Kumar (ISHUKR41) — ishutools.fun'}, 200
+
 # ── Health Check ─────────────────────────────────────────────────────────────
 @app.route('/api/health')
 def health():
