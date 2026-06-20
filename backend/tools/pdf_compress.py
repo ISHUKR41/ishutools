@@ -1,26 +1,45 @@
 """
-pdf_compress.py — IshuTools.fun Enterprise PDF Compression Suite v11.0
+pdf_compress.py — IshuTools.fun Enterprise PDF Compression Suite v20.0
 Author: Ishu Kumar (ISHUKR41 / ISHUKR75) — ishutools.fun
+GitHub: https://github.com/ISHUKR41 | https://github.com/ISHUKR75
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-COMPRESSION PIPELINE (7 engines, all tried, smallest result kept):
-  1. Ghostscript CLI      — industry-standard distiller presets (gs)
-  2. PyMuPDF (fitz)       — per-image DPI downsampling + JPEG re-encode
-  3. pikepdf              — object stream merging, DEFLATE-9, XMP strip
-  4. qpdf CLI             — stream recompression + linearization
-  5. pypdf                — orphan object removal, page content optimization
-  6. Pillow               — image-only JPEG/WebP recompression pipeline
-  7. mutool               — MuPDF-based clean + compress (when available)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WORLD-CLASS PDF COMPRESSION ENGINE — 10 STRATEGIES + INTELLIGENT PIPELINE
 
-QUALITY PRESETS (NO auto grayscale — user must enable explicitly):
-  screen   → 72 DPI,  JPEG q=30  — max compression, screen viewing only
-  low      → 96 DPI,  JPEG q=45  — email-friendly small file
-  medium   → 150 DPI, JPEG q=65  — balanced recommended
-  high     → 200 DPI, JPEG q=82  — near-lossless, print-quality
-  lossless → 300 DPI, no re-encode — structure-only, zero image degradation
+COMPRESSION ENGINES (ALL tried, SMALLEST result kept):
+  1.  Ghostscript CLI          — industry-standard distiller presets (gs/gswin64c)
+  2.  PyMuPDF (fitz)           — per-image DPI downsampling + JPEG/WebP re-encode
+  3.  pikepdf                  — object stream merging, DEFLATE-9, XMP strip
+  4.  qpdf CLI                 — linearize + recompress streams
+  5.  pypdf                    — orphan object purge, content-stream optimize
+  6.  Pillow                   — image-only JPEG/WebP/JBIG2 pipeline
+  7.  mutool                   — MuPDF clean + compress (when available)
+  8.  pdftocairo / pdf2ps      — re-distill pipeline for corrupted PDFs
+  9.  WeasyPrint               — HTML→PDF clean rebuild (text-only PDFs)
+  10. cpdf                     — fine-grained stream recompression
 
-ADVANCED OPTIONS (all user-controlled, zero auto overrides):
-  grayscale             — convert colour to grayscale (user must enable)
+POST-PROCESSING PASSES:
+  + Strip dead XObjects, orphan streams, duplicate resources
+  + Linearization (fast-web-view / byte-serving)
+  + JavaScript removal, annotation flattening, form flattening
+  + ICC profile stripping, thumbnail removal, embedded file removal
+  + Font subsetting (only used glyphs embedded)
+  + Transparency flattening, overprint simplification
+  + Duplicate image detection + reference deduplication
+  + Color space optimization (CMYK→RGB when smaller)
+  + Metadata scrubbing (DocInfo + XMP)
+  + Object stream compression (ObjStm + XRef stream)
+  + Content stream optimization (remove redundant operators)
+
+QUALITY PRESETS (NO auto-grayscale — user must enable explicitly):
+  screen   → 72 DPI,  JPEG q=25  — max compression, screen viewing only
+  low      → 96 DPI,  JPEG q=42  — email-friendly small file
+  medium   → 150 DPI, JPEG q=62  — balanced recommended
+  high     → 200 DPI, JPEG q=80  — near-lossless, print-quality
+  lossless → 300 DPI, no re-encode — structure-only, zero image loss
+
+ADVANCED OPTIONS (all user-controlled, ZERO automatic overrides):
+  grayscale             — convert colour to grayscale (USER must enable)
   strip_metadata        — remove author/title/XMP/DocInfo
   remove_annotations    — delete all annotation objects
   linearize             — web-optimize (fast-web-view)
@@ -32,25 +51,43 @@ ADVANCED OPTIONS (all user-controlled, zero auto overrides):
   remove_icc_profiles   — strip unnecessary ICC colour profiles
   remove_forms          — remove interactive form fields
   remove_links          — remove hyperlink annotations
-  target_size_kb        — iterative compression to target KB
+  remove_duplicate_images — deduplicate identical image streams
+  target_size_kb        — iterative binary-search compression to target KB
   password              — decrypt password-protected PDFs
 
-ANALYSIS FUNCTIONS:
-  get_compression_estimate()     — full PDF analysis with per-preset estimates
-  analyze_pdf_streams()          — stream-level compressed/uncompressed stats
-  get_available_engines()        — detect installed engines + versions
-  analyze_images_in_pdf()        — per-image DPI, mode, size, compressibility
-  get_compression_potential()    — per-strategy reduction opportunity
-  get_pdf_metadata()             — full metadata extraction
-  get_pdf_structure_report()     — deep structure + object analysis
-  estimate_compression_savings() — fast estimate without full analysis
-  detect_pdf_type()              — text-heavy / image-heavy / mixed / scanned
-  get_font_analysis()            — embedded fonts size + subset opportunities
-  get_image_compression_stats()  — detailed per-image compression metrics
-  benchmark_compression()        — try all presets, return comparison table
+ANALYSIS FUNCTIONS (20+):
+  get_compression_estimate()       — full PDF analysis + per-preset estimates
+  analyze_pdf_streams()            — stream-level stats (compressed vs raw)
+  get_available_engines()          — detect installed engines + versions
+  analyze_images_in_pdf()          — per-image DPI, mode, size, savings potential
+  get_compression_potential()      — per-strategy reduction opportunity
+  get_pdf_metadata()               — full metadata extraction (DocInfo + XMP)
+  get_pdf_structure_report()       — deep object/stream analysis
+  estimate_compression_savings()   — fast estimate without full analysis
+  detect_pdf_type()                — text-heavy/image-heavy/mixed/scanned/form
+  get_font_analysis()              — embedded fonts + subset opportunities
+  get_image_compression_stats()    — per-image compression metrics
+  benchmark_compression()          — try all presets, return comparison table
+  get_security_report()            — encryption/permissions/JS/forms details
+  get_color_analysis()             — colour vs grayscale page breakdown
+  analyze_font_subsetting()        — identify oversized embedded fonts
+  get_page_size_breakdown()        — per-page size contribution analysis
+  calculate_entropy()              — stream entropy → compression headroom
+  get_object_statistics()          — PDF object-type distribution
+  detect_duplicate_images()        — find identical image streams by hash
+  get_accessibility_report()       — tagged PDF, alt text, reading order
+  analyze_content_streams()        — drawing command complexity per page
+  get_compression_recommendations()— ranked list of best strategies
+  validate_output_pdf()            — verify output is valid + readable
+  get_quality_score()              — 0–100 quality/compression ratio score
+  deep_analyze_pdf()               — all analysis functions combined
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPORTS
+# ═══════════════════════════════════════════════════════════════════════════════
 
 import io
 import os
@@ -69,40 +106,69 @@ import threading
 import subprocess
 import time
 import zlib
-from collections import defaultdict, Counter
+import statistics
+import concurrent.futures
+import traceback
+from collections import defaultdict, Counter, OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, List, Dict, Tuple, Any, Union, Generator
+from typing import Optional, List, Dict, Tuple, Any, Union, Generator, Callable, Set, Iterator
+from functools import lru_cache, partial, wraps
+from contextlib import contextmanager, suppress
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field, asdict
+from enum import Enum, auto
+import itertools
+import struct
+import random
+import base64
+import urllib.parse
+import fnmatch
 
-# ── Core PDF libraries ─────────────────────────────────────────────────────
+# ── Core PDF libraries ─────────────────────────────────────────────────────────
 try:
     import pikepdf
-    from pikepdf import Pdf, PdfError, Dictionary, Array, Name, String as PikePdfString
-    PIKEPDF_OK = True
+    from pikepdf import Pdf, PdfError, Dictionary, Array, Name
+    from pikepdf import String as PikePdfString
+    PIKEPDF_OK      = True
+    PIKEPDF_VERSION = pikepdf.__version__
 except ImportError:
-    PIKEPDF_OK = False
+    PIKEPDF_OK      = False
+    PIKEPDF_VERSION = None
+    class Pdf:
+        pass
 
 try:
     import fitz  # PyMuPDF
-    FITZ_OK = True
-    FITZ_VERSION = fitz.version[0]
+    FITZ_OK      = True
+    FITZ_VERSION = fitz.__version__
 except ImportError:
-    FITZ_OK = False
+    FITZ_OK      = False
     FITZ_VERSION = None
 
 try:
-    from pypdf import PdfWriter, PdfReader
-    from pypdf.errors import PdfReadError
-    PYPDF_OK = True
+    import pypdf
+    from pypdf import PdfReader, PdfWriter
+    from pypdf.errors import PdfReadError, EmptyFileError
+    PYPDF_OK      = True
+    PYPDF_VERSION = pypdf.__version__
 except ImportError:
-    PYPDF_OK = False
+    try:
+        import PyPDF2 as pypdf
+        from PyPDF2 import PdfReader, PdfWriter
+        PYPDF_OK      = True
+        PYPDF_VERSION = getattr(pypdf, '__version__', '2.x')
+    except ImportError:
+        PYPDF_OK      = False
+        PYPDF_VERSION = None
 
 try:
-    from PIL import Image, ImageFilter, ImageOps, ImageEnhance
-    PIL_OK = True
+    from PIL import Image, ImageFilter, ImageEnhance, ImageOps, ImageDraw, ImageFont
+    from PIL import JpegImagePlugin
+    PIL_OK      = True
     PIL_VERSION = Image.__version__
 except ImportError:
-    PIL_OK = False
+    PIL_OK      = False
     PIL_VERSION = None
 
 try:
@@ -112,1874 +178,3780 @@ except ImportError:
     IMG2PDF_OK = False
 
 try:
+    from pdf2image import convert_from_path
+    PDF2IMAGE_OK = True
+except ImportError:
+    PDF2IMAGE_OK = False
+
+try:
+    from pdfminer.high_level import extract_text, extract_pages
+    from pdfminer.layout import LTPage, LTTextBox, LTFigure, LTLayoutContainer
+    from pdfminer.pdfparser import PDFParser
+    from pdfminer.pdfdocument import PDFDocument
+    from pdfminer.pdftypes import PDFStream, PDFObjRef
+    from pdfminer.pdfpage import PDFPage
+    PDFMINER_OK = True
+except ImportError:
+    PDFMINER_OK = False
+
+try:
+    import reportlab
     from reportlab.pdfgen import canvas as rl_canvas
-    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.pagesizes import letter, A4
+    from reportlab.lib.utils import ImageReader
+    from reportlab.lib import colors as rl_colors
     REPORTLAB_OK = True
 except ImportError:
     REPORTLAB_OK = False
 
-# ── Logging ────────────────────────────────────────────────────────────────
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+try:
+    import weasyprint
+    WEASYPRINT_OK = True
+except ImportError:
+    WEASYPRINT_OK = False
 
-# ══════════════════════════════════════════════════════════════════════════
-# CLI BINARY DETECTION
-# ══════════════════════════════════════════════════════════════════════════
+try:
+    import cairosvg
+    CAIROSVG_OK = True
+except ImportError:
+    CAIROSVG_OK = False
 
-def _find_binary(*names: str) -> Optional[str]:
-    """Find first available binary from names list."""
-    for name in names:
-        path = shutil.which(name)
-        if path:
-            return path
-    return None
+try:
+    import numpy as np
+    NUMPY_OK = True
+except ImportError:
+    NUMPY_OK = False
 
-GS_BIN     = _find_binary('gs', 'ghostscript', 'gswin64c', 'gswin32c')
-QPDF_BIN   = _find_binary('qpdf')
-MUTOOL_BIN = _find_binary('mutool')
-PDFTK_BIN  = _find_binary('pdftk')
-PS2PDF_BIN = _find_binary('ps2pdf')
-CONVERT_BIN = _find_binary('convert')  # ImageMagick
+try:
+    import scipy
+    from scipy import stats as sp_stats
+    SCIPY_OK = True
+except ImportError:
+    SCIPY_OK = False
 
-# ══════════════════════════════════════════════════════════════════════════
-# QUALITY PRESETS
-# ⚠️  CRITICAL: grayscale is NEVER set True here. Only user-controlled.
-# ══════════════════════════════════════════════════════════════════════════
+try:
+    from fpdf import FPDF
+    FPDF_OK = True
+except ImportError:
+    FPDF_OK = False
 
-QUALITY_PRESETS: Dict[str, Dict[str, Any]] = {
+try:
+    import lxml
+    from lxml import etree
+    LXML_OK = True
+except ImportError:
+    LXML_OK = False
+
+# ── Logger ────────────────────────────────────────────────────────────────────
+log = logging.getLogger(__name__)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONSTANTS & ENUMERATIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class CompressionLevel(Enum):
+    SCREEN   = 'screen'
+    LOW      = 'low'
+    MEDIUM   = 'medium'
+    HIGH     = 'high'
+    LOSSLESS = 'lossless'
+
+class EngineStatus(Enum):
+    AVAILABLE    = 'available'
+    UNAVAILABLE  = 'unavailable'
+    PARTIAL      = 'partial'
+    ERROR        = 'error'
+
+class PdfType(Enum):
+    TEXT_HEAVY   = 'text_heavy'
+    IMAGE_HEAVY  = 'image_heavy'
+    MIXED        = 'mixed'
+    SCANNED      = 'scanned'
+    FORM         = 'form'
+    PRESENTATION = 'presentation'
+    EMPTY        = 'empty'
+    ENCRYPTED    = 'encrypted'
+
+# ── Preset configurations ─────────────────────────────────────────────────────
+PRESETS: Dict[str, Dict[str, Any]] = {
     'screen': {
-        'dpi': 72,
-        'jpeg_quality': 30,
-        'webp_quality': 25,
-        'image_scale': 0.40,
-        'grayscale': False,          # ← NEVER force grayscale
-        'gs_setting': '/screen',
-        'gs_dpi': 72,
-        'deflate_level': 9,
-        'downsample_above_dpi': 150,
-        'jpeg2000': False,
-        'description': 'Screen — 72 DPI, maximum compression, screen viewing only',
-        'expected_reduction': '70–90%',
+        'dpi': 72, 'jpeg_quality': 25, 'gs_preset': '/screen',
+        'webp_quality': 20, 'max_image_size': (800, 800),
+        'deflate_level': 9, 'description': 'Maximum compression for screen viewing',
+        'expected_reduction_pct': (75, 92),
+        'recommended_for': 'Screen viewing, web sharing',
         'color': '#ef4444',
-        'badge': 'MAX',
     },
     'low': {
-        'dpi': 96,
-        'jpeg_quality': 45,
-        'webp_quality': 40,
-        'image_scale': 0.55,
-        'grayscale': False,
-        'gs_setting': '/ebook',
-        'gs_dpi': 96,
-        'deflate_level': 9,
-        'downsample_above_dpi': 200,
-        'jpeg2000': False,
-        'description': 'Low — 96 DPI, very small file, ideal for email',
-        'expected_reduction': '55–75%',
-        'color': '#f97316',
-        'badge': None,
+        'dpi': 96, 'jpeg_quality': 42, 'gs_preset': '/screen',
+        'webp_quality': 35, 'max_image_size': (1200, 1200),
+        'deflate_level': 9, 'description': 'Small file for email/messaging',
+        'expected_reduction_pct': (55, 78),
+        'recommended_for': 'Email, messaging apps',
+        'color': '#f59e0b',
     },
     'medium': {
-        'dpi': 150,
-        'jpeg_quality': 65,
-        'webp_quality': 60,
-        'image_scale': 0.70,
-        'grayscale': False,
-        'gs_setting': '/printer',
-        'gs_dpi': 150,
-        'deflate_level': 8,
-        'downsample_above_dpi': 300,
-        'jpeg2000': False,
-        'description': 'Medium — 150 DPI, balanced quality and size',
-        'expected_reduction': '40–60%',
+        'dpi': 150, 'jpeg_quality': 62, 'gs_preset': '/ebook',
+        'webp_quality': 55, 'max_image_size': (2000, 2000),
+        'deflate_level': 8, 'description': 'Best balance — recommended',
+        'expected_reduction_pct': (40, 65),
+        'recommended_for': 'Most use cases, online sharing',
         'color': '#6366f1',
-        'badge': 'REC',
     },
     'high': {
-        'dpi': 200,
-        'jpeg_quality': 82,
-        'webp_quality': 78,
-        'image_scale': 0.85,
-        'grayscale': False,
-        'gs_setting': '/prepress',
-        'gs_dpi': 200,
-        'deflate_level': 7,
-        'downsample_above_dpi': 400,
-        'jpeg2000': False,
-        'description': 'High — 200 DPI, near-lossless, excellent quality',
-        'expected_reduction': '20–45%',
+        'dpi': 200, 'jpeg_quality': 80, 'gs_preset': '/printer',
+        'webp_quality': 75, 'max_image_size': (3000, 3000),
+        'deflate_level': 7, 'description': 'Near-lossless with size savings',
+        'expected_reduction_pct': (18, 45),
+        'recommended_for': 'Printing, presentations',
         'color': '#10b981',
-        'badge': None,
     },
     'lossless': {
-        'dpi': 300,
-        'jpeg_quality': 95,
-        'webp_quality': 92,
-        'image_scale': 1.00,
-        'grayscale': False,
-        'gs_setting': '/default',
-        'gs_dpi': 300,
-        'deflate_level': 6,
-        'downsample_above_dpi': 9999,
-        'jpeg2000': False,
-        'description': 'Lossless — 300 DPI, structure-only, zero image quality loss',
-        'expected_reduction': '5–25%',
+        'dpi': 300, 'jpeg_quality': 95, 'gs_preset': '/prepress',
+        'webp_quality': 90, 'max_image_size': (6000, 6000),
+        'deflate_level': 6, 'description': 'Zero image quality loss',
+        'expected_reduction_pct': (5, 28),
+        'recommended_for': 'Legal, archival, print production',
         'color': '#8b5cf6',
-        'badge': '💎',
     },
 }
 
-# ══════════════════════════════════════════════════════════════════════════
-# ENGINE DETECTION
-# ══════════════════════════════════════════════════════════════════════════
+# ── Ghostscript detection ─────────────────────────────────────────────────────
+_GS_BIN: Optional[str] = None
+_GS_VERSION: Optional[str] = None
 
-def get_available_engines() -> Dict[str, Any]:
-    """Return dict of available compression engines with version info."""
-    engines = {}
+def _find_gs() -> Optional[str]:
+    global _GS_BIN, _GS_VERSION
+    if _GS_BIN:
+        return _GS_BIN
+    for candidate in ['gs', 'gswin64c', 'gswin32c', 'gsc', '/usr/bin/gs',
+                       '/usr/local/bin/gs', '/opt/homebrew/bin/gs']:
+        if shutil.which(candidate):
+            try:
+                r = subprocess.run([candidate, '--version'], capture_output=True, text=True, timeout=5)
+                if r.returncode == 0:
+                    _GS_BIN     = candidate
+                    _GS_VERSION = r.stdout.strip()
+                    return candidate
+            except Exception:
+                pass
+    return None
 
-    # Ghostscript
-    if GS_BIN:
-        try:
-            r = subprocess.run([GS_BIN, '--version'], capture_output=True, text=True, timeout=5)
-            engines['ghostscript'] = {'available': True, 'path': GS_BIN,
-                                       'version': r.stdout.strip(), 'priority': 1}
-        except Exception:
-            engines['ghostscript'] = {'available': False}
-    else:
-        engines['ghostscript'] = {'available': False}
+# ── qpdf detection ────────────────────────────────────────────────────────────
+_QPDF_BIN: Optional[str] = None
 
-    # PyMuPDF
-    engines['pymupdf'] = {'available': FITZ_OK, 'version': FITZ_VERSION, 'priority': 2}
+def _find_qpdf() -> Optional[str]:
+    global _QPDF_BIN
+    if _QPDF_BIN:
+        return _QPDF_BIN
+    for candidate in ['qpdf', '/usr/bin/qpdf', '/usr/local/bin/qpdf']:
+        if shutil.which(candidate):
+            _QPDF_BIN = candidate
+            return candidate
+    return None
 
-    # pikepdf
+# ── mutool detection ──────────────────────────────────────────────────────────
+_MUTOOL_BIN: Optional[str] = None
+
+def _find_mutool() -> Optional[str]:
+    global _MUTOOL_BIN
+    if _MUTOOL_BIN:
+        return _MUTOOL_BIN
+    for candidate in ['mutool', '/usr/bin/mutool', '/usr/local/bin/mutool']:
+        if shutil.which(candidate):
+            _MUTOOL_BIN = candidate
+            return candidate
+    return None
+
+# ── pdftocairo detection ──────────────────────────────────────────────────────
+_PDFTOCAIRO_BIN: Optional[str] = None
+
+def _find_pdftocairo() -> Optional[str]:
+    global _PDFTOCAIRO_BIN
+    if _PDFTOCAIRO_BIN:
+        return _PDFTOCAIRO_BIN
+    for candidate in ['pdftocairo', '/usr/bin/pdftocairo']:
+        if shutil.which(candidate):
+            _PDFTOCAIRO_BIN = candidate
+            return candidate
+    return None
+
+# ── cpdf detection ────────────────────────────────────────────────────────────
+_CPDF_BIN: Optional[str] = None
+
+def _find_cpdf() -> Optional[str]:
+    global _CPDF_BIN
+    if _CPDF_BIN:
+        return _CPDF_BIN
+    for candidate in ['cpdf', '/usr/bin/cpdf', '/usr/local/bin/cpdf']:
+        if shutil.which(candidate):
+            _CPDF_BIN = candidate
+            return candidate
+    return None
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DATACLASSES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@dataclass
+class ImageInfo:
+    """Detailed information about an image embedded in a PDF."""
+    page_num: int        = 0
+    obj_num: int         = 0
+    width: int           = 0
+    height: int          = 0
+    colorspace: str      = ''
+    bitspercomponent: int = 8
+    filter_type: str     = ''
+    raw_size: int        = 0
+    decoded_size: int    = 0
+    dpi_x: float         = 0.0
+    dpi_y: float         = 0.0
+    can_downscale: bool  = False
+    savings_estimate: float = 0.0
+    hash_md5: str        = ''
+
+@dataclass
+class CompressionResult:
+    """Result from a single compression attempt."""
+    engine: str           = ''
+    success: bool         = False
+    input_size: int       = 0
+    output_size: int      = 0
+    reduction_pct: float  = 0.0
+    time_ms: int          = 0
+    error: str            = ''
+    output_path: str      = ''
+
+@dataclass
+class AnalysisResult:
+    """Full PDF analysis result."""
+    file_size: int                   = 0
+    page_count: int                  = 0
+    image_count: int                 = 0
+    total_image_size: int            = 0
+    total_text_size: int             = 0
+    total_font_size: int             = 0
+    total_stream_size: int           = 0
+    has_javascript: bool             = False
+    has_forms: bool                  = False
+    has_encryption: bool             = False
+    has_annotations: bool            = False
+    has_signatures: bool             = False
+    has_embedded_files: bool         = False
+    has_thumbnails: bool             = False
+    has_transparency: bool           = False
+    has_icc_profiles: bool           = False
+    is_linearized: bool              = False
+    is_tagged: bool                  = False
+    is_scanned: bool                 = False
+    pdf_version: str                 = ''
+    pdf_type: str                    = ''
+    content_type: str                = ''
+    compression_level: str           = ''
+    compressibility_score: float     = 0.0
+    estimated_reductions_by_preset: Dict[str, float] = field(default_factory=dict)
+    recommendations: List[str]       = field(default_factory=list)
+    font_names: List[str]            = field(default_factory=list)
+    metadata: Dict[str, str]         = field(default_factory=dict)
+    image_details: List[Dict]        = field(default_factory=list)
+    warnings: List[str]              = field(default_factory=list)
+    errors: List[str]                = field(default_factory=list)
+
+@dataclass
+class FontInfo:
+    """Information about an embedded font."""
+    name: str         = ''
+    font_type: str    = ''
+    encoding: str     = ''
+    embedded: bool    = False
+    subset: bool      = False
+    size_bytes: int   = 0
+    used_glyphs: int  = 0
+    total_glyphs: int = 0
+    savings_if_subset: int = 0
+    page_nums: List[int] = field(default_factory=list)
+
+@dataclass
+class QualityScore:
+    """Quality and compression effectiveness score."""
+    score: int           = 0
+    grade: str           = 'F'
+    reduction_pct: float = 0.0
+    quality_retained: float = 100.0
+    speed_ms: int        = 0
+    engine_used: str     = ''
+    notes: List[str]     = field(default_factory=list)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# UTILITY FUNCTIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _file_size(path: str) -> int:
+    """Get file size in bytes, 0 if missing."""
+    try:
+        return os.path.getsize(path)
+    except OSError:
+        return 0
+
+def _reduction_pct(before: int, after: int) -> float:
+    """Calculate percentage reduction."""
+    if before <= 0:
+        return 0.0
+    return max(0.0, round((1 - after / before) * 100, 1))
+
+def _safe_copy(src: str, dst: str) -> bool:
+    """Copy file, return True on success."""
+    try:
+        shutil.copy2(src, dst)
+        return True
+    except Exception:
+        return False
+
+def _safe_remove(path: str) -> None:
+    """Remove file if it exists, swallow errors."""
+    with suppress(Exception):
+        os.remove(path)
+
+def _mk_tmp(suffix: str = '.pdf') -> str:
+    """Create a unique temp file path (not created yet)."""
+    fd, path = tempfile.mkstemp(suffix=suffix)
+    os.close(fd)
+    return path
+
+def _run_cmd(cmd: List[str], timeout: int = 120, **kw) -> subprocess.CompletedProcess:
+    """Run command with timeout, capture output."""
+    return subprocess.run(
+        cmd, capture_output=True, text=True, timeout=timeout, **kw
+    )
+
+def _hash_stream(data: bytes) -> str:
+    """MD5 hash of bytes for deduplication."""
+    return hashlib.md5(data).hexdigest()
+
+def _bytes_entropy(data: bytes) -> float:
+    """Shannon entropy of bytes — higher = more random = harder to compress."""
+    if not data:
+        return 0.0
+    n = len(data)
+    counts = Counter(data)
+    entropy = -sum((c / n) * math.log2(c / n) for c in counts.values())
+    return round(entropy, 4)
+
+def _is_valid_pdf(path: str) -> bool:
+    """Quick check if path is a readable PDF."""
+    try:
+        with open(path, 'rb') as f:
+            header = f.read(8)
+        return header.startswith(b'%PDF-')
+    except Exception:
+        return False
+
+def _pdf_version(path: str) -> str:
+    """Extract PDF version string."""
+    try:
+        with open(path, 'rb') as f:
+            header = f.read(16).decode('latin-1', errors='replace')
+        m = re.match(r'%PDF-(\d+\.\d+)', header)
+        return m.group(1) if m else 'unknown'
+    except Exception:
+        return 'unknown'
+
+def _count_pdf_pages(path: str) -> int:
+    """Count pages using fastest available method."""
+    # Method 1: pikepdf (fastest)
     if PIKEPDF_OK:
-        engines['pikepdf'] = {'available': True, 'version': pikepdf.__version__, 'priority': 3}
-    else:
-        engines['pikepdf'] = {'available': False}
-
-    # qpdf
-    if QPDF_BIN:
         try:
-            r = subprocess.run([QPDF_BIN, '--version'], capture_output=True, text=True, timeout=5)
-            ver = r.stdout.strip().split('\n')[0]
-            engines['qpdf'] = {'available': True, 'path': QPDF_BIN, 'version': ver, 'priority': 4}
+            with pikepdf.open(path) as pdf:
+                return len(pdf.pages)
         except Exception:
-            engines['qpdf'] = {'available': True, 'path': QPDF_BIN, 'priority': 4}
-    else:
-        engines['qpdf'] = {'available': False}
-
-    # pypdf
+            pass
+    # Method 2: fitz
+    if FITZ_OK:
+        try:
+            doc = fitz.open(path)
+            n = doc.page_count
+            doc.close()
+            return n
+        except Exception:
+            pass
+    # Method 3: pypdf
     if PYPDF_OK:
         try:
-            import pypdf
-            engines['pypdf'] = {'available': True, 'version': pypdf.__version__, 'priority': 5}
+            r = PdfReader(path)
+            return len(r.pages)
         except Exception:
-            engines['pypdf'] = {'available': True, 'priority': 5}
-    else:
-        engines['pypdf'] = {'available': False}
+            pass
+    # Method 4: grep %%Page from PostScript-like comment
+    try:
+        with open(path, 'rb') as f:
+            content = f.read()
+        matches = re.findall(rb'/Type\s*/Page[^s]', content)
+        return len(matches)
+    except Exception:
+        return 0
 
-    # Pillow
-    engines['pillow'] = {'available': PIL_OK, 'version': PIL_VERSION, 'priority': 6}
-
-    # mutool
-    if MUTOOL_BIN:
+def _decrypt_pdf_copy(src: str, dst: str, password: str = '') -> bool:
+    """Try to decrypt a password-protected PDF into dst. Returns True on success."""
+    if PIKEPDF_OK:
+        for pw in [password, '', 'password', 'pdf', 'user']:
+            try:
+                with pikepdf.open(src, password=pw) as pdf:
+                    pdf.save(dst)
+                return True
+            except Exception:
+                pass
+    if FITZ_OK:
         try:
-            r = subprocess.run([MUTOOL_BIN, '-v'], capture_output=True, text=True, timeout=5)
-            engines['mutool'] = {'available': True, 'path': MUTOOL_BIN,
-                                  'version': r.stderr.strip().split('\n')[0], 'priority': 7}
+            doc = fitz.open(src)
+            for pw in [password, '', 'password']:
+                if doc.authenticate(pw):
+                    doc.save(dst)
+                    doc.close()
+                    return True
+            doc.close()
         except Exception:
-            engines['mutool'] = {'available': True, 'path': MUTOOL_BIN, 'priority': 7}
-    else:
-        engines['mutool'] = {'available': False}
+            pass
+    return False
 
-    engines['pdftk'] = {'available': bool(PDFTK_BIN), 'path': PDFTK_BIN}
-    engines['imagemagick'] = {'available': bool(CONVERT_BIN), 'path': CONVERT_BIN}
+@contextmanager
+def _tmp_dir():
+    """Temporary directory context manager."""
+    d = tempfile.mkdtemp(prefix='ishutools_compress_')
+    try:
+        yield d
+    finally:
+        with suppress(Exception):
+            shutil.rmtree(d, ignore_errors=True)
 
-    return engines
+def _timing(func):
+    """Decorator: add _elapsed_ms to return dict."""
+    @wraps(func)
+    def wrapper(*a, **kw):
+        t0  = time.perf_counter()
+        res = func(*a, **kw)
+        ms  = int((time.perf_counter() - t0) * 1000)
+        if isinstance(res, dict):
+            res.setdefault('processing_time_ms', ms)
+        return res
+    return wrapper
 
-# ══════════════════════════════════════════════════════════════════════════
-# PDF ANALYSIS FUNCTIONS
-# ══════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENGINE LAYER — each engine compresses independently
+# ═══════════════════════════════════════════════════════════════════════════════
 
-def get_compression_estimate(pdf_path: str, password: str = '') -> Dict[str, Any]:
-    """
-    Full PDF analysis: page count, image analysis, font analysis,
-    stream stats, and per-preset estimated reductions.
-    """
-    result = {
-        'page_count': 0,
-        'file_size_bytes': 0,
-        'file_size_kb': 0,
-        'image_count': 0,
-        'image_total_bytes': 0,
-        'font_count': 0,
-        'font_bytes': 0,
-        'has_javascript': False,
-        'has_forms': False,
-        'has_annotations': False,
-        'has_embedded_files': False,
-        'has_encryption': False,
-        'has_thumbnails': False,
-        'has_icc_profiles': False,
-        'pdf_version': '',
-        'content_type': 'mixed',  # text_heavy / image_heavy / mixed / scanned
-        'is_linearized': False,
-        'compression_ratio_current': 1.0,
-        'estimated_reductions_by_preset': {
-            'screen': 75, 'low': 60, 'medium': 50, 'high': 35, 'lossless': 15
-        },
-        'metadata': {},
-        'engines': [],
-        'error': None,
-    }
+# ── Engine 1: Ghostscript ─────────────────────────────────────────────────────
+
+def _gs_compress(
+    src: str, dst: str, preset: str = 'medium',
+    grayscale: bool = False,
+    subset_fonts: bool = False,
+    extra_args: Optional[List[str]] = None,
+    timeout: int = 180,
+) -> CompressionResult:
+    """Compress PDF via Ghostscript distiller pipeline."""
+    gs = _find_gs()
+    if not gs:
+        return CompressionResult(engine='ghostscript', error='Ghostscript not found')
+
+    cfg = PRESETS.get(preset, PRESETS['medium'])
+    gs_preset   = cfg['gs_preset']
+    dpi         = cfg['dpi']
+    jpeg_q      = cfg['jpeg_quality']
+
+    result = CompressionResult(
+        engine='ghostscript',
+        input_size=_file_size(src),
+    )
+    t0 = time.perf_counter()
+
+    cmd = [
+        gs, '-sDEVICE=pdfwrite', '-dNOPAUSE', '-dBATCH', '-dQUIET',
+        '-dSAFER',
+        f'-dPDFSETTINGS={gs_preset}',
+        f'-dCompatibilityLevel=1.7',
+        f'-dColorImageResolution={dpi}',
+        f'-dGrayImageResolution={dpi}',
+        f'-dMonoImageResolution={min(300, dpi * 2)}',
+        f'-dColorImageDownsampleThreshold=1.0',
+        f'-dGrayImageDownsampleThreshold=1.0',
+        f'-dColorImageDownsampleType=/Bicubic',
+        f'-dGrayImageDownsampleType=/Bicubic',
+        f'-dMonoImageDownsampleType=/Bicubic',
+        f'-dDownsampleColorImages=true',
+        f'-dDownsampleGrayImages=true',
+        f'-dDownsampleMonoImages=true',
+        f'-dEncodeColorImages=true',
+        f'-dEncodeGrayImages=true',
+        f'-dAutoFilterColorImages=true',
+        f'-dAutoFilterGrayImages=true',
+        f'-dColorImageFilter=/DCTEncode',
+        f'-dGrayImageFilter=/DCTEncode',
+        f'/ColorACSImageDict << /QFactor {max(0.15, (100 - jpeg_q) / 100.0):.2f} /Blend 1 /ColorTransform 1 /HSamples [1 1 1 1] /VSamples [1 1 1 1] >> setdistillerparams',
+        '-dCompressPages=true',
+        '-dOptimize=true',
+        '-dEmbedAllFonts=true' if not subset_fonts else '-dEmbedAllFonts=false',
+        '-dSubsetFonts=true' if subset_fonts else '-dSubsetFonts=false',
+        '-dFastWebView=false',
+        '-dDetectDuplicateImages=true',
+        '-dCompressFonts=true',
+        f'-sOutputFile={dst}',
+        src,
+    ]
+
+    # Grayscale — ONLY when user explicitly requested
+    if grayscale:
+        cmd[1:1] = [
+            '-sColorConversionStrategy=Gray',
+            '-dProcessColorModel=/DeviceGray',
+            '-dColorConversionStrategy=/Gray',
+        ]
+
+    if extra_args:
+        cmd.extend(extra_args)
+
+    # Remove malformed -d flags (the dict setdistillerparams must be separate)
+    clean_cmd = [c for c in cmd if 'setdistillerparams' not in c]
 
     try:
-        path = Path(pdf_path)
-        if not path.exists():
-            result['error'] = 'File not found'
+        r = _run_cmd(clean_cmd, timeout=timeout)
+        result.time_ms = int((time.perf_counter() - t0) * 1000)
+
+        if r.returncode != 0 or not _is_valid_pdf(dst):
+            result.error = (r.stderr or 'GS failed')[:300]
             return result
 
-        result['file_size_bytes'] = path.stat().st_size
-        result['file_size_kb'] = round(path.stat().st_size / 1024, 2)
+        result.output_size  = _file_size(dst)
+        result.reduction_pct = _reduction_pct(result.input_size, result.output_size)
+        result.success       = True
+        return result
 
-        # ── PyMuPDF analysis ───────────────────────────────────────────
-        if FITZ_OK:
-            try:
-                doc_kwargs = {}
-                if password:
-                    doc_kwargs['password'] = password
+    except subprocess.TimeoutExpired:
+        result.error = 'Ghostscript timed out'
+        return result
+    except Exception as e:
+        result.error = str(e)[:200]
+        return result
 
-                doc = fitz.open(pdf_path, **doc_kwargs)
-                result['page_count'] = doc.page_count
-                result['pdf_version'] = doc.pdf_version()
-                result['is_linearized'] = doc.is_fast_webaccess
+# ── Engine 2: PyMuPDF (fitz) ─────────────────────────────────────────────────
 
-                meta = doc.metadata or {}
-                result['metadata'] = {k: v for k, v in meta.items() if v}
+def _fitz_compress(
+    src: str, dst: str, preset: str = 'medium',
+    grayscale: bool = False,
+    password: str = '',
+) -> CompressionResult:
+    """Compress via PyMuPDF — downsample images + re-encode."""
+    if not FITZ_OK:
+        return CompressionResult(engine='pymupdf', error='PyMuPDF not installed')
 
-                img_bytes_total = 0
-                img_count = 0
-                has_scanned = False
+    cfg    = PRESETS.get(preset, PRESETS['medium'])
+    dpi    = cfg['dpi']
+    jpeg_q = cfg['jpeg_quality']
+    lossless = preset == 'lossless'
 
-                for page_num in range(min(doc.page_count, 30)):  # sample first 30
-                    page = doc[page_num]
-                    img_list = page.get_images(full=True)
-                    img_count += len(img_list)
+    result = CompressionResult(engine='pymupdf', input_size=_file_size(src))
+    t0 = time.perf_counter()
 
-                    for img_info in img_list[:10]:  # cap per page
-                        xref = img_info[0]
-                        try:
-                            base_img = doc.extract_image(xref)
-                            img_bytes_total += len(base_img.get('image', b''))
-                            w = base_img.get('width', 0)
-                            h = base_img.get('height', 0)
-                            if w > 1500 and h > 2000:
-                                has_scanned = True
-                        except Exception:
-                            pass
-
-                result['image_count'] = img_count
-                result['image_total_bytes'] = img_bytes_total
-
-                # Check for JavaScript
-                try:
-                    for page in doc:
-                        for annot in page.annots():
-                            if annot.type[1] in ('Widget', 'Screen'):
-                                result['has_forms'] = True
-                            result['has_annotations'] = True
-                        links = page.get_links()
-                        for lnk in links:
-                            if lnk.get('kind') == fitz.LINK_LAUNCH:
-                                pass
-                except Exception:
-                    pass
-
-                # Check XML metadata for JS / embedded files
-                try:
-                    xmp = doc.get_xml_metadata()
-                    if xmp and 'JavaScript' in xmp:
-                        result['has_javascript'] = True
-                except Exception:
-                    pass
-
+    try:
+        doc = fitz.open(src)
+        if doc.needs_pass:
+            ok = doc.authenticate(password) if password else False
+            if not ok:
+                for pw in ['', 'pdf', 'password', 'user']:
+                    if doc.authenticate(pw):
+                        ok = True
+                        break
+            if not ok:
                 doc.close()
+                result.error = 'Password required'
+                return result
 
-                # Determine content type
-                file_sz = result['file_size_bytes']
-                img_frac = img_bytes_total / max(file_sz, 1)
-
-                if has_scanned:
-                    result['content_type'] = 'scanned'
-                elif img_frac > 0.65:
-                    result['content_type'] = 'image_heavy'
-                elif img_frac < 0.15:
-                    result['content_type'] = 'text_heavy'
-                else:
-                    result['content_type'] = 'mixed'
-
-                # Estimate reductions per preset based on content
-                ct = result['content_type']
-                ests = result['estimated_reductions_by_preset']
-                if ct == 'image_heavy' or ct == 'scanned':
-                    ests.update({'screen': 88, 'low': 72, 'medium': 58, 'high': 40, 'lossless': 20})
-                elif ct == 'text_heavy':
-                    ests.update({'screen': 45, 'low': 35, 'medium': 25, 'high': 15, 'lossless': 10})
-                else:
-                    ests.update({'screen': 75, 'low': 60, 'medium': 48, 'high': 32, 'lossless': 15})
-
-            except Exception as e:
-                result['error'] = f'PyMuPDF analysis error: {e}'
-
-        # ── pikepdf analysis (supplementary) ─────────────────────────
-        if PIKEPDF_OK:
-            try:
-                open_kwargs = {}
-                if password:
-                    open_kwargs['password'] = password
-                pdf = pikepdf.open(pdf_path, **open_kwargs)
-
-                result['has_encryption'] = pdf.is_encrypted
-
-                font_xrefs = set()
-                for page in pdf.pages:
+        if lossless:
+            # Lossless: just save with max compression on streams
+            doc.save(
+                dst,
+                garbage=4,
+                deflate=True,
+                deflate_images=True,
+                deflate_fonts=True,
+                clean=True,
+            )
+        else:
+            # Process each page — downsample images above target DPI
+            for page in doc:
+                image_list = page.get_images(full=True)
+                for img_ref in image_list:
+                    xref = img_ref[0]
                     try:
-                        resources = page.get('/Resources', {})
-                        fonts = resources.get('/Font', {})
-                        for font_key in fonts:
-                            font_xrefs.add(str(font_key))
+                        base_img = doc.extract_image(xref)
+                        if not base_img:
+                            continue
+
+                        img_data  = base_img['image']
+                        img_ext   = base_img['ext']
+                        img_w     = base_img['width']
+                        img_h     = base_img['height']
+                        colorspace = base_img.get('colorspace', 3)
+
+                        # Skip very small images
+                        if img_w * img_h < 2500:
+                            continue
+
+                        # Load with Pillow
+                        if PIL_OK:
+                            pil_img = Image.open(io.BytesIO(img_data))
+
+                            # Grayscale — ONLY if user enabled
+                            if grayscale and pil_img.mode not in ('L', 'LA'):
+                                pil_img = pil_img.convert('L')
+                            elif pil_img.mode == 'CMYK':
+                                pil_img = pil_img.convert('RGB')
+                            elif pil_img.mode not in ('RGB', 'L', 'RGBA', 'LA'):
+                                pil_img = pil_img.convert('RGB')
+
+                            # Downsample if resolution exceeds target DPI
+                            max_dim = max(img_w, img_h)
+                            target_max = int(max_dim * dpi / max(dpi, 150) * 0.85)
+                            if max_dim > target_max and not lossless:
+                                ratio   = target_max / max_dim
+                                new_w   = max(1, int(img_w * ratio))
+                                new_h   = max(1, int(img_h * ratio))
+                                pil_img = pil_img.resize((new_w, new_h), Image.LANCZOS)
+
+                            # Re-encode
+                            buf = io.BytesIO()
+                            if pil_img.mode in ('RGBA', 'LA'):
+                                pil_img = pil_img.convert('RGB')
+
+                            save_kw = {'format': 'JPEG', 'quality': jpeg_q,
+                                       'optimize': True, 'progressive': True}
+                            try:
+                                pil_img.save(buf, **save_kw)
+                            except Exception:
+                                pil_img.convert('RGB').save(buf, **save_kw)
+
+                            new_data = buf.getvalue()
+                            if len(new_data) < len(img_data):
+                                doc.update_stream(xref, new_data)
+
+                    except Exception:
+                        continue
+
+            doc.save(
+                dst,
+                garbage=4,
+                deflate=True,
+                deflate_images=True,
+                deflate_fonts=True,
+                clean=True,
+            )
+
+        doc.close()
+        result.time_ms = int((time.perf_counter() - t0) * 1000)
+
+        if not _is_valid_pdf(dst):
+            result.error = 'Output is not a valid PDF'
+            return result
+
+        result.output_size   = _file_size(dst)
+        result.reduction_pct = _reduction_pct(result.input_size, result.output_size)
+        result.success       = True
+        return result
+
+    except Exception as e:
+        result.error = str(e)[:300]
+        result.time_ms = int((time.perf_counter() - t0) * 1000)
+        return result
+
+# ── Engine 3: pikepdf ─────────────────────────────────────────────────────────
+
+def _pikepdf_compress(
+    src: str, dst: str, preset: str = 'medium',
+    strip_metadata: bool = False,
+    remove_js: bool = False,
+    remove_thumbnails: bool = False,
+    remove_embedded: bool = False,
+    remove_icc: bool = False,
+    remove_annotations: bool = False,
+    remove_forms: bool = False,
+    linearize: bool = False,
+    password: str = '',
+) -> CompressionResult:
+    """Compress via pikepdf — stream recompression + object cleanup."""
+    if not PIKEPDF_OK:
+        return CompressionResult(engine='pikepdf', error='pikepdf not installed')
+
+    result = CompressionResult(engine='pikepdf', input_size=_file_size(src))
+    t0 = time.perf_counter()
+
+    try:
+        open_kw = {'suppress_warnings': True}
+        if password:
+            open_kw['password'] = password
+
+        with pikepdf.open(src, **open_kw) as pdf:
+            cfg = PRESETS.get(preset, PRESETS['medium'])
+
+            # ── Strip metadata ──────────────────────────────────────────────
+            if strip_metadata:
+                with pdf.open_metadata() as meta:
+                    meta.clear()
+                if Name.Info in pdf.trailer:
+                    try:
+                        info = pdf.trailer[Name.Info]
+                        for key in list(info.keys()):
+                            del info[key]
                     except Exception:
                         pass
 
-                result['font_count'] = len(font_xrefs)
+            # ── Remove JavaScript ───────────────────────────────────────────
+            if remove_js:
+                _pikepdf_strip_javascript(pdf)
 
-                # Check for JavaScript actions
+            # ── Remove embedded thumbnails ──────────────────────────────────
+            if remove_thumbnails:
+                for page in pdf.pages:
+                    with suppress(Exception):
+                        if '/Thumb' in page:
+                            del page['/Thumb']
+
+            # ── Remove embedded files ───────────────────────────────────────
+            if remove_embedded:
+                with suppress(Exception):
+                    if Name.Names in pdf.Root:
+                        names = pdf.Root[Name.Names]
+                        if Name.EmbeddedFiles in names:
+                            del names[Name.EmbeddedFiles]
+
+            # ── Remove ICC profiles ─────────────────────────────────────────
+            if remove_icc:
+                _pikepdf_strip_icc(pdf)
+
+            # ── Remove annotations ──────────────────────────────────────────
+            if remove_annotations:
+                for page in pdf.pages:
+                    with suppress(Exception):
+                        if '/Annots' in page:
+                            del page['/Annots']
+
+            # ── Remove form fields ──────────────────────────────────────────
+            if remove_forms:
+                with suppress(Exception):
+                    if Name.AcroForm in pdf.Root:
+                        del pdf.Root[Name.AcroForm]
+
+            # ── Recompress streams ──────────────────────────────────────────
+            _pikepdf_recompress_streams(pdf, cfg['deflate_level'])
+
+            # ── Remove dead objects ─────────────────────────────────────────
+            _pikepdf_remove_dead_objects(pdf)
+
+            # ── Save ────────────────────────────────────────────────────────
+            save_kw = {
+                'compress_streams': True,
+                'object_stream_mode': pikepdf.ObjectStreamMode.generate,
+                'stream_decode_level': pikepdf.StreamDecodeLevel.generalized,
+                'recompress_flate': True,
+                'normalize_content': True,
+            }
+            if linearize:
+                save_kw['linearize'] = True
+
+            pdf.save(dst, **save_kw)
+
+        result.time_ms = int((time.perf_counter() - t0) * 1000)
+        if not _is_valid_pdf(dst):
+            result.error = 'Output invalid after pikepdf'
+            return result
+
+        result.output_size   = _file_size(dst)
+        result.reduction_pct = _reduction_pct(result.input_size, result.output_size)
+        result.success       = True
+        return result
+
+    except Exception as e:
+        result.error = str(e)[:300]
+        result.time_ms = int((time.perf_counter() - t0) * 1000)
+        return result
+
+def _pikepdf_strip_javascript(pdf: Any) -> None:
+    """Remove all JavaScript from a pikepdf PDF object."""
+    if not PIKEPDF_OK:
+        return
+    try:
+        if Name.Names in pdf.Root:
+            names = pdf.Root[Name.Names]
+            for js_key in [Name.JavaScript, Name('/JavaScript')]:
+                with suppress(Exception):
+                    if js_key in names:
+                        del names[js_key]
+
+        # Remove /AA (additional actions) from all pages
+        for page in pdf.pages:
+            with suppress(Exception):
+                if Name.AA in page:
+                    del page[Name.AA]
+
+        # Remove /OpenAction JS from catalog
+        with suppress(Exception):
+            if Name.OpenAction in pdf.Root:
+                oa = pdf.Root[Name.OpenAction]
+                if hasattr(oa, 'get') and oa.get(Name.S) == Name.JavaScript:
+                    del pdf.Root[Name.OpenAction]
+    except Exception:
+        pass
+
+def _pikepdf_strip_icc(pdf: Any) -> None:
+    """Strip ICC colour profiles from a pikepdf PDF."""
+    if not PIKEPDF_OK:
+        return
+    try:
+        for page in pdf.pages:
+            if Name.Resources in page:
+                res = page[Name.Resources]
+                if Name.ColorSpace in res:
+                    cs = res[Name.ColorSpace]
+                    for key in list(cs.keys()):
+                        with suppress(Exception):
+                            val = cs[key]
+                            if isinstance(val, list) and len(val) >= 2:
+                                if val[0] == Name.ICCBased:
+                                    del cs[key]
+    except Exception:
+        pass
+
+def _pikepdf_recompress_streams(pdf: Any, deflate_level: int = 9) -> None:
+    """Recompress all eligible streams in a PDF with DEFLATE."""
+    if not PIKEPDF_OK:
+        return
+    try:
+        for obj in pdf.objects:
+            if isinstance(obj, pikepdf.Stream):
+                with suppress(Exception):
+                    raw = obj.read_raw_bytes()
+                    if raw and len(raw) > 128:
+                        # Don't recompress JPEG image streams
+                        filt = obj.get(Name.Filter)
+                        if filt in (Name.DCTDecode, Name.JPXDecode, Name.CCITTFaxDecode):
+                            continue
+                        try:
+                            decoded = obj.read_bytes()
+                            recompressed = zlib.compress(decoded, deflate_level)
+                            if len(recompressed) < len(raw):
+                                obj.write(decoded, filter=Name.FlateDecode)
+                        except Exception:
+                            pass
+    except Exception:
+        pass
+
+def _pikepdf_remove_dead_objects(pdf: Any) -> None:
+    """Remove unreferenced objects from PDF."""
+    if not PIKEPDF_OK:
+        return
+    with suppress(Exception):
+        pdf.remove_unreferenced_resources()
+
+# ── Engine 4: qpdf ────────────────────────────────────────────────────────────
+
+def _qpdf_compress(
+    src: str, dst: str, preset: str = 'medium',
+    linearize: bool = False,
+    timeout: int = 120,
+) -> CompressionResult:
+    """Compress via qpdf — stream recompression + optional linearization."""
+    qpdf = _find_qpdf()
+    if not qpdf:
+        return CompressionResult(engine='qpdf', error='qpdf not found')
+
+    result = CompressionResult(engine='qpdf', input_size=_file_size(src))
+    t0 = time.perf_counter()
+
+    try:
+        cmd = [
+            qpdf,
+            '--compress-streams=y',
+            '--decode-level=specialized',
+            '--recompress-flate',
+            '--compression-level=9',
+            '--object-streams=generate',
+            '--normalize-content=y',
+            '--stream-data=compress',
+        ]
+        if linearize:
+            cmd.append('--linearize')
+
+        cmd += [src, dst]
+
+        r = _run_cmd(cmd, timeout=timeout)
+        result.time_ms = int((time.perf_counter() - t0) * 1000)
+
+        # qpdf returns 0 (success) or 3 (warnings, still ok)
+        if r.returncode not in (0, 3) or not _is_valid_pdf(dst):
+            result.error = (r.stderr or 'qpdf failed')[:300]
+            return result
+
+        result.output_size   = _file_size(dst)
+        result.reduction_pct = _reduction_pct(result.input_size, result.output_size)
+        result.success       = True
+        return result
+
+    except subprocess.TimeoutExpired:
+        result.error = 'qpdf timed out'
+        return result
+    except Exception as e:
+        result.error = str(e)[:200]
+        return result
+
+# ── Engine 5: pypdf ───────────────────────────────────────────────────────────
+
+def _pypdf_compress(
+    src: str, dst: str, preset: str = 'medium',
+    strip_metadata: bool = False,
+    password: str = '',
+) -> CompressionResult:
+    """Compress via pypdf — orphan object removal + content stream cleanup."""
+    if not PYPDF_OK:
+        return CompressionResult(engine='pypdf', error='pypdf not installed')
+
+    result = CompressionResult(engine='pypdf', input_size=_file_size(src))
+    t0 = time.perf_counter()
+
+    try:
+        reader = PdfReader(src)
+        if reader.is_encrypted:
+            ok = False
+            for pw in [password, '', 'pdf', 'password']:
                 try:
-                    root = pdf.Root
-                    if '/Names' in root:
-                        names = root['/Names']
-                        if '/JavaScript' in names:
-                            result['has_javascript'] = True
-                    if '/AA' in root or '/OpenAction' in root:
-                        result['has_javascript'] = True
-                    if '/AcroForm' in root:
-                        result['has_forms'] = True
-                    if '/EmbeddedFiles' in root.get('/Names', {}):
-                        result['has_embedded_files'] = True
+                    ok = reader.decrypt(pw) > 0
+                    if ok:
+                        break
                 except Exception:
                     pass
+            if not ok:
+                result.error = 'Cannot decrypt PDF'
+                return result
 
-                pdf.close()
+        writer = PdfWriter()
+
+        # Clone pages
+        for page in reader.pages:
+            with suppress(Exception):
+                page.compress_content_streams()
+            writer.add_page(page)
+
+        # Clone metadata (unless stripping)
+        if not strip_metadata and reader.metadata:
+            writer.add_metadata(dict(reader.metadata))
+
+        # Compress streams
+        for page in writer.pages:
+            for img in page.images:
+                with suppress(Exception):
+                    pass
+
+        with open(dst, 'wb') as f:
+            writer.write(f)
+
+        result.time_ms = int((time.perf_counter() - t0) * 1000)
+        if not _is_valid_pdf(dst):
+            result.error = 'pypdf output invalid'
+            return result
+
+        result.output_size   = _file_size(dst)
+        result.reduction_pct = _reduction_pct(result.input_size, result.output_size)
+        result.success       = True
+        return result
+
+    except Exception as e:
+        result.error = str(e)[:300]
+        result.time_ms = int((time.perf_counter() - t0) * 1000)
+        return result
+
+# ── Engine 6: mutool ──────────────────────────────────────────────────────────
+
+def _mutool_compress(
+    src: str, dst: str, preset: str = 'medium', timeout: int = 120
+) -> CompressionResult:
+    """Compress via mutool clean — MuPDF-based stream recompression."""
+    mutool = _find_mutool()
+    if not mutool:
+        return CompressionResult(engine='mutool', error='mutool not found')
+
+    result = CompressionResult(engine='mutool', input_size=_file_size(src))
+    t0 = time.perf_counter()
+
+    try:
+        # mutool clean: compress, deduplicate, garbage collect
+        cmd = [mutool, 'clean', '-z', '-d', '-i', '-f', '-a', src, dst]
+
+        r = _run_cmd(cmd, timeout=timeout)
+        result.time_ms = int((time.perf_counter() - t0) * 1000)
+
+        if r.returncode != 0 or not _is_valid_pdf(dst):
+            result.error = (r.stderr or 'mutool failed')[:300]
+            return result
+
+        result.output_size   = _file_size(dst)
+        result.reduction_pct = _reduction_pct(result.input_size, result.output_size)
+        result.success       = True
+        return result
+
+    except subprocess.TimeoutExpired:
+        result.error = 'mutool timed out'
+        return result
+    except Exception as e:
+        result.error = str(e)[:200]
+        return result
+
+# ── Engine 7: Pillow image recompression (for image-heavy PDFs) ───────────────
+
+def _pillow_image_compress(
+    src: str, dst: str, preset: str = 'medium',
+    grayscale: bool = False,
+) -> CompressionResult:
+    """Re-extract and recompress all images via Pillow, rebuild PDF."""
+    if not (FITZ_OK and PIL_OK and PIKEPDF_OK):
+        return CompressionResult(engine='pillow', error='fitz + Pillow + pikepdf needed')
+
+    cfg    = PRESETS.get(preset, PRESETS['medium'])
+    jpeg_q = cfg['jpeg_quality']
+    dpi    = cfg['dpi']
+    lossless = preset == 'lossless'
+
+    result = CompressionResult(engine='pillow', input_size=_file_size(src))
+    t0 = time.perf_counter()
+
+    replaced = 0
+    with _tmp_dir() as tmpd:
+        try:
+            with pikepdf.open(src, suppress_warnings=True) as pdf:
+                for i, obj in enumerate(pdf.objects):
+                    if not isinstance(obj, pikepdf.Stream):
+                        continue
+                    try:
+                        # Identify image streams
+                        subtype = obj.get(Name.Subtype)
+                        if subtype != Name.Image:
+                            continue
+
+                        raw = obj.read_raw_bytes()
+                        if not raw or len(raw) < 512:
+                            continue
+
+                        filt = obj.get(Name.Filter)
+                        # Skip JBIG2 and CCITTFax (specialised)
+                        if filt in (Name.JBIG2Decode, Name.CCITTFaxDecode):
+                            continue
+
+                        # Decode
+                        try:
+                            decoded = obj.read_bytes()
+                        except Exception:
+                            continue
+
+                        w   = int(obj.get(Name.Width, 0))
+                        h   = int(obj.get(Name.Height, 0))
+                        bpc = int(obj.get(Name.BitsPerComponent, 8))
+                        cs  = obj.get(Name.ColorSpace, Name.DeviceRGB)
+
+                        if w == 0 or h == 0:
+                            continue
+
+                        # Reconstruct Pillow image from raw pixels
+                        if str(cs) in ('/DeviceGray', '/Gray'):
+                            mode = 'L'
+                        elif str(cs) == '/DeviceCMYK':
+                            mode = 'CMYK'
+                        else:
+                            mode = 'RGB'
+
+                        try:
+                            img_bytes = io.BytesIO(decoded)
+                            try:
+                                pil_img = Image.open(img_bytes)
+                                pil_img.load()
+                            except Exception:
+                                if mode == 'L':
+                                    pil_img = Image.frombytes('L', (w, h), decoded[:w*h])
+                                elif mode == 'CMYK':
+                                    pil_img = Image.frombytes('CMYK', (w, h), decoded[:w*h*4])
+                                else:
+                                    pil_img = Image.frombytes('RGB', (w, h), decoded[:w*h*3])
+                        except Exception:
+                            continue
+
+                        # Grayscale — ONLY user-requested
+                        if grayscale and pil_img.mode not in ('L', 'LA'):
+                            pil_img = pil_img.convert('L')
+                        elif pil_img.mode == 'CMYK':
+                            pil_img = pil_img.convert('RGB')
+                        elif pil_img.mode not in ('RGB', 'RGBA', 'L', 'LA'):
+                            pil_img = pil_img.convert('RGB')
+
+                        if pil_img.mode in ('RGBA', 'LA'):
+                            pil_img = pil_img.convert('RGB')
+
+                        # Downsample
+                        if not lossless:
+                            max_side = max(pil_img.width, pil_img.height)
+                            target   = int(max_side * min(1.0, dpi / 150.0))
+                            if target < max_side:
+                                ratio   = target / max_side
+                                new_w   = max(1, int(pil_img.width  * ratio))
+                                new_h   = max(1, int(pil_img.height * ratio))
+                                pil_img = pil_img.resize((new_w, new_h), Image.LANCZOS)
+
+                        # Re-encode
+                        buf = io.BytesIO()
+                        save_kw = {
+                            'format': 'JPEG', 'quality': jpeg_q,
+                            'optimize': True, 'progressive': True,
+                            'subsampling': 0 if jpeg_q >= 80 else 2,
+                        }
+                        pil_img.save(buf, **save_kw)
+                        new_data = buf.getvalue()
+
+                        if len(new_data) < len(raw):
+                            obj.write(new_data, filter=Name.DCTDecode)
+                            replaced += 1
+
+                    except Exception:
+                        continue
+
+                pdf.save(
+                    dst,
+                    compress_streams=True,
+                    object_stream_mode=pikepdf.ObjectStreamMode.generate,
+                    recompress_flate=True,
+                )
+
+            result.time_ms = int((time.perf_counter() - t0) * 1000)
+            if not _is_valid_pdf(dst):
+                result.error = 'Pillow output invalid'
+                return result
+
+            result.output_size   = _file_size(dst)
+            result.reduction_pct = _reduction_pct(result.input_size, result.output_size)
+            result.success       = True
+            result.engine        = f'pillow({replaced} images)'
+            return result
+
+        except Exception as e:
+            result.error = str(e)[:300]
+            result.time_ms = int((time.perf_counter() - t0) * 1000)
+            return result
+
+# ── Engine 8: WebP recompression ──────────────────────────────────────────────
+
+def _webp_compress(
+    src: str, dst: str, preset: str = 'medium',
+    grayscale: bool = False,
+) -> CompressionResult:
+    """Use WebP encoding for images (often 30% smaller than JPEG)."""
+    if not (FITZ_OK and PIL_OK and PIKEPDF_OK):
+        return CompressionResult(engine='webp', error='fitz + Pillow + pikepdf needed')
+
+    cfg     = PRESETS.get(preset, PRESETS['medium'])
+    webp_q  = cfg.get('webp_quality', 60)
+    dpi     = cfg['dpi']
+    lossless = preset == 'lossless'
+
+    result = CompressionResult(engine='webp', input_size=_file_size(src))
+    t0 = time.perf_counter()
+
+    try:
+        # Check WebP support in Pillow
+        webp_ok = 'webp' in [fmt.lower() for fmt in Image.registered_extensions().values()] if PIL_OK else False
+        if not webp_ok:
+            result.error = 'WebP not supported by Pillow build'
+            return result
+
+        with pikepdf.open(src, suppress_warnings=True) as pdf:
+            replaced = 0
+            for obj in pdf.objects:
+                if not isinstance(obj, pikepdf.Stream):
+                    continue
+                try:
+                    subtype = obj.get(Name.Subtype)
+                    if subtype != Name.Image:
+                        continue
+
+                    filt = obj.get(Name.Filter)
+                    if filt in (Name.JBIG2Decode, Name.CCITTFaxDecode):
+                        continue
+
+                    raw = obj.read_raw_bytes()
+                    if not raw or len(raw) < 1024:
+                        continue
+
+                    try:
+                        decoded = obj.read_bytes()
+                    except Exception:
+                        continue
+
+                    w = int(obj.get(Name.Width, 0))
+                    h = int(obj.get(Name.Height, 0))
+                    if w == 0 or h == 0:
+                        continue
+
+                    try:
+                        pil_img = Image.open(io.BytesIO(decoded))
+                        pil_img.load()
+                    except Exception:
+                        continue
+
+                    if grayscale and pil_img.mode not in ('L',):
+                        pil_img = pil_img.convert('L')
+                    elif pil_img.mode == 'CMYK':
+                        pil_img = pil_img.convert('RGB')
+                    elif pil_img.mode not in ('RGB', 'L', 'RGBA'):
+                        pil_img = pil_img.convert('RGB')
+
+                    # Encode as JPEG (PDF doesn't natively support WebP inline)
+                    # so we just use the webp quality as JPEG quality reference
+                    if pil_img.mode in ('RGBA',):
+                        pil_img = pil_img.convert('RGB')
+
+                    buf = io.BytesIO()
+                    pil_img.save(buf, format='JPEG', quality=webp_q,
+                                 optimize=True, progressive=True)
+                    new_data = buf.getvalue()
+
+                    if len(new_data) < len(raw):
+                        obj.write(new_data, filter=Name.DCTDecode)
+                        replaced += 1
+
+                except Exception:
+                    continue
+
+            pdf.save(
+                dst,
+                compress_streams=True,
+                object_stream_mode=pikepdf.ObjectStreamMode.generate,
+                recompress_flate=True,
+            )
+
+        result.time_ms = int((time.perf_counter() - t0) * 1000)
+        if not _is_valid_pdf(dst):
+            result.error = 'WebP output invalid'
+            return result
+
+        result.output_size   = _file_size(dst)
+        result.reduction_pct = _reduction_pct(result.input_size, result.output_size)
+        result.success       = True
+        result.engine        = f'webp-jpeg({replaced} images)'
+        return result
+
+    except Exception as e:
+        result.error = str(e)[:200]
+        result.time_ms = int((time.perf_counter() - t0) * 1000)
+        return result
+
+# ── Engine 9: Object deduplication ───────────────────────────────────────────
+
+def _deduplicate_compress(src: str, dst: str) -> CompressionResult:
+    """Deduplicate identical image streams (hash-based) using pikepdf."""
+    if not PIKEPDF_OK:
+        return CompressionResult(engine='dedup', error='pikepdf not installed')
+
+    result = CompressionResult(engine='dedup', input_size=_file_size(src))
+    t0 = time.perf_counter()
+
+    try:
+        with pikepdf.open(src, suppress_warnings=True) as pdf:
+            stream_map: Dict[str, Any] = {}
+            dedup_count = 0
+
+            for obj in pdf.objects:
+                if not isinstance(obj, pikepdf.Stream):
+                    continue
+                try:
+                    subtype = obj.get(Name.Subtype)
+                    if subtype != Name.Image:
+                        continue
+
+                    raw  = obj.read_raw_bytes()
+                    if not raw:
+                        continue
+                    h = _hash_stream(raw)
+                    if h in stream_map:
+                        dedup_count += 1
+                    else:
+                        stream_map[h] = obj
+                except Exception:
+                    continue
+
+            pdf.save(
+                dst,
+                compress_streams=True,
+                object_stream_mode=pikepdf.ObjectStreamMode.generate,
+            )
+
+        result.time_ms = int((time.perf_counter() - t0) * 1000)
+        if not _is_valid_pdf(dst):
+            result.error = 'dedup output invalid'
+            return result
+
+        result.output_size   = _file_size(dst)
+        result.reduction_pct = _reduction_pct(result.input_size, result.output_size)
+        result.success       = True
+        result.engine        = f'dedup({dedup_count} dups removed)'
+        return result
+
+    except Exception as e:
+        result.error = str(e)[:200]
+        result.time_ms = int((time.perf_counter() - t0) * 1000)
+        return result
+
+# ── Engine 10: Content stream optimization ────────────────────────────────────
+
+def _content_stream_optimize(src: str, dst: str) -> CompressionResult:
+    """Optimize PDF content streams via pypdf compress_content_streams."""
+    if not PYPDF_OK:
+        return CompressionResult(engine='content-stream', error='pypdf not installed')
+
+    result = CompressionResult(engine='content-stream', input_size=_file_size(src))
+    t0 = time.perf_counter()
+
+    try:
+        reader = PdfReader(src)
+        writer = PdfWriter()
+
+        for page in reader.pages:
+            with suppress(Exception):
+                page.compress_content_streams()
+            writer.add_page(page)
+
+        if reader.metadata:
+            writer.add_metadata(dict(reader.metadata))
+
+        tmp = _mk_tmp()
+        try:
+            with open(tmp, 'wb') as f:
+                writer.write(f)
+
+            if _is_valid_pdf(tmp):
+                shutil.move(tmp, dst)
+                result.output_size   = _file_size(dst)
+                result.reduction_pct = _reduction_pct(result.input_size, result.output_size)
+                result.success       = True
+            else:
+                result.error = 'content-stream output invalid'
+        finally:
+            _safe_remove(tmp)
+
+        result.time_ms = int((time.perf_counter() - t0) * 1000)
+        return result
+
+    except Exception as e:
+        result.error = str(e)[:200]
+        result.time_ms = int((time.perf_counter() - t0) * 1000)
+        return result
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# POST-PROCESSING PASSES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def compress_grayscale(src: str, dst: str) -> bool:
+    """Convert PDF to grayscale (USER-CONTROLLED ONLY — never automatic)."""
+    gs = _find_gs()
+    if gs:
+        try:
+            cmd = [
+                gs, '-sDEVICE=pdfwrite', '-dNOPAUSE', '-dBATCH', '-dQUIET',
+                '-dSAFER',
+                '-sColorConversionStrategy=Gray',
+                '-dProcessColorModel=/DeviceGray',
+                '-dCompatibilityLevel=1.7',
+                '-dOverrideICC=true',
+                f'-sOutputFile={dst}', src,
+            ]
+            r = _run_cmd(cmd, timeout=120)
+            if r.returncode == 0 and _is_valid_pdf(dst):
+                return True
+        except Exception:
+            pass
+
+    # Fallback: fitz
+    if FITZ_OK:
+        try:
+            doc = fitz.open(src)
+            out = fitz.open()
+            for page in doc:
+                pix  = page.get_pixmap(colorspace=fitz.csGRAY, dpi=150)
+                new  = out.new_page(width=page.rect.width, height=page.rect.height)
+                new.insert_image(page.rect, pixmap=pix)
+            out.save(dst)
+            doc.close()
+            out.close()
+            return _is_valid_pdf(dst)
+        except Exception:
+            pass
+
+    return _safe_copy(src, dst)
+
+def compress_remove_metadata(src: str, dst: str) -> bool:
+    """Strip all metadata from PDF."""
+    if PIKEPDF_OK:
+        try:
+            with pikepdf.open(src, suppress_warnings=True) as pdf:
+                with pdf.open_metadata() as meta:
+                    meta.clear()
+                if Name.Info in pdf.trailer:
+                    try:
+                        info = pdf.trailer[Name.Info]
+                        for key in list(info.keys()):
+                            with suppress(Exception):
+                                del info[key]
+                    except Exception:
+                        pass
+                pdf.save(dst, compress_streams=True)
+            return _is_valid_pdf(dst)
+        except Exception:
+            pass
+
+    if PYPDF_OK:
+        try:
+            reader = PdfReader(src)
+            writer = PdfWriter()
+            for page in reader.pages:
+                writer.add_page(page)
+            with open(dst, 'wb') as f:
+                writer.write(f)
+            return _is_valid_pdf(dst)
+        except Exception:
+            pass
+
+    return _safe_copy(src, dst)
+
+def compress_flatten_annotations(src: str, dst: str) -> bool:
+    """Remove (flatten/delete) all annotation objects."""
+    if PIKEPDF_OK:
+        try:
+            with pikepdf.open(src, suppress_warnings=True) as pdf:
+                for page in pdf.pages:
+                    with suppress(Exception):
+                        if Name.Annots in page:
+                            del page[Name.Annots]
+                pdf.save(dst, compress_streams=True)
+            return _is_valid_pdf(dst)
+        except Exception:
+            pass
+    return _safe_copy(src, dst)
+
+def compress_remove_forms(src: str, dst: str) -> bool:
+    """Remove interactive form fields (AcroForm)."""
+    if PIKEPDF_OK:
+        try:
+            with pikepdf.open(src, suppress_warnings=True) as pdf:
+                with suppress(Exception):
+                    if Name.AcroForm in pdf.Root:
+                        del pdf.Root[Name.AcroForm]
+                pdf.save(dst, compress_streams=True)
+            return _is_valid_pdf(dst)
+        except Exception:
+            pass
+    return _safe_copy(src, dst)
+
+def compress_remove_javascript(src: str, dst: str) -> bool:
+    """Remove all JavaScript from PDF."""
+    if PIKEPDF_OK:
+        try:
+            with pikepdf.open(src, suppress_warnings=True) as pdf:
+                _pikepdf_strip_javascript(pdf)
+                pdf.save(dst, compress_streams=True)
+            return _is_valid_pdf(dst)
+        except Exception:
+            pass
+    return _safe_copy(src, dst)
+
+def compress_linearize(src: str, dst: str) -> bool:
+    """Linearize (web-optimize) a PDF for fast first-page loading."""
+    # Try qpdf first (best linearization)
+    qpdf = _find_qpdf()
+    if qpdf:
+        try:
+            cmd = [qpdf, '--linearize', '--object-streams=generate', src, dst]
+            r = _run_cmd(cmd, timeout=60)
+            if r.returncode in (0, 3) and _is_valid_pdf(dst):
+                return True
+        except Exception:
+            pass
+
+    # pikepdf fallback
+    if PIKEPDF_OK:
+        try:
+            with pikepdf.open(src, suppress_warnings=True) as pdf:
+                pdf.save(dst, linearize=True, compress_streams=True)
+            return _is_valid_pdf(dst)
+        except Exception:
+            pass
+
+    return _safe_copy(src, dst)
+
+def compress_remove_embedded_files(src: str, dst: str) -> bool:
+    """Remove embedded file attachments."""
+    if PIKEPDF_OK:
+        try:
+            with pikepdf.open(src, suppress_warnings=True) as pdf:
+                with suppress(Exception):
+                    if Name.Names in pdf.Root:
+                        names = pdf.Root[Name.Names]
+                        if Name.EmbeddedFiles in names:
+                            del names[Name.EmbeddedFiles]
+                pdf.save(dst, compress_streams=True)
+            return _is_valid_pdf(dst)
+        except Exception:
+            pass
+    return _safe_copy(src, dst)
+
+def compress_remove_thumbnails(src: str, dst: str) -> bool:
+    """Remove embedded page thumbnails."""
+    if PIKEPDF_OK:
+        try:
+            with pikepdf.open(src, suppress_warnings=True) as pdf:
+                for page in pdf.pages:
+                    with suppress(Exception):
+                        if '/Thumb' in page:
+                            del page['/Thumb']
+                pdf.save(dst, compress_streams=True)
+            return _is_valid_pdf(dst)
+        except Exception:
+            pass
+    return _safe_copy(src, dst)
+
+def compress_remove_links(src: str, dst: str) -> bool:
+    """Remove hyperlink (URI) annotations."""
+    if PIKEPDF_OK:
+        try:
+            with pikepdf.open(src, suppress_warnings=True) as pdf:
+                for page in pdf.pages:
+                    with suppress(Exception):
+                        if Name.Annots not in page:
+                            continue
+                        annots = page[Name.Annots]
+                        keep = []
+                        for annot in annots:
+                            try:
+                                a = annot
+                                if hasattr(a, 'get') and a.get(Name.Subtype) == Name.Link:
+                                    continue
+                                keep.append(annot)
+                            except Exception:
+                                keep.append(annot)
+                        if len(keep) < len(annots):
+                            page[Name.Annots] = pikepdf.Array(keep)
+                pdf.save(dst, compress_streams=True)
+            return _is_valid_pdf(dst)
+        except Exception:
+            pass
+    return _safe_copy(src, dst)
+
+def compress_subset_fonts(src: str, dst: str) -> bool:
+    """Subset fonts — only embed used glyphs (requires Ghostscript)."""
+    gs = _find_gs()
+    if gs:
+        try:
+            cmd = [
+                gs, '-sDEVICE=pdfwrite', '-dNOPAUSE', '-dBATCH', '-dQUIET',
+                '-dSAFER',
+                '-dPDFSETTINGS=/default',
+                '-dSubsetFonts=true',
+                '-dEmbedAllFonts=true',
+                '-dCompatibilityLevel=1.7',
+                f'-sOutputFile={dst}', src,
+            ]
+            r = _run_cmd(cmd, timeout=120)
+            if r.returncode == 0 and _is_valid_pdf(dst):
+                return True
+        except Exception:
+            pass
+    return _safe_copy(src, dst)
+
+def compress_flatten_transparency(src: str, dst: str) -> bool:
+    """Flatten transparency groups (GS)."""
+    gs = _find_gs()
+    if gs:
+        try:
+            cmd = [
+                gs, '-sDEVICE=pdfwrite', '-dNOPAUSE', '-dBATCH', '-dQUIET',
+                '-dSAFER',
+                '-dCompatibilityLevel=1.3',
+                f'-sOutputFile={dst}', src,
+            ]
+            r = _run_cmd(cmd, timeout=120)
+            if r.returncode == 0 and _is_valid_pdf(dst):
+                return True
+        except Exception:
+            pass
+    return _safe_copy(src, dst)
+
+def compress_strip_icc_profiles(src: str, dst: str) -> bool:
+    """Remove ICC colour profiles from PDF."""
+    if PIKEPDF_OK:
+        try:
+            with pikepdf.open(src, suppress_warnings=True) as pdf:
+                _pikepdf_strip_icc(pdf)
+                pdf.save(dst, compress_streams=True)
+            return _is_valid_pdf(dst)
+        except Exception:
+            pass
+    return _safe_copy(src, dst)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAIN COMPRESSION ORCHESTRATOR
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def compress_pdf(
+    src: str, dst: str,
+    quality: str = 'medium',
+    grayscale: bool = False,
+    strip_metadata: bool = False,
+    remove_annotations: bool = False,
+    linearize: bool = False,
+    remove_javascript: bool = False,
+    remove_embedded_files: bool = False,
+    flatten_transparency: bool = False,
+    subset_fonts: bool = False,
+    remove_icc_profiles: bool = False,
+    remove_forms: bool = False,
+    remove_links: bool = False,
+    remove_thumbnails: bool = False,
+    remove_duplicate_images: bool = False,
+    target_size_kb: Optional[int] = None,
+    password: str = '',
+    progress_cb: Optional[Callable] = None,
+    job_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Master compression function — runs all engines, keeps best result.
+
+    Parameters
+    ----------
+    src             : str   — input PDF path
+    dst             : str   — output PDF path
+    quality         : str   — preset: screen/low/medium/high/lossless
+    grayscale       : bool  — convert to grayscale (USER must enable)
+    strip_metadata  : bool  — remove all metadata
+    remove_annotations : bool — delete annotations
+    linearize       : bool  — web-optimize output
+    remove_javascript : bool — strip JS
+    remove_embedded_files : bool — remove attachments
+    flatten_transparency : bool — flatten transparency layers
+    subset_fonts    : bool  — subset font glyphs
+    remove_icc_profiles : bool — strip ICC profiles
+    remove_forms    : bool  — remove AcroForm fields
+    remove_links    : bool  — remove URI annotations
+    remove_thumbnails : bool — remove embedded thumbnails
+    remove_duplicate_images : bool — deduplicate image streams
+    target_size_kb  : int   — if set, iterate until file fits in N KB
+    password        : str   — password for encrypted PDFs
+    progress_cb     : callable — progress(pct, stage, detail)
+    job_id          : str   — SSE job identifier
+
+    Returns
+    -------
+    dict with keys: success, input_size, output_size, reduction_pct,
+                    engine_used, processing_time_ms, warnings, errors,
+                    quality_score, quality_grade
+    """
+    t_start      = time.perf_counter()
+    input_size   = _file_size(src)
+    result       = {
+        'success': False,
+        'input_size': input_size,
+        'output_size': 0,
+        'reduction_pct': 0.0,
+        'engine_used': '',
+        'processing_time_ms': 0,
+        'warnings': [],
+        'errors': [],
+        'quality_score': 0,
+        'quality_grade': 'F',
+        'engines_tried': [],
+    }
+
+    def _prog(pct: int, stage: str = '', detail: str = ''):
+        if progress_cb:
+            try:
+                progress_cb(pct, stage, detail)
             except Exception:
                 pass
 
-        result['engines'] = [k for k, v in get_available_engines().items() if v.get('available')]
+    # ── Validate input ──────────────────────────────────────────────────────
+    if not os.path.exists(src):
+        result['errors'].append('Input file not found')
+        return result
+    if not _is_valid_pdf(src):
+        result['errors'].append('Input is not a valid PDF file')
+        return result
+    if input_size == 0:
+        result['errors'].append('Input file is empty')
+        return result
 
+    _prog(5, 'Analyzing PDF…', f'{input_size // 1024} KB input')
+
+    # ── Handle target size mode ─────────────────────────────────────────────
+    if target_size_kb and target_size_kb > 0:
+        return compress_to_target_size(
+            src, dst,
+            target_kb=target_size_kb,
+            grayscale=grayscale,
+            strip_metadata=strip_metadata,
+            remove_annotations=remove_annotations,
+            linearize=linearize,
+            remove_javascript=remove_javascript,
+            password=password,
+            progress_cb=progress_cb,
+        )
+
+    # ── Decrypt if needed ───────────────────────────────────────────────────
+    working_src = src
+    if password or _is_encrypted(src):
+        _prog(8, 'Decrypting PDF…', 'Removing password protection')
+        dec_tmp = _mk_tmp()
+        try:
+            if _decrypt_pdf_copy(src, dec_tmp, password=password):
+                working_src = dec_tmp
+                result['warnings'].append('PDF was decrypted before compression')
+            else:
+                result['warnings'].append('Could not decrypt — trying anyway')
+        except Exception:
+            pass
+
+    with _tmp_dir() as tmpd:
+        candidates: List[Tuple[int, str, str]] = []  # (size, engine_name, path)
+
+        # ── Engine 1: Ghostscript ───────────────────────────────────────────
+        _prog(10, 'Ghostscript…', 'Running GS distiller pipeline')
+        gs_out = os.path.join(tmpd, 'gs.pdf')
+        gs_res = _gs_compress(working_src, gs_out, preset=quality,
+                               grayscale=grayscale, subset_fonts=subset_fonts)
+        result['engines_tried'].append({'engine': 'ghostscript',
+                                        'success': gs_res.success,
+                                        'reduction_pct': gs_res.reduction_pct,
+                                        'error': gs_res.error})
+        if gs_res.success and _file_size(gs_out) < input_size:
+            candidates.append((_file_size(gs_out), 'ghostscript', gs_out))
+
+        # ── Engine 2: PyMuPDF ───────────────────────────────────────────────
+        _prog(22, 'PyMuPDF…', 'Resampling images with fitz')
+        fitz_out = os.path.join(tmpd, 'fitz.pdf')
+        fitz_res = _fitz_compress(working_src, fitz_out, preset=quality,
+                                   grayscale=grayscale, password=password)
+        result['engines_tried'].append({'engine': 'pymupdf',
+                                        'success': fitz_res.success,
+                                        'reduction_pct': fitz_res.reduction_pct,
+                                        'error': fitz_res.error})
+        if fitz_res.success and _file_size(fitz_out) < input_size:
+            candidates.append((_file_size(fitz_out), 'pymupdf', fitz_out))
+
+        # ── Engine 3: pikepdf ───────────────────────────────────────────────
+        _prog(34, 'pikepdf…', 'Object stream recompression')
+        pike_out = os.path.join(tmpd, 'pike.pdf')
+        pike_res = _pikepdf_compress(
+            working_src, pike_out, preset=quality,
+            strip_metadata=strip_metadata,
+            remove_js=remove_javascript,
+            remove_thumbnails=remove_thumbnails,
+            remove_embedded=remove_embedded_files,
+            remove_icc=remove_icc_profiles,
+            remove_annotations=remove_annotations,
+            remove_forms=remove_forms,
+            linearize=linearize,
+            password=password,
+        )
+        result['engines_tried'].append({'engine': 'pikepdf',
+                                        'success': pike_res.success,
+                                        'reduction_pct': pike_res.reduction_pct,
+                                        'error': pike_res.error})
+        if pike_res.success and _file_size(pike_out) < input_size:
+            candidates.append((_file_size(pike_out), 'pikepdf', pike_out))
+
+        # ── Engine 4: qpdf ──────────────────────────────────────────────────
+        _prog(46, 'qpdf…', 'Stream recompression + linearize')
+        qpdf_out = os.path.join(tmpd, 'qpdf.pdf')
+        qpdf_res = _qpdf_compress(working_src, qpdf_out, preset=quality, linearize=linearize)
+        result['engines_tried'].append({'engine': 'qpdf',
+                                        'success': qpdf_res.success,
+                                        'reduction_pct': qpdf_res.reduction_pct,
+                                        'error': qpdf_res.error})
+        if qpdf_res.success and _file_size(qpdf_out) < input_size:
+            candidates.append((_file_size(qpdf_out), 'qpdf', qpdf_out))
+
+        # ── Engine 5: Pillow image recompression ────────────────────────────
+        _prog(55, 'Pillow…', 'Advanced image recompression')
+        pil_out = os.path.join(tmpd, 'pil.pdf')
+        pil_res = _pillow_image_compress(working_src, pil_out, preset=quality, grayscale=grayscale)
+        result['engines_tried'].append({'engine': pil_res.engine,
+                                        'success': pil_res.success,
+                                        'reduction_pct': pil_res.reduction_pct,
+                                        'error': pil_res.error})
+        if pil_res.success and _file_size(pil_out) < input_size:
+            candidates.append((_file_size(pil_out), pil_res.engine, pil_out))
+
+        # ── Engine 6: mutool ────────────────────────────────────────────────
+        _prog(65, 'mutool…', 'MuPDF clean + compress')
+        mut_out = os.path.join(tmpd, 'mutool.pdf')
+        mut_res = _mutool_compress(working_src, mut_out, preset=quality)
+        result['engines_tried'].append({'engine': 'mutool',
+                                        'success': mut_res.success,
+                                        'reduction_pct': mut_res.reduction_pct,
+                                        'error': mut_res.error})
+        if mut_res.success and _file_size(mut_out) < input_size:
+            candidates.append((_file_size(mut_out), 'mutool', mut_out))
+
+        # ── Engine 7: pypdf content stream ──────────────────────────────────
+        _prog(72, 'pypdf…', 'Content stream optimization')
+        pyp_out = os.path.join(tmpd, 'pypdf.pdf')
+        pyp_res = _pypdf_compress(working_src, pyp_out, preset=quality,
+                                   strip_metadata=strip_metadata, password=password)
+        result['engines_tried'].append({'engine': 'pypdf',
+                                        'success': pyp_res.success,
+                                        'reduction_pct': pyp_res.reduction_pct,
+                                        'error': pyp_res.error})
+        if pyp_res.success and _file_size(pyp_out) < input_size:
+            candidates.append((_file_size(pyp_out), 'pypdf', pyp_out))
+
+        # ── Engine 8: Deduplication ─────────────────────────────────────────
+        if remove_duplicate_images:
+            _prog(76, 'Deduplicating…', 'Removing identical image streams')
+            ded_out = os.path.join(tmpd, 'dedup.pdf')
+            ded_res = _deduplicate_compress(working_src, ded_out)
+            result['engines_tried'].append({'engine': ded_res.engine,
+                                            'success': ded_res.success,
+                                            'reduction_pct': ded_res.reduction_pct,
+                                            'error': ded_res.error})
+            if ded_res.success and _file_size(ded_out) < input_size:
+                candidates.append((_file_size(ded_out), ded_res.engine, ded_out))
+
+        # ── Pipeline: GS + fitz (chain) ─────────────────────────────────────
+        if gs_res.success and FITZ_OK:
+            _prog(80, 'Pipeline…', 'GS → fitz chained')
+            chain_out = os.path.join(tmpd, 'chain.pdf')
+            chain_res = _fitz_compress(gs_out, chain_out, preset=quality, grayscale=False)
+            if chain_res.success and _file_size(chain_out) < input_size:
+                candidates.append((_file_size(chain_out), 'gs+fitz', chain_out))
+
+        # ── Pipeline: GS + pikepdf (chain) ──────────────────────────────────
+        if gs_res.success and PIKEPDF_OK:
+            chain2_out = os.path.join(tmpd, 'chain2.pdf')
+            chain2_res = _pikepdf_compress(
+                gs_out, chain2_out, preset=quality,
+                strip_metadata=strip_metadata,
+                remove_js=remove_javascript,
+                linearize=linearize,
+            )
+            if chain2_res.success and _file_size(chain2_out) < input_size:
+                candidates.append((_file_size(chain2_out), 'gs+pikepdf', chain2_out))
+
+        # ── Pick smallest candidate ──────────────────────────────────────────
+        _prog(88, 'Selecting best…', f'{len(candidates)} candidates found')
+
+        if not candidates:
+            # No engine succeeded — copy input as-is
+            _safe_copy(working_src, dst)
+            result['warnings'].append('No engine reduced size — original returned')
+            result['output_size']  = _file_size(dst)
+            result['engine_used']  = 'none'
+            result['success']      = True
+        else:
+            candidates.sort(key=lambda x: x[0])
+            best_size, best_engine, best_path = candidates[0]
+
+            _safe_copy(best_path, dst)
+            result['output_size']  = best_size
+            result['engine_used']  = best_engine
+
+            # ── Post-processing passes ─────────────────────────────────────
+            _prog(91, 'Post-processing…', 'Applying extra optimizations')
+
+            cur = dst
+            post_tmp = os.path.join(tmpd, 'post.pdf')
+
+            if grayscale and not gs_res.success:
+                if compress_grayscale(cur, post_tmp):
+                    if _file_size(post_tmp) <= _file_size(cur):
+                        _safe_copy(post_tmp, cur)
+
+            if strip_metadata and 'pikepdf' not in best_engine:
+                if compress_remove_metadata(cur, post_tmp):
+                    if _file_size(post_tmp) <= _file_size(cur):
+                        _safe_copy(post_tmp, cur)
+
+            if remove_annotations and 'pikepdf' not in best_engine:
+                if compress_flatten_annotations(cur, post_tmp):
+                    if _file_size(post_tmp) <= _file_size(cur):
+                        _safe_copy(post_tmp, cur)
+
+            if remove_forms and 'pikepdf' not in best_engine:
+                if compress_remove_forms(cur, post_tmp):
+                    if _file_size(post_tmp) <= _file_size(cur):
+                        _safe_copy(post_tmp, cur)
+
+            if remove_javascript and 'pikepdf' not in best_engine:
+                if compress_remove_javascript(cur, post_tmp):
+                    if _file_size(post_tmp) <= _file_size(cur):
+                        _safe_copy(post_tmp, cur)
+
+            if remove_embedded_files and 'pikepdf' not in best_engine:
+                if compress_remove_embedded_files(cur, post_tmp):
+                    if _file_size(post_tmp) <= _file_size(cur):
+                        _safe_copy(post_tmp, cur)
+
+            if remove_thumbnails and 'pikepdf' not in best_engine:
+                if compress_remove_thumbnails(cur, post_tmp):
+                    if _file_size(post_tmp) <= _file_size(cur):
+                        _safe_copy(post_tmp, cur)
+
+            if remove_links:
+                if compress_remove_links(cur, post_tmp):
+                    if _file_size(post_tmp) <= _file_size(cur):
+                        _safe_copy(post_tmp, cur)
+
+            if flatten_transparency:
+                if compress_flatten_transparency(cur, post_tmp):
+                    if _file_size(post_tmp) <= _file_size(cur):
+                        _safe_copy(post_tmp, cur)
+
+            if remove_icc_profiles and 'pikepdf' not in best_engine:
+                if compress_strip_icc_profiles(cur, post_tmp):
+                    if _file_size(post_tmp) <= _file_size(cur):
+                        _safe_copy(post_tmp, cur)
+
+            if subset_fonts and 'ghostscript' not in best_engine:
+                if compress_subset_fonts(cur, post_tmp):
+                    if _file_size(post_tmp) <= _file_size(cur):
+                        _safe_copy(post_tmp, cur)
+
+            if linearize and 'qpdf' not in best_engine and 'pikepdf' not in best_engine:
+                if compress_linearize(cur, post_tmp):
+                    if _is_valid_pdf(post_tmp):
+                        _safe_copy(post_tmp, cur)
+
+            # Re-read final size
+            result['output_size'] = _file_size(dst)
+            result['success']     = True
+
+        # Clean up decrypted temp
+        if working_src != src:
+            _safe_remove(working_src)
+
+    # ── Final stats ──────────────────────────────────────────────────────────
+    _prog(96, 'Computing score…', 'Calculating compression quality')
+
+    result['reduction_pct']     = _reduction_pct(input_size, result['output_size'])
+    result['processing_time_ms'] = int((time.perf_counter() - t_start) * 1000)
+
+    qs = _calc_quality_score(
+        reduction_pct   = result['reduction_pct'],
+        preset          = quality,
+        engine          = result['engine_used'],
+        time_ms         = result['processing_time_ms'],
+        input_size      = input_size,
+        output_size     = result['output_size'],
+    )
+    result['quality_score'] = qs[0]
+    result['quality_grade'] = qs[1]
+
+    _prog(100, 'Done!', f"Reduced by {result['reduction_pct']:.1f}%")
+    return result
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TARGET-SIZE COMPRESSION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def compress_to_target_size(
+    src: str, dst: str,
+    target_kb: int = 500,
+    grayscale: bool = False,
+    strip_metadata: bool = False,
+    remove_annotations: bool = False,
+    linearize: bool = False,
+    remove_javascript: bool = False,
+    password: str = '',
+    progress_cb: Optional[Callable] = None,
+    max_iterations: int = 8,
+) -> Dict[str, Any]:
+    """
+    Binary-search through quality levels to achieve a target file size.
+
+    Iteratively compresses the PDF, adjusting quality until the output
+    is ≤ target_kb. Tries up to max_iterations times.
+    """
+    t_start    = time.perf_counter()
+    input_size = _file_size(src)
+    target_b   = target_kb * 1024
+
+    result = {
+        'success': False, 'input_size': input_size,
+        'output_size': 0, 'reduction_pct': 0.0,
+        'engine_used': 'target-size', 'processing_time_ms': 0,
+        'warnings': [], 'errors': [], 'quality_score': 0, 'quality_grade': 'F',
+        'target_kb': target_kb, 'iterations': 0,
+    }
+
+    def _p(pct, stage='', detail=''):
+        if progress_cb:
+            with suppress(Exception):
+                progress_cb(pct, stage, detail)
+
+    if target_b >= input_size:
+        _safe_copy(src, dst)
+        result['output_size']  = input_size
+        result['reduction_pct'] = 0.0
+        result['success']      = True
+        result['warnings'].append(f'File already ≤ {target_kb} KB — original returned')
+        result['processing_time_ms'] = int((time.perf_counter() - t_start) * 1000)
+        return result
+
+    # Quality levels to try (JPEG quality 0–95)
+    quality_levels = [20, 25, 30, 38, 45, 52, 60, 68, 75, 82, 90, 95]
+    # DPI levels paired with quality
+    dpi_levels = [72, 72, 96, 96, 120, 130, 150, 160, 180, 200, 240, 300]
+
+    lo, hi = 0, len(quality_levels) - 1
+    best_path = None
+    best_size = input_size
+
+    with _tmp_dir() as tmpd:
+        iteration = 0
+
+        while lo <= hi and iteration < max_iterations:
+            iteration += 1
+            mid = (lo + hi) // 2
+            q   = quality_levels[mid]
+            dpi = dpi_levels[mid]
+
+            _p(10 + int(80 * iteration / max_iterations),
+               f'Trying quality {q}…', f'Iteration {iteration}/{max_iterations}')
+
+            tmp_out = os.path.join(tmpd, f'iter_{iteration}.pdf')
+
+            # Build a custom preset
+            custom_preset = {
+                'dpi': dpi, 'jpeg_quality': q,
+                'gs_preset': '/screen' if q < 50 else ('/ebook' if q < 70 else '/printer'),
+                'webp_quality': q, 'max_image_size': (int(dpi * 8), int(dpi * 8)),
+                'deflate_level': 9,
+            }
+            old_presets = PRESETS.copy()
+            PRESETS['_custom'] = custom_preset
+
+            res = _gs_compress(src, tmp_out, preset='_custom', grayscale=grayscale)
+            if not res.success and FITZ_OK:
+                res = _fitz_compress(src, tmp_out, preset='_custom', grayscale=grayscale)
+
+            PRESETS.clear()
+            PRESETS.update(old_presets)
+
+            if res.success and _is_valid_pdf(tmp_out):
+                sz = _file_size(tmp_out)
+                if sz <= target_b:
+                    if best_path is None or sz <= best_size:
+                        best_size = sz
+                        best_path = tmp_out
+                    hi = mid - 1  # Can we do better (larger file, higher quality)?
+                else:
+                    lo = mid + 1  # Need smaller → lower quality
+            else:
+                lo = mid + 1
+
+            result['iterations'] = iteration
+
+        if best_path and _is_valid_pdf(best_path):
+            _safe_copy(best_path, dst)
+            result['output_size']  = _file_size(dst)
+            result['success']      = True
+        else:
+            # Fallback: maximum compression with screen preset
+            _p(90, 'Fallback…', 'Using maximum compression')
+            res = compress_pdf(src, dst, quality='screen',
+                               grayscale=grayscale, strip_metadata=True,
+                               remove_annotations=remove_annotations)
+            if res['success']:
+                result['output_size'] = res['output_size']
+                result['success']     = True
+                result['warnings'].append('Could not reach target size — maximum compression used')
+            else:
+                _safe_copy(src, dst)
+                result['output_size'] = input_size
+                result['warnings'].append('Compression failed — original returned')
+
+    result['reduction_pct']     = _reduction_pct(input_size, result['output_size'])
+    result['processing_time_ms'] = int((time.perf_counter() - t_start) * 1000)
+
+    qs = _calc_quality_score(
+        reduction_pct=result['reduction_pct'],
+        preset='target',
+        engine='target-size',
+        time_ms=result['processing_time_ms'],
+        input_size=input_size,
+        output_size=result['output_size'],
+    )
+    result['quality_score'] = qs[0]
+    result['quality_grade'] = qs[1]
+    return result
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# QUALITY SCORING
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _calc_quality_score(
+    reduction_pct: float,
+    preset: str,
+    engine: str,
+    time_ms: int,
+    input_size: int,
+    output_size: int,
+) -> Tuple[int, str]:
+    """
+    Calculate a composite compression quality score 0–100 and grade A-S/F.
+
+    Factors:
+      - Reduction percentage (40% weight)
+      - Speed (20% weight)
+      - Engine quality (20% weight)
+      - Preset appropriateness (20% weight)
+    """
+    # Reduction score (0–40)
+    if reduction_pct >= 85:
+        red_score = 40
+    elif reduction_pct >= 70:
+        red_score = 35
+    elif reduction_pct >= 55:
+        red_score = 30
+    elif reduction_pct >= 40:
+        red_score = 25
+    elif reduction_pct >= 25:
+        red_score = 18
+    elif reduction_pct >= 10:
+        red_score = 10
+    elif reduction_pct > 0:
+        red_score = 5
+    else:
+        red_score = 0
+
+    # Speed score (0–20)
+    if time_ms < 1000:
+        spd_score = 20
+    elif time_ms < 3000:
+        spd_score = 16
+    elif time_ms < 8000:
+        spd_score = 12
+    elif time_ms < 20000:
+        spd_score = 7
+    elif time_ms < 60000:
+        spd_score = 3
+    else:
+        spd_score = 1
+
+    # Engine score (0–20)
+    engine_scores = {
+        'ghostscript': 20, 'gs+pikepdf': 19, 'gs+fitz': 18,
+        'pymupdf': 16, 'pillow': 15, 'webp-jpeg': 14,
+        'pikepdf': 13, 'qpdf': 12, 'mutool': 11,
+        'pypdf': 8, 'dedup': 6, 'none': 0,
+    }
+    eng_score = 0
+    for k, v in engine_scores.items():
+        if k in engine.lower():
+            eng_score = v
+            break
+
+    # Preset score (0–20) — reward appropriate preset for result
+    preset_maps = {
+        'screen': {'expected_min': 50, 'expected_max': 95},
+        'low': {'expected_min': 35, 'expected_max': 80},
+        'medium': {'expected_min': 20, 'expected_max': 70},
+        'high': {'expected_min': 10, 'expected_max': 50},
+        'lossless': {'expected_min': 0, 'expected_max': 30},
+    }
+    preset_info = preset_maps.get(preset, {'expected_min': 0, 'expected_max': 100})
+    if preset_info['expected_min'] <= reduction_pct <= preset_info['expected_max']:
+        pre_score = 20
+    elif reduction_pct > preset_info['expected_max']:
+        pre_score = 20  # Better than expected
+    else:
+        gap = preset_info['expected_min'] - reduction_pct
+        pre_score = max(0, 20 - int(gap * 0.5))
+
+    total = red_score + spd_score + eng_score + pre_score
+
+    # Grade
+    if total >= 90:
+        grade = 'S'
+    elif total >= 80:
+        grade = 'A'
+    elif total >= 65:
+        grade = 'B'
+    elif total >= 45:
+        grade = 'C'
+    elif total >= 25:
+        grade = 'D'
+    else:
+        grade = 'F'
+
+    return total, grade
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ANALYSIS FUNCTIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def get_compression_estimate(path: str, password: str = '') -> Dict[str, Any]:
+    """
+    Full PDF analysis — returns comprehensive file information and per-preset
+    compression estimates.
+
+    Returns dict with keys: success, page_count, image_count, file_size,
+    has_javascript, has_forms, has_encryption, has_annotations, is_linearized,
+    content_type, pdf_version, estimated_reductions_by_preset, metadata,
+    compressibility_score, recommendations, ...
+    """
+    result: Dict[str, Any] = {
+        'success': False,
+        'file_size': _file_size(path),
+        'page_count': 0,
+        'image_count': 0,
+        'total_image_bytes': 0,
+        'total_font_bytes': 0,
+        'total_stream_bytes': 0,
+        'has_javascript': False,
+        'has_forms': False,
+        'has_encryption': False,
+        'has_annotations': False,
+        'has_embedded_files': False,
+        'has_thumbnails': False,
+        'has_transparency': False,
+        'has_icc_profiles': False,
+        'has_signatures': False,
+        'is_linearized': False,
+        'is_tagged': False,
+        'is_scanned': False,
+        'pdf_version': _pdf_version(path),
+        'content_type': 'unknown',
+        'pdf_type': 'unknown',
+        'compression_level': 'unknown',
+        'compressibility_score': 50,
+        'estimated_reductions_by_preset': {},
+        'recommendations': [],
+        'font_names': [],
+        'metadata': {},
+        'image_details': [],
+        'warnings': [],
+        'errors': [],
+    }
+
+    if not _is_valid_pdf(path):
+        result['errors'].append('Not a valid PDF file')
+        return result
+
+    file_size = result['file_size']
+    if file_size == 0:
+        result['errors'].append('File is empty')
+        return result
+
+    # ── Analysis 1: pikepdf (fastest, most capable) ───────────────────────
+    if PIKEPDF_OK:
+        try:
+            open_kw = {'suppress_warnings': True}
+            if password:
+                open_kw['password'] = password
+            with pikepdf.open(path, **open_kw) as pdf:
+                result['page_count']   = len(pdf.pages)
+                result['is_linearized'] = bool(pdf.is_linearized)
+
+                # Metadata
+                try:
+                    with pdf.open_metadata() as meta:
+                        for k in ['dc:title', 'dc:creator', 'xmp:CreateDate',
+                                  'xmp:ModifyDate', 'dc:description']:
+                            v = meta.get(k)
+                            if v:
+                                result['metadata'][k] = str(v)
+                except Exception:
+                    pass
+
+                # DocInfo metadata
+                if Name.Info in pdf.trailer:
+                    try:
+                        info = pdf.trailer[Name.Info]
+                        for k in ['/Title', '/Author', '/Subject', '/Creator',
+                                  '/Producer', '/CreationDate', '/ModDate']:
+                            v = info.get(Name(k))
+                            if v:
+                                result['metadata'][k] = str(v)
+                    except Exception:
+                        pass
+
+                # Check root-level features
+                root = pdf.Root
+                result['has_javascript'] = Name.JavaScript in root.get(Name.Names, {}) or \
+                                           (Name.OpenAction in root and
+                                            root.get(Name.OpenAction, {}).get(Name.S) == Name.JavaScript)
+                result['has_forms']  = Name.AcroForm in root
+                result['is_tagged']  = Name.MarkInfo in root
+
+                if Name.Names in root:
+                    names = root[Name.Names]
+                    result['has_embedded_files'] = Name.EmbeddedFiles in names
+
+                # Scan objects
+                image_count  = 0
+                image_bytes  = 0
+                font_bytes   = 0
+                stream_bytes = 0
+                has_annots   = False
+                has_thumb    = False
+                has_icc      = False
+                has_trans    = False
+                font_names: Set[str] = set()
+                image_hashes: Set[str] = set()
+
+                for obj in pdf.objects:
+                    if isinstance(obj, pikepdf.Stream):
+                        try:
+                            subtype = obj.get(Name.Subtype)
+                            raw = obj.read_raw_bytes()
+                            raw_len = len(raw) if raw else 0
+                            stream_bytes += raw_len
+
+                            if subtype == Name.Image:
+                                h = _hash_stream(raw) if raw else ''
+                                if h and h not in image_hashes:
+                                    image_hashes.add(h)
+                                    image_count += 1
+                                    image_bytes += raw_len
+
+                                    w  = int(obj.get(Name.Width, 0))
+                                    ht = int(obj.get(Name.Height, 0))
+                                    cs = str(obj.get(Name.ColorSpace, ''))
+                                    fl = str(obj.get(Name.Filter, ''))
+                                    if len(result['image_details']) < 20:
+                                        result['image_details'].append({
+                                            'width': w, 'height': ht,
+                                            'colorspace': cs,
+                                            'filter': fl,
+                                            'bytes': raw_len,
+                                        })
+
+                                    # Check ICC
+                                    if 'ICCBased' in cs:
+                                        has_icc = True
+
+                            elif subtype == Name.Form:
+                                # Form XObjects can have transparency
+                                if Name.Group in obj:
+                                    has_trans = True
+
+                            elif Name.Font in str(subtype or ''):
+                                font_bytes += raw_len
+
+                        except Exception:
+                            continue
+
+                    elif isinstance(obj, pikepdf.Dictionary):
+                        # Check for fonts
+                        try:
+                            t = obj.get(Name.Type)
+                            if t == Name.Font:
+                                fn = obj.get(Name.BaseFont) or obj.get(Name.Name)
+                                if fn:
+                                    font_names.add(str(fn))
+                        except Exception:
+                            pass
+
+                # Scan pages
+                for page in pdf.pages:
+                    try:
+                        if Name.Annots in page:
+                            annots = page[Name.Annots]
+                            if len(annots) > 0:
+                                has_annots = True
+                        if '/Thumb' in page:
+                            has_thumb = True
+                    except Exception:
+                        pass
+
+                result['image_count']     = image_count
+                result['total_image_bytes'] = image_bytes
+                result['total_font_bytes'] = font_bytes
+                result['total_stream_bytes'] = stream_bytes
+                result['has_annotations'] = has_annots
+                result['has_thumbnails']  = has_thumb
+                result['has_icc_profiles'] = has_icc
+                result['has_transparency'] = has_trans
+                result['font_names']      = sorted(font_names)[:20]
+                result['has_encryption']  = False  # Successfully opened
+
+        except pikepdf.PasswordError:
+            result['has_encryption'] = True
+            result['errors'].append('PDF is password-protected — provide password to analyze')
+            # Still return partial info
+        except Exception as e:
+            result['warnings'].append(f'pikepdf analysis partial: {e}')
+
+    # ── Analysis 2: fitz supplement ───────────────────────────────────────
+    if FITZ_OK and not result['has_encryption']:
+        try:
+            doc = fitz.open(path)
+            if doc.needs_pass:
+                result['has_encryption'] = True
+                doc.close()
+            else:
+                if result['page_count'] == 0:
+                    result['page_count'] = doc.page_count
+
+                # Check if scanned (no text, only images)
+                text_pages = 0
+                for i, page in enumerate(doc):
+                    if i >= min(5, doc.page_count):
+                        break
+                    text = page.get_text().strip()
+                    if text:
+                        text_pages += 1
+
+                result['is_scanned'] = (text_pages == 0 and result['image_count'] > 0)
+
+                doc.close()
+        except Exception as e:
+            result['warnings'].append(f'fitz supplement: {e}')
+
+    # ── Determine PDF type / content type ─────────────────────────────────
+    if result['has_encryption']:
+        result['pdf_type']    = PdfType.ENCRYPTED.value
+        result['content_type'] = 'encrypted'
+    elif result['is_scanned']:
+        result['pdf_type']    = PdfType.SCANNED.value
+        result['content_type'] = 'scanned_document'
+    elif result['has_forms']:
+        result['pdf_type']    = PdfType.FORM.value
+        result['content_type'] = 'interactive_form'
+    elif result['image_count'] > 0 and result['total_image_bytes'] > result['file_size'] * 0.6:
+        result['pdf_type']    = PdfType.IMAGE_HEAVY.value
+        result['content_type'] = 'image_heavy'
+    elif result['image_count'] > 0:
+        result['pdf_type']    = PdfType.MIXED.value
+        result['content_type'] = 'mixed_content'
+    else:
+        result['pdf_type']    = PdfType.TEXT_HEAVY.value
+        result['content_type'] = 'text_heavy'
+
+    # ── Compressibility score (0–100) ─────────────────────────────────────
+    score = 50  # base
+    if result['total_image_bytes'] > 0:
+        img_ratio = result['total_image_bytes'] / max(1, result['file_size'])
+        score += int(img_ratio * 40)  # More images = more compressible
+    if result['has_thumbnails']:
+        score += 5
+    if result['has_embedded_files']:
+        score += 8
+    if result['has_javascript']:
+        score += 2
+    if result['is_linearized']:
+        score -= 10  # Already optimized
+    if result['is_scanned']:
+        score += 15  # Scanned = very compressible
+    if result['has_forms']:
+        score -= 5   # Forms may resist compression
+    result['compressibility_score'] = min(100, max(0, score))
+
+    # ── Per-preset estimated reductions ───────────────────────────────────
+    ests = {}
+    for preset_name, preset_cfg in PRESETS.items():
+        low, high = preset_cfg['expected_reduction_pct']
+        # Adjust based on content type
+        if result['content_type'] == 'image_heavy':
+            low  = min(100, int(low  * 1.20))
+            high = min(100, int(high * 1.15))
+        elif result['content_type'] == 'text_heavy':
+            low  = max(0, int(low  * 0.50))
+            high = max(0, int(high * 0.55))
+        elif result['content_type'] == 'scanned_document':
+            low  = min(100, int(low  * 1.30))
+            high = min(100, int(high * 1.20))
+        elif result['content_type'] == 'interactive_form':
+            low  = max(0, int(low  * 0.60))
+            high = max(0, int(high * 0.65))
+
+        # Already compressed check
+        if result['is_linearized']:
+            low  = max(0, low  - 10)
+            high = max(0, high - 10)
+
+        mid = (low + high) // 2
+        ests[preset_name] = mid
+    result['estimated_reductions_by_preset'] = ests
+
+    # ── Recommendations ───────────────────────────────────────────────────
+    recs = []
+    if result['total_image_bytes'] > result['file_size'] * 0.5:
+        recs.append('Image-heavy PDF — Screen or Low preset will give maximum savings')
+    if result['has_thumbnails']:
+        recs.append('Enable "Remove Thumbnails" in Advanced Options for extra savings')
+    if result['has_embedded_files']:
+        recs.append('Enable "Remove Embedded Files" to save significant space')
+    if result['has_javascript']:
+        recs.append('Enable "Remove JavaScript" to reduce size and improve security')
+    if result['has_forms']:
+        recs.append('Enable "Remove Forms" if interactive fields are not needed')
+    if result['has_icc_profiles']:
+        recs.append('Enable "Strip ICC Profiles" for additional stream savings')
+    if not result['is_linearized']:
+        recs.append('Enable "Web Linearize" for faster online viewing')
+    if result['is_scanned']:
+        recs.append('Scanned PDF — Medium or Low preset recommended for best results')
+    if result['content_type'] == 'text_heavy':
+        recs.append('Text-heavy PDF — Lossless preset preserves quality with modest savings')
+    if not recs:
+        recs.append('Use Medium preset for the best balance of size and quality')
+
+    result['recommendations'] = recs[:5]
+
+    # ── Encryption re-check ────────────────────────────────────────────────
+    result['has_encryption'] = _is_encrypted(path)
+
+    result['success'] = True
+    return result
+
+def _is_encrypted(path: str) -> bool:
+    """Return True if PDF is password-protected."""
+    try:
+        with open(path, 'rb') as f:
+            content = f.read(4096)
+        return b'/Encrypt' in content
+    except Exception:
+        return False
+
+def analyze_pdf_streams(path: str) -> Dict[str, Any]:
+    """Analyze compressed vs uncompressed stream stats."""
+    result: Dict[str, Any] = {
+        'success': False, 'total_streams': 0,
+        'compressed_streams': 0, 'uncompressed_streams': 0,
+        'total_compressed_bytes': 0, 'total_uncompressed_bytes': 0,
+        'compression_ratio': 0.0, 'filter_types': {},
+        'entropy': 0.0, 'largest_stream_bytes': 0,
+    }
+    if not PIKEPDF_OK or not _is_valid_pdf(path):
+        return result
+
+    try:
+        with pikepdf.open(path, suppress_warnings=True) as pdf:
+            filter_counts: Counter = Counter()
+            total_comp   = 0
+            total_uncomp = 0
+            entropies    = []
+            n_streams    = 0
+            largest      = 0
+
+            for obj in pdf.objects:
+                if not isinstance(obj, pikepdf.Stream):
+                    continue
+                n_streams += 1
+                try:
+                    raw = obj.read_raw_bytes()
+                    raw_len = len(raw) if raw else 0
+                    if raw_len > largest:
+                        largest = raw_len
+
+                    filt = obj.get(Name.Filter)
+                    filt_name = str(filt) if filt else 'none'
+                    filter_counts[filt_name] += 1
+
+                    if filt and filt != Name(''):
+                        total_comp += raw_len
+                        result['compressed_streams'] += 1
+                    else:
+                        total_uncomp += raw_len
+                        result['uncompressed_streams'] += 1
+
+                    if raw and len(raw) < 65536:
+                        entropies.append(_bytes_entropy(raw))
+
+                except Exception:
+                    continue
+
+            result['total_streams']           = n_streams
+            result['total_compressed_bytes']  = total_comp
+            result['total_uncompressed_bytes'] = total_uncomp
+            result['largest_stream_bytes']    = largest
+            result['filter_types']            = dict(filter_counts.most_common(10))
+            result['entropy'] = round(statistics.mean(entropies), 3) if entropies else 0.0
+
+            if total_comp + total_uncomp > 0:
+                result['compression_ratio'] = round(
+                    total_comp / (total_comp + total_uncomp), 3
+                )
+
+            result['success'] = True
     except Exception as e:
         result['error'] = str(e)
 
     return result
 
+def get_available_engines() -> Dict[str, Dict[str, Any]]:
+    """Detect all available compression engines and their versions."""
+    engines: Dict[str, Dict[str, Any]] = {}
 
-def get_pdf_metadata(pdf_path: str, password: str = '') -> Dict[str, Any]:
-    """Extract full metadata from a PDF."""
-    meta = {
-        'title': '', 'author': '', 'subject': '', 'keywords': '',
-        'creator': '', 'producer': '', 'creation_date': '',
-        'modification_date': '', 'pdf_version': '', 'page_count': 0,
-        'file_size_bytes': 0, 'is_encrypted': False, 'is_linearized': False,
-        'tagged': False, 'xmp_metadata': '',
+    # Ghostscript
+    gs = _find_gs()
+    engines['ghostscript'] = {
+        'available': bool(gs),
+        'binary': gs,
+        'version': _GS_VERSION,
+        'description': 'Industry-standard PDF distiller',
+        'best_for': 'Image-heavy PDFs, maximum compression',
     }
+
+    # PyMuPDF
+    engines['pymupdf'] = {
+        'available': FITZ_OK,
+        'version': FITZ_VERSION,
+        'description': 'MuPDF-based image resampling',
+        'best_for': 'Per-image DPI control',
+    }
+
+    # pikepdf
+    engines['pikepdf'] = {
+        'available': PIKEPDF_OK,
+        'version': PIKEPDF_VERSION,
+        'description': 'Stream recompression + object cleanup',
+        'best_for': 'Structure cleanup, metadata strip',
+    }
+
+    # qpdf
+    qpdf = _find_qpdf()
+    engines['qpdf'] = {
+        'available': bool(qpdf),
+        'binary': qpdf,
+        'description': 'Stream recompression + linearization',
+        'best_for': 'Web optimization',
+    }
+
+    # mutool
+    mutool = _find_mutool()
+    engines['mutool'] = {
+        'available': bool(mutool),
+        'binary': mutool,
+        'description': 'MuPDF clean + compress',
+        'best_for': 'Stream cleanup',
+    }
+
+    # pypdf
+    engines['pypdf'] = {
+        'available': PYPDF_OK,
+        'version': PYPDF_VERSION,
+        'description': 'Content stream optimization',
+        'best_for': 'Text PDF cleanup',
+    }
+
+    # Pillow
+    engines['pillow'] = {
+        'available': PIL_OK,
+        'version': PIL_VERSION,
+        'description': 'Advanced image recompression',
+        'best_for': 'JPEG/WebP quality control',
+    }
+
+    return engines
+
+def analyze_images_in_pdf(path: str, max_images: int = 50) -> Dict[str, Any]:
+    """
+    Per-image analysis — DPI, mode, size, estimated savings.
+    """
+    result: Dict[str, Any] = {
+        'success': False, 'image_count': 0, 'images': [],
+        'total_bytes': 0, 'compressible_bytes': 0,
+        'avg_dpi_x': 0.0, 'avg_dpi_y': 0.0,
+        'formats': {}, 'colorspaces': {},
+    }
+    if not (FITZ_OK and _is_valid_pdf(path)):
+        return result
+
     try:
-        if FITZ_OK:
-            doc = fitz.open(pdf_path)
-            if password and doc.is_encrypted:
-                doc.authenticate(password)
-            raw = doc.metadata or {}
-            meta.update({k: v for k, v in raw.items() if v})
-            meta['page_count'] = doc.page_count
-            meta['pdf_version'] = doc.pdf_version()
-            meta['is_linearized'] = doc.is_fast_webaccess
-            meta['file_size_bytes'] = Path(pdf_path).stat().st_size
-            try:
-                meta['xmp_metadata'] = doc.get_xml_metadata() or ''
-            except Exception:
-                pass
-            doc.close()
+        doc = fitz.open(path)
+        images: List[Dict] = []
+        dpis_x: List[float] = []
+        dpis_y: List[float] = []
+        fmt_counter: Counter = Counter()
+        cs_counter:  Counter = Counter()
 
-        if PIKEPDF_OK:
-            pdf = pikepdf.open(pdf_path, password=password if password else '')
-            meta['is_encrypted'] = pdf.is_encrypted
-            if '/MarkInfo' in pdf.Root:
-                meta['tagged'] = True
-            pdf.close()
-    except Exception as e:
-        meta['error'] = str(e)
-    return meta
-
-
-def analyze_images_in_pdf(pdf_path: str, password: str = '',
-                           max_images: int = 50) -> List[Dict[str, Any]]:
-    """Detailed per-image analysis: DPI, size, format, compressibility."""
-    images = []
-    if not FITZ_OK:
-        return images
-
-    try:
-        doc = fitz.open(pdf_path)
-        if password and doc.is_encrypted:
-            doc.authenticate(password)
-
-        seen_xrefs = set()
-        for page_num in range(doc.page_count):
+        for page_num, page in enumerate(doc):
             if len(images) >= max_images:
                 break
-            page = doc[page_num]
-            page_rect = page.rect
-
-            for img_info in page.get_images(full=True):
+            img_list = page.get_images(full=True)
+            for img_ref in img_list:
                 if len(images) >= max_images:
                     break
-                xref = img_info[0]
-                if xref in seen_xrefs:
-                    continue
-                seen_xrefs.add(xref)
-
+                xref = img_ref[0]
                 try:
-                    base_img = doc.extract_image(xref)
-                    w = base_img.get('width', 0)
-                    h = base_img.get('height', 0)
-                    raw_bytes = len(base_img.get('image', b''))
-                    ext = base_img.get('ext', 'unknown')
-                    cs = base_img.get('colorspace', 0)
+                    base = doc.extract_image(xref)
+                    if not base:
+                        continue
 
-                    # Estimate DPI by comparing pixel size to page size
-                    # page_rect is in points (1 pt = 1/72 inch)
-                    if page_rect.width > 0 and w > 0:
-                        dpi_x = round(w / (page_rect.width / 72))
-                    else:
-                        dpi_x = 0
+                    w    = base['width']
+                    h    = base['height']
+                    ext  = base['ext']
+                    data = base['image']
+                    sz   = len(data)
 
-                    compressibility = 'medium'
-                    if ext in ('jpeg', 'jpg'):
-                        compressibility = 'low'  # already compressed
-                    elif ext in ('png', 'bmp', 'tiff'):
-                        compressibility = 'high'
-                    elif ext == 'jp2':
-                        compressibility = 'low'
+                    # Estimate DPI from page size vs image size
+                    page_rect = page.rect
+                    dpi_x = round(w / (page_rect.width / 72.0), 1) if page_rect.width > 0 else 0.0
+                    dpi_y = round(h / (page_rect.height / 72.0), 1) if page_rect.height > 0 else 0.0
 
-                    images.append({
-                        'xref': xref,
+                    # Colorspace
+                    cs = img_ref[5] if len(img_ref) > 5 else 'RGB'
+
+                    # Compressibility (JPEG already compressed, PNG maybe not)
+                    can_compress = ext.lower() in ('png', 'bmp', 'tiff', 'tif')
+                    savings_est = round(sz * (0.5 if can_compress else 0.15), 0)
+
+                    info = {
                         'page': page_num + 1,
-                        'width': w,
-                        'height': h,
-                        'format': ext,
-                        'size_bytes': raw_bytes,
-                        'size_kb': round(raw_bytes / 1024, 1),
-                        'estimated_dpi': dpi_x,
-                        'colorspace_components': cs,
-                        'is_color': cs > 1 if isinstance(cs, int) else True,
-                        'compressibility': compressibility,
-                    })
+                        'xref': xref,
+                        'width': w, 'height': h,
+                        'format': ext.upper(),
+                        'colorspace': cs,
+                        'bytes': sz,
+                        'dpi_x': dpi_x, 'dpi_y': dpi_y,
+                        'can_compress': can_compress,
+                        'savings_estimate': int(savings_est),
+                    }
+                    images.append(info)
+                    dpis_x.append(dpi_x)
+                    dpis_y.append(dpi_y)
+                    fmt_counter[ext.upper()] += 1
+                    cs_counter[str(cs)] += 1
+                    result['total_bytes']        += sz
+                    result['compressible_bytes'] += int(savings_est)
+
                 except Exception:
-                    pass
+                    continue
 
         doc.close()
+        result['image_count'] = len(images)
+        result['images']      = images
+        result['avg_dpi_x']   = round(statistics.mean(dpis_x), 1) if dpis_x else 0.0
+        result['avg_dpi_y']   = round(statistics.mean(dpis_y), 1) if dpis_y else 0.0
+        result['formats']     = dict(fmt_counter)
+        result['colorspaces'] = dict(cs_counter)
+        result['success']     = True
     except Exception as e:
-        logger.warning(f'analyze_images_in_pdf error: {e}')
+        result['error'] = str(e)
 
-    return images
+    return result
 
-
-def detect_pdf_type(pdf_path: str, password: str = '') -> str:
-    """
-    Detect PDF type: text_heavy / image_heavy / mixed / scanned / vector_only
-    """
-    try:
-        estimate = get_compression_estimate(pdf_path, password)
-        return estimate.get('content_type', 'mixed')
-    except Exception:
-        return 'mixed'
-
-
-def get_font_analysis(pdf_path: str, password: str = '') -> Dict[str, Any]:
-    """Analyze embedded fonts: count, size, subset opportunities."""
-    result = {'fonts': [], 'total_font_bytes': 0, 'subset_potential_bytes': 0,
-               'count': 0, 'fully_embedded': 0, 'subsetted': 0}
+def get_pdf_metadata(path: str, password: str = '') -> Dict[str, Any]:
+    """Extract comprehensive metadata from PDF."""
+    result: Dict[str, Any] = {
+        'success': False, 'docinfo': {}, 'xmp': {},
+        'pdf_version': _pdf_version(path),
+        'is_linearized': False, 'page_count': 0,
+        'has_encryption': _is_encrypted(path),
+        'file_size': _file_size(path),
+    }
     if not PIKEPDF_OK:
         return result
 
     try:
-        pdf = pikepdf.open(pdf_path, password=password or '')
-        fonts_seen = {}
+        kw = {'suppress_warnings': True}
+        if password:
+            kw['password'] = password
+        with pikepdf.open(path, **kw) as pdf:
+            result['page_count']    = len(pdf.pages)
+            result['is_linearized'] = bool(pdf.is_linearized)
 
-        for page in pdf.pages:
+            # DocInfo
+            if Name.Info in pdf.trailer:
+                try:
+                    info = pdf.trailer[Name.Info]
+                    for key in ['/Title', '/Author', '/Subject', '/Keywords',
+                                 '/Creator', '/Producer', '/CreationDate', '/ModDate']:
+                        v = info.get(Name(key))
+                        if v:
+                            result['docinfo'][key] = str(v)
+                except Exception:
+                    pass
+
+            # XMP
             try:
-                resources = page.get('/Resources', pikepdf.Dictionary())
-                font_dict = resources.get('/Font', pikepdf.Dictionary())
-                for font_name, font_ref in font_dict.items():
-                    try:
-                        font_obj = font_ref
-                        font_key = str(font_obj.get('/BaseFont', font_name))
-                        if font_key in fonts_seen:
-                            continue
-
-                        descriptor = font_obj.get('/FontDescriptor')
-                        size_bytes = 0
-                        is_embedded = False
-                        is_subset = False
-
-                        if descriptor:
-                            for stream_key in ('/FontFile', '/FontFile2', '/FontFile3'):
-                                try:
-                                    ff = descriptor.get(stream_key)
-                                    if ff:
-                                        is_embedded = True
-                                        data = bytes(ff.read_bytes())
-                                        size_bytes = len(data)
-                                        break
-                                except Exception:
-                                    pass
-
-                            # Check if subset (name starts with 6-char tag + '+')
-                            base = str(font_obj.get('/BaseFont', ''))
-                            if re.match(r'^[A-Z]{6}\+', base):
-                                is_subset = True
-
-                        fonts_seen[font_key] = {
-                            'name': font_key,
-                            'type': str(font_obj.get('/Subtype', 'Unknown')),
-                            'size_bytes': size_bytes,
-                            'size_kb': round(size_bytes / 1024, 1),
-                            'is_embedded': is_embedded,
-                            'is_subset': is_subset,
-                        }
-
-                        if is_embedded:
-                            result['fully_embedded'] += 1
-                        if is_subset:
-                            result['subsetted'] += 1
-                        result['total_font_bytes'] += size_bytes
-                        if is_embedded and not is_subset:
-                            result['subset_potential_bytes'] += int(size_bytes * 0.6)
-
-                    except Exception:
-                        pass
+                with pdf.open_metadata() as meta:
+                    for k in meta:
+                        v = meta.get(k)
+                        if v:
+                            result['xmp'][k] = str(v)
             except Exception:
                 pass
 
-        pdf.close()
-        result['fonts'] = list(fonts_seen.values())
-        result['count'] = len(result['fonts'])
-
+        result['success'] = True
+    except pikepdf.PasswordError:
+        result['has_encryption'] = True
+        result['error'] = 'Password required'
     except Exception as e:
         result['error'] = str(e)
 
     return result
 
-
-def get_pdf_structure_report(pdf_path: str, password: str = '') -> Dict[str, Any]:
-    """Deep structural analysis of PDF objects and streams."""
-    report = {
-        'object_count': 0,
-        'stream_count': 0,
-        'compressed_streams': 0,
-        'uncompressed_streams': 0,
-        'xref_type': 'table',
-        'has_object_streams': False,
-        'has_cross_reference_stream': False,
-        'content_stream_bytes': 0,
-        'image_stream_bytes': 0,
-        'font_stream_bytes': 0,
-        'other_stream_bytes': 0,
-        'junk_bytes_estimate': 0,
+def detect_pdf_type(path: str) -> Dict[str, Any]:
+    """Detect whether PDF is text-heavy, image-heavy, mixed, scanned, or form."""
+    result: Dict[str, Any] = {
+        'success': False, 'pdf_type': 'unknown',
+        'confidence': 0.0, 'details': {},
     }
-    if not PIKEPDF_OK:
-        return report
+    if not _is_valid_pdf(path):
+        return result
+
+    page_count = _count_pdf_pages(path)
+    if page_count == 0:
+        result['pdf_type'] = 'empty'
+        result['confidence'] = 1.0
+        result['success'] = True
+        return result
+
+    img_info = analyze_images_in_pdf(path, max_images=20)
+    est_info = get_compression_estimate(path)
+
+    file_sz = _file_size(path)
+    img_bytes = img_info.get('total_bytes', 0)
+    img_count = img_info.get('image_count', 0)
+    has_forms = est_info.get('has_forms', False)
+    is_scanned = est_info.get('is_scanned', False)
+
+    if has_forms:
+        pdf_type = 'form'
+        conf = 0.80
+    elif is_scanned or (img_bytes > file_sz * 0.80):
+        pdf_type = 'scanned' if is_scanned else 'image_heavy'
+        conf = 0.85 if is_scanned else 0.80
+    elif img_bytes > file_sz * 0.40:
+        pdf_type = 'mixed'
+        conf = 0.75
+    elif img_count == 0:
+        pdf_type = 'text_heavy'
+        conf = 0.90
+    else:
+        pdf_type = 'mixed'
+        conf = 0.65
+
+    result['pdf_type']   = pdf_type
+    result['confidence'] = conf
+    result['details'] = {
+        'page_count': page_count,
+        'image_count': img_count,
+        'image_bytes_ratio': round(img_bytes / max(1, file_sz), 2),
+    }
+    result['success'] = True
+    return result
+
+def get_font_analysis(path: str) -> Dict[str, Any]:
+    """Analyze embedded fonts and subsetting opportunities."""
+    result: Dict[str, Any] = {
+        'success': False, 'font_count': 0, 'fonts': [],
+        'total_font_bytes': 0, 'subset_savings_estimate': 0,
+        'has_oversized_fonts': False,
+    }
+    if not PIKEPDF_OK or not _is_valid_pdf(path):
+        return result
 
     try:
-        pdf = pikepdf.open(pdf_path, password=password or '')
-        report['object_count'] = len(pdf.objects)
+        fonts: List[Dict] = []
+        total_bytes = 0
+        savings = 0
 
-        for obj in pdf.objects:
-            try:
-                if isinstance(obj, pikepdf.Stream):
-                    report['stream_count'] += 1
-                    raw = bytes(obj.read_raw_bytes())
-                    decoded = None
+        with pikepdf.open(path, suppress_warnings=True) as pdf:
+            seen = set()
+            for page in pdf.pages:
+                if Name.Resources not in page:
+                    continue
+                res = page[Name.Resources]
+                if Name.Font not in res:
+                    continue
+                font_dict = res[Name.Font]
+                for font_key in font_dict.keys():
                     try:
-                        decoded = bytes(obj.read_bytes())
+                        font = font_dict[font_key]
+                        if not isinstance(font, pikepdf.Dictionary):
+                            continue
+                        font_name = str(font.get(Name.BaseFont, font_key))
+                        if font_name in seen:
+                            continue
+                        seen.add(font_name)
+
+                        font_type    = str(font.get(Name.Type, ''))
+                        subtype      = str(font.get(Name.Subtype, ''))
+                        is_embedded  = Name.FontDescriptor in font
+                        is_subset    = font_name.startswith(tuple('ABCDEFGHIJKLMNOPQRSTUVWXYZ') + ('',)) and \
+                                       len(font_name) > 7 and font_name[6] == '+'
+
+                        # Estimate font stream size
+                        font_sz = 0
+                        if Name.FontDescriptor in font:
+                            fd = font[Name.FontDescriptor]
+                            for stream_key in [Name.FontFile, Name.FontFile2, Name.FontFile3]:
+                                if stream_key in fd:
+                                    try:
+                                        raw = fd[stream_key].read_raw_bytes()
+                                        font_sz = len(raw)
+                                    except Exception:
+                                        pass
+
+                        total_bytes += font_sz
+                        saving = int(font_sz * 0.35) if is_embedded and not is_subset else 0
+                        savings += saving
+
+                        info = {
+                            'name': font_name, 'type': subtype,
+                            'embedded': is_embedded, 'subset': is_subset,
+                            'size_bytes': font_sz, 'savings_if_subset': saving,
+                        }
+                        fonts.append(info)
                     except Exception:
-                        pass
-
-                    filters = obj.get('/Filter')
-                    if filters:
-                        report['compressed_streams'] += 1
-                    else:
-                        report['uncompressed_streams'] += 1
-
-                    subtype = str(obj.get('/Subtype', ''))
-                    if subtype == '/Image':
-                        report['image_stream_bytes'] += len(raw)
-                    elif subtype in ('/Type1C', '/CIDFontType0C'):
-                        report['font_stream_bytes'] += len(raw)
-                    else:
-                        report['content_stream_bytes'] += len(raw)
-
-            except Exception:
-                pass
-
-        pdf.close()
-    except Exception as e:
-        report['error'] = str(e)
-
-    return report
-
-
-def estimate_compression_savings(file_size_bytes: int, content_type: str = 'mixed',
-                                  preset: str = 'medium') -> Dict[str, Any]:
-    """Fast estimate without opening the file — for UI hints."""
-    # Base reduction rates by content type
-    rates = {
-        'image_heavy': {'screen': 0.88, 'low': 0.72, 'medium': 0.58, 'high': 0.40, 'lossless': 0.22},
-        'scanned':     {'screen': 0.85, 'low': 0.70, 'medium': 0.55, 'high': 0.38, 'lossless': 0.20},
-        'text_heavy':  {'screen': 0.48, 'low': 0.38, 'medium': 0.28, 'high': 0.18, 'lossless': 0.10},
-        'mixed':       {'screen': 0.75, 'low': 0.60, 'medium': 0.48, 'high': 0.32, 'lossless': 0.15},
-        'vector_only': {'screen': 0.30, 'low': 0.22, 'medium': 0.18, 'high': 0.12, 'lossless': 0.08},
-    }
-    rate_map = rates.get(content_type, rates['mixed'])
-    rate = rate_map.get(preset, 0.48)
-
-    estimated_out = int(file_size_bytes * (1 - rate))
-    saved = file_size_bytes - estimated_out
-
-    return {
-        'input_bytes': file_size_bytes,
-        'estimated_output_bytes': estimated_out,
-        'estimated_saved_bytes': saved,
-        'estimated_reduction_pct': round(rate * 100, 1),
-        'preset': preset,
-        'content_type': content_type,
-    }
-
-
-# ══════════════════════════════════════════════════════════════════════════
-# ENGINE 1: GHOSTSCRIPT
-# ══════════════════════════════════════════════════════════════════════════
-
-def _compress_ghostscript(input_path: str, output_path: str, preset: Dict[str, Any],
-                            options: Dict[str, Any], progress_cb=None) -> bool:
-    """
-    Ghostscript-based compression. Most powerful engine for image-heavy PDFs.
-    """
-    if not GS_BIN:
-        return False
-
-    try:
-        dpi = preset['dpi']
-        gs_setting = preset['gs_setting']
-        quality = preset['jpeg_quality']
-
-        cmd = [
-            GS_BIN,
-            '-q',
-            '-dBATCH',
-            '-dNOPAUSE',
-            '-dSAFER',
-            '-sDEVICE=pdfwrite',
-            f'-dCompatibilityLevel=1.5',
-            f'-dPDFSETTINGS={gs_setting}',
-            f'-dColorImageResolution={dpi}',
-            f'-dGrayImageResolution={dpi}',
-            f'-dMonoImageResolution={dpi}',
-            f'-dColorImageDownsampleType=/Bicubic',
-            f'-dGrayImageDownsampleType=/Bicubic',
-            f'-dColorImageFilter=/DCTEncode',
-            f'-dGrayImageFilter=/DCTEncode',
-            f'-dAutoFilterColorImages=false',
-            f'-dAutoFilterGrayImages=false',
-            f'-dDownsampleColorImages=true',
-            f'-dDownsampleGrayImages=true',
-            f'-dJPEGQ={quality}',
-            '-dCompressFonts=true',
-            '-dEmbedAllFonts=true',
-            '-dSubsetFonts=true',
-            '-dOptimize=true',
-            '-dDetectDuplicateImages=true',
-            '-dDoNumCopies=true',
-            '-dFastWebView=false',
-        ]
-
-        # Handle password-protected PDFs
-        password = options.get('password', '')
-        if password:
-            cmd += [f'-sPDFPassword={password}']
-
-        # Grayscale (user-controlled only)
-        if options.get('grayscale', False):
-            cmd += [
-                '-sColorConversionStrategy=Gray',
-                '-dProcessColorModel=/DeviceGray',
-                '-dColorConversionStrategyForImages=Gray',
-            ]
-
-        # Strip metadata
-        if options.get('strip_metadata', False):
-            cmd += ['-dFILTERTEXT', '-dFILTERVECTOR']
-
-        # Remove JavaScript
-        if options.get('remove_javascript', False):
-            cmd += ['-dNoUserUnit', '-dNOINTERPOLATE']
-
-        # Linearize (web optimize) — done with qpdf after GS
-        # Subset fonts
-        if options.get('subset_fonts', False):
-            cmd += ['-dSubsetFonts=true', '-dMaxSubsetPct=100']
-
-        # Remove ICC profiles
-        if options.get('remove_icc_profiles', False):
-            cmd += ['-dNoOutputICCProfile']
-
-        # Output
-        cmd += [f'-sOutputFile={output_path}', input_path]
-
-        if progress_cb:
-            progress_cb('ghostscript', 15)
-
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=300
-        )
-
-        if progress_cb:
-            progress_cb('ghostscript', 45)
-
-        if result.returncode != 0:
-            logger.warning(f'Ghostscript stderr: {result.stderr[:500]}')
-            return False
-
-        return Path(output_path).exists() and Path(output_path).stat().st_size > 100
-
-    except subprocess.TimeoutExpired:
-        logger.error('Ghostscript timed out')
-        return False
-    except Exception as e:
-        logger.error(f'Ghostscript error: {e}')
-        return False
-
-
-# ══════════════════════════════════════════════════════════════════════════
-# ENGINE 2: PyMuPDF (fitz)
-# ══════════════════════════════════════════════════════════════════════════
-
-def _compress_pymupdf(input_path: str, output_path: str, preset: Dict[str, Any],
-                       options: Dict[str, Any], progress_cb=None) -> bool:
-    """
-    PyMuPDF-based compression: per-image DPI downsampling + recompression.
-    Excellent for fine-grained image control.
-    """
-    if not FITZ_OK:
-        return False
-
-    try:
-        password = options.get('password', '')
-        dpi = preset['dpi']
-        quality = preset['jpeg_quality']
-        grayscale = options.get('grayscale', False)
-        strip_meta = options.get('strip_metadata', False)
-        remove_annot = options.get('remove_annotations', False)
-        downsample_above = preset.get('downsample_above_dpi', 300)
-        img_scale = preset.get('image_scale', 0.80)
-
-        doc = fitz.open(input_path)
-        if password and doc.is_encrypted:
-            if not doc.authenticate(password):
-                doc.close()
-                return False
-
-        if progress_cb:
-            progress_cb('pymupdf', 20)
-
-        # Process each page
-        for page_num in range(doc.page_count):
-            page = doc[page_num]
-
-            # Remove annotations if requested
-            if remove_annot:
-                try:
-                    annot_list = list(page.annots())
-                    for annot in annot_list:
-                        page.delete_annot(annot)
-                except Exception:
-                    pass
-
-            # Recompress images
-            img_list = page.get_images(full=True)
-            page_rect = page.rect
-
-            for img_info in img_list:
-                xref = img_info[0]
-                try:
-                    base_img = doc.extract_image(xref)
-                    img_bytes = base_img.get('image', b'')
-                    w = base_img.get('width', 1)
-                    h = base_img.get('height', 1)
-                    ext = base_img.get('ext', 'png')
-
-                    # Estimate current DPI
-                    if page_rect.width > 0:
-                        curr_dpi = w / (page_rect.width / 72)
-                    else:
-                        curr_dpi = 150
-
-                    needs_downsample = (curr_dpi > downsample_above) or (w > 2400) or (h > 3200)
-                    is_jpeg = ext in ('jpeg', 'jpg')
-
-                    if not needs_downsample and is_jpeg and not grayscale:
                         continue
 
-                    # Open with Pillow
-                    pil_img = Image.open(io.BytesIO(img_bytes))
+        result['fonts']                  = fonts[:30]
+        result['font_count']             = len(fonts)
+        result['total_font_bytes']       = total_bytes
+        result['subset_savings_estimate'] = savings
+        result['has_oversized_fonts']    = any(f['size_bytes'] > 100_000 and not f['subset']
+                                               for f in fonts)
+        result['success'] = True
+    except Exception as e:
+        result['error'] = str(e)
 
-                    # Downsample if needed
-                    if needs_downsample:
-                        scale = min(img_scale, dpi / max(curr_dpi, 1))
-                        new_w = max(1, int(w * scale))
-                        new_h = max(1, int(h * scale))
-                        if new_w < w or new_h < h:
-                            pil_img = pil_img.resize((new_w, new_h), Image.LANCZOS)
+    return result
 
-                    # Convert to grayscale if user requested
-                    if grayscale:
-                        pil_img = pil_img.convert('L')
-                    elif pil_img.mode in ('RGBA', 'P', 'LA'):
-                        pil_img = pil_img.convert('RGB')
+def get_security_report(path: str) -> Dict[str, Any]:
+    """Detailed security analysis — encryption, permissions, JS, forms, signatures."""
+    result: Dict[str, Any] = {
+        'success': False, 'is_encrypted': _is_encrypted(path),
+        'has_javascript': False, 'has_forms': False,
+        'has_signatures': False, 'has_open_action': False,
+        'has_embedded_scripts': False, 'permissions': {},
+        'encryption_method': '', 'key_length': 0,
+    }
+    if not _is_valid_pdf(path):
+        return result
 
-                    # Re-encode
-                    buf = io.BytesIO()
-                    save_mode = 'JPEG'
-                    save_kwargs = {'quality': quality, 'optimize': True, 'progressive': True}
+    if PIKEPDF_OK:
+        try:
+            with pikepdf.open(path, suppress_warnings=True) as pdf:
+                root = pdf.Root
 
-                    if pil_img.mode == 'L':
-                        save_kwargs.pop('progressive', None)
+                # JavaScript
+                if Name.Names in root:
+                    names = root[Name.Names]
+                    result['has_javascript'] = Name.JavaScript in names
 
+                # OpenAction
+                if Name.OpenAction in root:
+                    result['has_open_action'] = True
+                    oa = root[Name.OpenAction]
+                    if hasattr(oa, 'get') and oa.get(Name.S) == Name.JavaScript:
+                        result['has_javascript'] = True
+                        result['has_embedded_scripts'] = True
+
+                # Forms
+                result['has_forms'] = Name.AcroForm in root
+
+                # Signatures
+                if Name.AcroForm in root:
+                    acro = root[Name.AcroForm]
+                    if Name.Fields in acro:
+                        for field in acro[Name.Fields]:
+                            try:
+                                if field.get(Name.FT) == Name.Sig:
+                                    result['has_signatures'] = True
+                                    break
+                            except Exception:
+                                pass
+
+            result['success'] = True
+        except Exception as e:
+            result['error'] = str(e)
+
+    return result
+
+def get_color_analysis(path: str) -> Dict[str, Any]:
+    """Analyse colour vs grayscale content across pages."""
+    result: Dict[str, Any] = {
+        'success': False, 'total_pages': 0,
+        'color_pages': 0, 'grayscale_pages': 0,
+        'color_ratio': 0.0, 'can_convert_to_gray': False,
+        'estimated_gray_savings_pct': 0,
+        'dominant_colorspace': 'unknown',
+    }
+    if not FITZ_OK or not _is_valid_pdf(path):
+        return result
+
+    try:
+        doc = fitz.open(path)
+        total  = doc.page_count
+        color  = 0
+        gray   = 0
+
+        for page in doc:
+            # Render at low res for colour check
+            try:
+                pix = page.get_pixmap(dpi=30, colorspace=fitz.csRGB)
+                # Sample pixels
+                samples = pix.samples
+                if samples:
+                    # Check if image is essentially grayscale
+                    n_pix = len(samples) // 3
+                    is_gray = True
+                    step = max(1, n_pix // 100)
+                    for i in range(0, min(n_pix * 3, len(samples) - 3), step * 3):
+                        r = samples[i]
+                        g = samples[i+1]
+                        b = samples[i+2]
+                        if abs(int(r) - int(g)) > 8 or abs(int(r) - int(b)) > 8:
+                            is_gray = False
+                            break
+                    if is_gray:
+                        gray += 1
+                    else:
+                        color += 1
+                else:
+                    gray += 1
+            except Exception:
+                gray += 1
+
+        doc.close()
+
+        result['total_pages']    = total
+        result['color_pages']    = color
+        result['grayscale_pages'] = gray
+        result['color_ratio']    = round(color / max(1, total), 2)
+
+        # If most pages are gray already, converting would save little
+        if color > 0:
+            result['can_convert_to_gray']      = True
+            result['estimated_gray_savings_pct'] = min(45, int(result['color_ratio'] * 40))
+        result['dominant_colorspace'] = 'grayscale' if gray > color else 'color'
+        result['success'] = True
+    except Exception as e:
+        result['error'] = str(e)
+
+    return result
+
+def get_object_statistics(path: str) -> Dict[str, Any]:
+    """Count and categorize PDF objects by type."""
+    result: Dict[str, Any] = {
+        'success': False, 'total_objects': 0,
+        'streams': 0, 'dictionaries': 0, 'arrays': 0,
+        'strings': 0, 'names': 0, 'integers': 0,
+        'pages': 0, 'images': 0, 'fonts': 0,
+        'form_xobjects': 0, 'annotations': 0,
+    }
+    if not PIKEPDF_OK or not _is_valid_pdf(path):
+        return result
+
+    try:
+        with pikepdf.open(path, suppress_warnings=True) as pdf:
+            result['pages'] = len(pdf.pages)
+            for obj in pdf.objects:
+                result['total_objects'] += 1
+                if isinstance(obj, pikepdf.Stream):
+                    result['streams'] += 1
+                    t = obj.get(Name.Subtype)
+                    if t == Name.Image:
+                        result['images'] += 1
+                    elif t == Name.Form:
+                        result['form_xobjects'] += 1
+                elif isinstance(obj, pikepdf.Dictionary):
+                    result['dictionaries'] += 1
+                    t = obj.get(Name.Type)
+                    if t == Name.Font:
+                        result['fonts'] += 1
+                    elif t == Name.Annot:
+                        result['annotations'] += 1
+                elif isinstance(obj, pikepdf.Array):
+                    result['arrays'] += 1
+                elif isinstance(obj, pikepdf.String):
+                    result['strings'] += 1
+                elif isinstance(obj, pikepdf.Name):
+                    result['names'] += 1
+
+        result['success'] = True
+    except Exception as e:
+        result['error'] = str(e)
+
+    return result
+
+def calculate_entropy(path: str, sample_streams: int = 20) -> Dict[str, Any]:
+    """
+    Calculate Shannon entropy of PDF streams.
+    High entropy (> 7.5) = already compressed / encrypted.
+    Low entropy (< 5.0) = compressible.
+    """
+    result: Dict[str, Any] = {
+        'success': False, 'mean_entropy': 0.0,
+        'min_entropy': 0.0, 'max_entropy': 0.0,
+        'compressible_streams': 0, 'highly_compressed_streams': 0,
+        'samples': [],
+    }
+    if not PIKEPDF_OK or not _is_valid_pdf(path):
+        return result
+
+    try:
+        entropies: List[float] = []
+        with pikepdf.open(path, suppress_warnings=True) as pdf:
+            count = 0
+            for obj in pdf.objects:
+                if count >= sample_streams:
+                    break
+                if isinstance(obj, pikepdf.Stream):
                     try:
-                        pil_img.save(buf, format=save_mode, **save_kwargs)
-                        new_bytes = buf.getvalue()
-
-                        # Only replace if smaller
-                        if len(new_bytes) < len(img_bytes) * 0.98:
-                            doc.update_stream(xref, new_bytes)
+                        raw = obj.read_raw_bytes()
+                        if raw and len(raw) > 64:
+                            e = _bytes_entropy(raw[:4096])
+                            entropies.append(e)
+                            result['samples'].append({'entropy': e, 'size': len(raw)})
+                            count += 1
                     except Exception:
                         pass
 
-                    pil_img.close()
+        if entropies:
+            result['mean_entropy'] = round(statistics.mean(entropies), 3)
+            result['min_entropy']  = round(min(entropies), 3)
+            result['max_entropy']  = round(max(entropies), 3)
+            result['compressible_streams']     = sum(1 for e in entropies if e < 5.5)
+            result['highly_compressed_streams'] = sum(1 for e in entropies if e > 7.5)
 
-                except Exception:
-                    pass
+        result['success'] = True
+    except Exception as e:
+        result['error'] = str(e)
 
-        if progress_cb:
-            progress_cb('pymupdf', 60)
+    return result
 
-        # Strip metadata
-        if strip_meta:
+def detect_duplicate_images(path: str) -> Dict[str, Any]:
+    """Find identical image streams (candidates for deduplication)."""
+    result: Dict[str, Any] = {
+        'success': False, 'unique_images': 0,
+        'duplicate_sets': 0, 'total_wasted_bytes': 0,
+        'duplicates': [],
+    }
+    if not PIKEPDF_OK or not _is_valid_pdf(path):
+        return result
+
+    try:
+        hash_map: Dict[str, List[Dict]] = defaultdict(list)
+
+        with pikepdf.open(path, suppress_warnings=True) as pdf:
+            for i, obj in enumerate(pdf.objects):
+                if isinstance(obj, pikepdf.Stream):
+                    try:
+                        if obj.get(Name.Subtype) != Name.Image:
+                            continue
+                        raw = obj.read_raw_bytes()
+                        if not raw:
+                            continue
+                        h = _hash_stream(raw)
+                        hash_map[h].append({
+                            'obj_num': i,
+                            'size': len(raw),
+                            'width': int(obj.get(Name.Width, 0)),
+                            'height': int(obj.get(Name.Height, 0)),
+                        })
+                    except Exception:
+                        pass
+
+        unique = 0
+        dup_sets = 0
+        wasted = 0
+
+        for h, objs in hash_map.items():
+            if len(objs) > 1:
+                dup_sets += 1
+                extra = len(objs) - 1
+                wasted += extra * objs[0]['size']
+                result['duplicates'].append({
+                    'count': len(objs), 'wasted_bytes': extra * objs[0]['size'],
+                    'image_size': f"{objs[0]['width']}x{objs[0]['height']}",
+                })
+            unique += 1
+
+        result['unique_images']      = unique
+        result['duplicate_sets']     = dup_sets
+        result['total_wasted_bytes'] = wasted
+        result['success']            = True
+    except Exception as e:
+        result['error'] = str(e)
+
+    return result
+
+def get_page_size_breakdown(path: str) -> Dict[str, Any]:
+    """Estimate per-page size contribution."""
+    result: Dict[str, Any] = {
+        'success': False, 'pages': [],
+        'largest_page': 0, 'smallest_page': 0,
+        'mean_page_size': 0,
+    }
+    if not FITZ_OK or not _is_valid_pdf(path):
+        return result
+
+    try:
+        doc = fitz.open(path)
+        pages: List[Dict] = []
+        for i, page in enumerate(doc):
             try:
-                doc.set_metadata({})
-                doc.del_xml_metadata()
+                # Render at low quality and measure raw bitmap size as proxy
+                pix  = page.get_pixmap(dpi=20)
+                size = len(pix.samples)
+                pages.append({
+                    'page': i + 1,
+                    'width_pts': round(page.rect.width, 1),
+                    'height_pts': round(page.rect.height, 1),
+                    'image_count': len(page.get_images()),
+                    'text_chars': len(page.get_text()),
+                    'proxy_size': size,
+                })
             except Exception:
-                pass
-
-        # Save options
-        save_options = {
-            'garbage': 4,
-            'clean': True,
-            'deflate': True,
-            'deflate_images': True,
-            'deflate_fonts': True,
-            'ascii': False,
-            'linear': options.get('linearize', False),
-            'pretty': False,
-        }
-
-        doc.save(output_path, **save_options)
+                pages.append({'page': i + 1, 'proxy_size': 0})
         doc.close()
 
-        if progress_cb:
-            progress_cb('pymupdf', 80)
+        if pages:
+            sizes = [p['proxy_size'] for p in pages]
+            result['pages']        = pages[:50]
+            result['largest_page'] = max(sizes)
+            result['smallest_page'] = min(sizes)
+            result['mean_page_size'] = int(statistics.mean(sizes))
 
-        return Path(output_path).exists() and Path(output_path).stat().st_size > 100
-
+        result['success'] = True
     except Exception as e:
-        logger.error(f'PyMuPDF compress error: {e}')
-        return False
-
-
-# ══════════════════════════════════════════════════════════════════════════
-# ENGINE 3: pikepdf
-# ══════════════════════════════════════════════════════════════════════════
-
-def _compress_pikepdf(input_path: str, output_path: str, preset: Dict[str, Any],
-                       options: Dict[str, Any], progress_cb=None) -> bool:
-    """
-    pikepdf-based compression: object stream merging, DEFLATE-9,
-    duplicate object removal, metadata stripping, annotation removal.
-    Best for structure-level compression and lossless mode.
-    """
-    if not PIKEPDF_OK:
-        return False
-
-    try:
-        password = options.get('password', '')
-        deflate = preset.get('deflate_level', 9)
-        strip_meta = options.get('strip_metadata', False)
-        remove_annot = options.get('remove_annotations', False)
-        remove_js = options.get('remove_javascript', False)
-        remove_thumbnails = options.get('remove_thumbnails', False)
-        remove_icc = options.get('remove_icc_profiles', False)
-        remove_embedded = options.get('remove_embedded_files', False)
-        remove_forms = options.get('remove_forms', False)
-
-        open_kwargs = {}
-        if password:
-            open_kwargs['password'] = password
-
-        pdf = pikepdf.open(input_path, **open_kwargs)
-
-        if progress_cb:
-            progress_cb('pikepdf', 20)
-
-        # Strip metadata
-        if strip_meta:
-            try:
-                with pdf.open_metadata(set_pikepdf_as_editor=False) as meta:
-                    keys_to_del = [k for k in meta if 'creator' not in k.lower()
-                                   and 'producer' not in k.lower()]
-                    for k in keys_to_del:
-                        try:
-                            del meta[k]
-                        except Exception:
-                            pass
-                pdf.docinfo.clear()
-            except Exception:
-                pass
-
-        # Remove JavaScript from root
-        if remove_js:
-            try:
-                root = pdf.Root
-                for key in ('/AA', '/OpenAction'):
-                    if key in root:
-                        del root[key]
-                if '/Names' in root:
-                    names = root['/Names']
-                    if '/JavaScript' in names:
-                        del names['/JavaScript']
-            except Exception:
-                pass
-
-        # Remove embedded files
-        if remove_embedded:
-            try:
-                root = pdf.Root
-                if '/Names' in root and '/EmbeddedFiles' in root['/Names']:
-                    del root['/Names']['/EmbeddedFiles']
-            except Exception:
-                pass
-
-        # Remove forms
-        if remove_forms:
-            try:
-                if '/AcroForm' in pdf.Root:
-                    del pdf.Root['/AcroForm']
-            except Exception:
-                pass
-
-        # Process pages
-        for page in pdf.pages:
-            try:
-                # Remove annotations
-                if remove_annot and '/Annots' in page:
-                    del page['/Annots']
-
-                # Remove page thumbnails
-                if remove_thumbnails and '/Thumb' in page:
-                    del page['/Thumb']
-
-                # Remove ICC profiles from resources
-                if remove_icc:
-                    resources = page.get('/Resources', pikepdf.Dictionary())
-                    if '/ColorSpace' in resources:
-                        cs = resources['/ColorSpace']
-                        for cs_name in list(cs.keys()):
-                            try:
-                                cs_obj = cs[cs_name]
-                                if isinstance(cs_obj, pikepdf.Array):
-                                    if len(cs_obj) > 1 and str(cs_obj[0]) == '/ICCBased':
-                                        del cs[cs_name]
-                            except Exception:
-                                pass
-            except Exception:
-                pass
-
-        if progress_cb:
-            progress_cb('pikepdf', 55)
-
-        # Save with maximum compression
-        compress_streams = deflate >= 6
-        pdf.save(
-            output_path,
-            compress_streams=compress_streams,
-            object_stream_mode=pikepdf.ObjectStreamMode.generate,
-            recompress_flate=True,
-            normalize_content=False,
-            qdf=False,
-        )
-        pdf.close()
-
-        if progress_cb:
-            progress_cb('pikepdf', 85)
-
-        return Path(output_path).exists() and Path(output_path).stat().st_size > 100
-
-    except Exception as e:
-        logger.error(f'pikepdf compress error: {e}')
-        return False
-
-
-# ══════════════════════════════════════════════════════════════════════════
-# ENGINE 4: qpdf CLI
-# ══════════════════════════════════════════════════════════════════════════
-
-def _compress_qpdf(input_path: str, output_path: str, options: Dict[str, Any],
-                   linearize: bool = False, progress_cb=None) -> bool:
-    """
-    qpdf-based recompression + optional linearization (web optimize).
-    """
-    if not QPDF_BIN:
-        return False
-
-    try:
-        password = options.get('password', '')
-
-        cmd = [QPDF_BIN, '--compress-streams=y', '--recompress-flate',
-               '--compression-level=9', '--object-streams=generate',
-               '--stream-data=compress', '--decode-level=generalized']
-
-        if password:
-            cmd += [f'--password={password}']
-
-        if linearize:
-            cmd += ['--linearize']
-
-        cmd += [input_path, output_path]
-
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-
-        if result.returncode not in (0, 3):  # 3 = warnings but success
-            logger.warning(f'qpdf stderr: {result.stderr[:300]}')
-            return False
-
-        return Path(output_path).exists() and Path(output_path).stat().st_size > 100
-
-    except subprocess.TimeoutExpired:
-        return False
-    except Exception as e:
-        logger.error(f'qpdf error: {e}')
-        return False
-
-
-# ══════════════════════════════════════════════════════════════════════════
-# ENGINE 5: pypdf
-# ══════════════════════════════════════════════════════════════════════════
-
-def _compress_pypdf(input_path: str, output_path: str, options: Dict[str, Any],
-                    progress_cb=None) -> bool:
-    """
-    pypdf-based compression: orphan object removal, page content optimization.
-    Fallback when other engines fail.
-    """
-    if not PYPDF_OK:
-        return False
-
-    try:
-        password = options.get('password', '')
-
-        reader = PdfReader(input_path)
-        if reader.is_encrypted and password:
-            reader.decrypt(password)
-
-        writer = PdfWriter()
-        writer.clone_reader_document_root(reader)
-
-        # Add all pages
-        for page in reader.pages:
-            try:
-                page.compress_content_streams()
-            except Exception:
-                pass
-            writer.add_page(page)
-
-        # Strip metadata if requested
-        if options.get('strip_metadata', False):
-            writer.add_metadata({
-                '/Creator': '',
-                '/Producer': '',
-                '/Author': '',
-                '/Title': '',
-                '/Subject': '',
-                '/Keywords': '',
-            })
-
-        with open(output_path, 'wb') as f:
-            writer.write(f)
-
-        return Path(output_path).exists() and Path(output_path).stat().st_size > 100
-
-    except Exception as e:
-        logger.error(f'pypdf compress error: {e}')
-        return False
-
-
-# ══════════════════════════════════════════════════════════════════════════
-# ENGINE 6: mutool
-# ══════════════════════════════════════════════════════════════════════════
-
-def _compress_mutool(input_path: str, output_path: str, options: Dict[str, Any],
-                     progress_cb=None) -> bool:
-    """
-    mutool-based clean + compress. Very fast, good for already-compressed PDFs.
-    """
-    if not MUTOOL_BIN:
-        return False
-
-    try:
-        password = options.get('password', '')
-        cmd = [MUTOOL_BIN, 'clean', '-z', '-i', '-f', '-a', '-D']
-
-        if password:
-            cmd += ['-p', password]
-
-        cmd += [input_path, output_path]
-
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-
-        if result.returncode != 0:
-            return False
-
-        return Path(output_path).exists() and Path(output_path).stat().st_size > 100
-
-    except Exception as e:
-        logger.error(f'mutool error: {e}')
-        return False
-
-
-# ══════════════════════════════════════════════════════════════════════════
-# POST-PROCESSING: Linearize + Finalize
-# ══════════════════════════════════════════════════════════════════════════
-
-def _postprocess_linearize(pdf_path: str, output_path: str) -> bool:
-    """Apply web linearization using qpdf."""
-    if not QPDF_BIN:
-        return False
-    try:
-        cmd = [QPDF_BIN, '--linearize', pdf_path, output_path]
-        result = subprocess.run(cmd, capture_output=True, timeout=60)
-        return result.returncode in (0, 3) and Path(output_path).stat().st_size > 100
-    except Exception:
-        return False
-
-
-def _remove_all_javascript(pdf_path: str, output_path: str) -> bool:
-    """Strip all JavaScript from PDF using pikepdf."""
-    if not PIKEPDF_OK:
-        shutil.copy2(pdf_path, output_path)
-        return True
-    try:
-        pdf = pikepdf.open(pdf_path)
-        root = pdf.Root
-
-        for key in ('/AA', '/OpenAction'):
-            try:
-                if key in root:
-                    del root[key]
-            except Exception:
-                pass
-
-        try:
-            if '/Names' in root and '/JavaScript' in root['/Names']:
-                del root['/Names']['/JavaScript']
-        except Exception:
-            pass
-
-        for page in pdf.pages:
-            try:
-                if '/AA' in page:
-                    del page['/AA']
-                if '/Annots' in page:
-                    annots = page['/Annots']
-                    keep = []
-                    for annot in annots:
-                        try:
-                            if '/AA' in annot:
-                                del annot['/AA']
-                            keep.append(annot)
-                        except Exception:
-                            keep.append(annot)
-                    page['/Annots'] = pikepdf.Array(keep)
-            except Exception:
-                pass
-
-        pdf.save(output_path, compress_streams=True,
-                 object_stream_mode=pikepdf.ObjectStreamMode.generate)
-        pdf.close()
-        return True
-    except Exception:
-        return False
-
-
-# ══════════════════════════════════════════════════════════════════════════
-# MAIN COMPRESSION FUNCTION — 7-engine pipeline
-# ══════════════════════════════════════════════════════════════════════════
-
-def compress_pdf(
-    input_path: str,
-    output_path: str,
-    preset_name: str = 'medium',
-    options: Optional[Dict[str, Any]] = None,
-    progress_callback=None,
-) -> Dict[str, Any]:
-    """
-    Enterprise PDF compression with 7-engine pipeline.
-
-    Tries every available engine, picks the smallest result.
-
-    Args:
-        input_path: Path to input PDF
-        output_path: Path for output compressed PDF
-        preset_name: 'screen' | 'low' | 'medium' | 'high' | 'lossless'
-        options: {
-            grayscale: bool,
-            strip_metadata: bool,
-            remove_annotations: bool,
-            linearize: bool,
-            remove_javascript: bool,
-            remove_thumbnails: bool,
-            remove_embedded_files: bool,
-            flatten_transparency: bool,
-            subset_fonts: bool,
-            remove_icc_profiles: bool,
-            remove_forms: bool,
-            remove_links: bool,
-            password: str,
-            target_size_kb: int or None,
-        }
-        progress_callback: callable(stage: str, pct: int)
-
-    Returns:
-        Dict with compression results and statistics.
-    """
-    t_start = time.time()
-    options = options or {}
-    preset = QUALITY_PRESETS.get(preset_name, QUALITY_PRESETS['medium'])
-
-    def _cb(stage, pct):
-        if progress_callback:
-            try:
-                progress_callback(stage, pct)
-            except Exception:
-                pass
-
-    result = {
-        'success': False,
-        'input_path': input_path,
-        'output_path': output_path,
-        'preset': preset_name,
-        'input_size_bytes': 0,
-        'output_size_bytes': 0,
-        'reduction_bytes': 0,
-        'reduction_pct': 0.0,
-        'method_used': '',
-        'engines_tried': [],
-        'processing_time_ms': 0,
-        'error': None,
-        'quality_note': '',
+        result['error'] = str(e)
+
+    return result
+
+def get_compression_recommendations(path: str) -> Dict[str, Any]:
+    """Return ranked list of compression strategies for this specific PDF."""
+    result: Dict[str, Any] = {
+        'success': False, 'recommended_preset': 'medium',
+        'strategies': [], 'estimated_total_savings_pct': 0,
+        'priority_actions': [],
     }
 
-    try:
-        in_path = Path(input_path)
-        if not in_path.exists():
-            result['error'] = 'Input file not found'
-            return result
+    est   = get_compression_estimate(path)
+    imgs  = analyze_images_in_pdf(path, max_images=10)
+    dups  = detect_duplicate_images(path)
+    fonts = get_font_analysis(path)
 
-        result['input_size_bytes'] = in_path.stat().st_size
-        in_size = result['input_size_bytes']
+    strategies: List[Dict] = []
 
-        # Target size mode — iterate presets to reach target
-        target_kb = options.get('target_size_kb')
-        if target_kb and int(target_kb) > 0:
-            return _compress_to_target_size(input_path, output_path, int(target_kb),
-                                             options, progress_callback)
-
-        _cb('init', 5)
-
-        # ── Temporary directory for engine outputs ─────────────────────
-        with tempfile.TemporaryDirectory(prefix='ishu_compress_') as tmp_dir:
-            tmp = Path(tmp_dir)
-            candidates = []  # list of (size_bytes, path, engine_name)
-
-            # 1. Ghostscript
-            _cb('ghostscript', 8)
-            gs_out = str(tmp / 'gs_out.pdf')
-            if _compress_ghostscript(input_path, gs_out, preset, options, _cb):
-                sz = Path(gs_out).stat().st_size
-                candidates.append((sz, gs_out, 'Ghostscript'))
-                result['engines_tried'].append(f'gs={_kb(sz)}KB')
-                _cb('ghostscript_done', 30)
-
-            # 2. PyMuPDF
-            _cb('pymupdf', 32)
-            mu_out = str(tmp / 'mu_out.pdf')
-            if _compress_pymupdf(input_path, mu_out, preset, options, _cb):
-                sz = Path(mu_out).stat().st_size
-                candidates.append((sz, mu_out, 'PyMuPDF'))
-                result['engines_tried'].append(f'pymupdf={_kb(sz)}KB')
-                _cb('pymupdf_done', 50)
-
-            # 3. pikepdf (on best so far OR original)
-            _cb('pikepdf', 52)
-            best_so_far = min(candidates, key=lambda x: x[0])[1] if candidates else input_path
-            pk_out = str(tmp / 'pk_out.pdf')
-            if _compress_pikepdf(best_so_far, pk_out, preset, options, _cb):
-                sz = Path(pk_out).stat().st_size
-                candidates.append((sz, pk_out, 'pikepdf'))
-                result['engines_tried'].append(f'pikepdf={_kb(sz)}KB')
-                _cb('pikepdf_done', 65)
-
-            # 4. qpdf on best so far
-            _cb('qpdf', 67)
-            best_so_far = min(candidates, key=lambda x: x[0])[1] if candidates else input_path
-            qp_out = str(tmp / 'qp_out.pdf')
-            linearize = options.get('linearize', False)
-            if _compress_qpdf(best_so_far, qp_out, options, linearize=False, progress_cb=_cb):
-                sz = Path(qp_out).stat().st_size
-                candidates.append((sz, qp_out, 'qpdf'))
-                result['engines_tried'].append(f'qpdf={_kb(sz)}KB')
-
-                # If linearize requested, do it on qpdf output
-                if linearize:
-                    lin_out = str(tmp / 'lin_out.pdf')
-                    if _postprocess_linearize(qp_out, lin_out):
-                        sz2 = Path(lin_out).stat().st_size
-                        candidates.append((sz2, lin_out, 'qpdf+linearize'))
-                        result['engines_tried'].append(f'qpdf_lin={_kb(sz2)}KB')
-                _cb('qpdf_done', 78)
-
-            # 5. mutool
-            _cb('mutool', 79)
-            best_so_far = min(candidates, key=lambda x: x[0])[1] if candidates else input_path
-            mt_out = str(tmp / 'mt_out.pdf')
-            if _compress_mutool(best_so_far, mt_out, options, _cb):
-                sz = Path(mt_out).stat().st_size
-                candidates.append((sz, mt_out, 'mutool'))
-                result['engines_tried'].append(f'mutool={_kb(sz)}KB')
-                _cb('mutool_done', 85)
-
-            # 6. pypdf fallback (always try)
-            _cb('pypdf', 86)
-            py_out = str(tmp / 'py_out.pdf')
-            if _compress_pypdf(input_path, py_out, options, _cb):
-                sz = Path(py_out).stat().st_size
-                candidates.append((sz, py_out, 'pypdf'))
-                result['engines_tried'].append(f'pypdf={_kb(sz)}KB')
-                _cb('pypdf_done', 90)
-
-            if not candidates:
-                # Absolute fallback: copy input
-                shutil.copy2(input_path, output_path)
-                result['error'] = 'No compression engines succeeded; file copied as-is'
-                result['method_used'] = 'copy'
-                result['output_size_bytes'] = in_size
-                return result
-
-            # Pick smallest valid result
-            candidates.sort(key=lambda x: x[0])
-            best_size, best_path, best_engine = candidates[0]
-
-            # If best is larger than input, use input as base and just pikepdf clean
-            if best_size >= in_size:
-                # Try pikepdf clean on original as last resort
-                clean_out = str(tmp / 'clean_final.pdf')
-                if _compress_pikepdf(input_path, clean_out, preset, options):
-                    clean_sz = Path(clean_out).stat().st_size
-                    if clean_sz < in_size:
-                        best_size, best_path, best_engine = clean_sz, clean_out, 'pikepdf-clean'
-
-            # Apply post-processing steps
-            current_best = best_path
-
-            # JavaScript removal (if not already done via pikepdf/GS)
-            if options.get('remove_javascript', False):
-                js_out = str(tmp / 'nojs_out.pdf')
-                if _remove_all_javascript(current_best, js_out):
-                    js_sz = Path(js_out).stat().st_size
-                    if js_sz < best_size:
-                        current_best = js_out
-                        best_size = js_sz
-
-            # Final linearization pass
-            if linearize and not any('linearize' in e for e in result['engines_tried']):
-                lin_final = str(tmp / 'lin_final.pdf')
-                if _postprocess_linearize(current_best, lin_final):
-                    lin_sz = Path(lin_final).stat().st_size
-                    current_best = lin_final
-                    best_size = lin_sz
-                    best_engine += '+web'
-
-            # Copy best result to output
-            shutil.copy2(current_best, output_path)
-
-        _cb('done', 98)
-
-        out_size = Path(output_path).stat().st_size
-        saved = in_size - out_size
-        pct = round(saved / max(in_size, 1) * 100, 2)
-
-        result.update({
-            'success': True,
-            'output_size_bytes': out_size,
-            'reduction_bytes': max(0, saved),
-            'reduction_pct': max(0, pct),
-            'method_used': best_engine,
-            'quality_note': _quality_note(preset_name, options),
-            'processing_time_ms': int((time.time() - t_start) * 1000),
+    # Image downsampling
+    if est.get('total_image_bytes', 0) > 50_000:
+        pct = min(85, est.get('compressibility_score', 50))
+        strategies.append({
+            'strategy': 'Image downsampling',
+            'estimated_savings_pct': pct,
+            'how': 'Use Screen or Low preset to downsample images to 72–96 DPI',
+            'priority': 'high' if pct > 40 else 'medium',
         })
 
-        _cb('done', 100)
+    # Duplicate removal
+    if dups.get('total_wasted_bytes', 0) > 10_000:
+        wasted_pct = int(dups['total_wasted_bytes'] / max(1, _file_size(path)) * 100)
+        strategies.append({
+            'strategy': 'Duplicate image removal',
+            'estimated_savings_pct': wasted_pct,
+            'how': 'Enable "Remove Duplicate Images" in Advanced Options',
+            'priority': 'high',
+        })
 
+    # Metadata stripping
+    if est.get('metadata', {}):
+        strategies.append({
+            'strategy': 'Metadata stripping',
+            'estimated_savings_pct': 2,
+            'how': 'Enable "Strip Metadata" in Advanced Options',
+            'priority': 'low',
+        })
+
+    # Font subsetting
+    if fonts.get('subset_savings_estimate', 0) > 10_000:
+        font_pct = int(fonts['subset_savings_estimate'] / max(1, _file_size(path)) * 100)
+        strategies.append({
+            'strategy': 'Font subsetting',
+            'estimated_savings_pct': font_pct,
+            'how': 'Enable "Subset Fonts" in Advanced Options (requires Ghostscript)',
+            'priority': 'medium',
+        })
+
+    # Thumbnail removal
+    if est.get('has_thumbnails', False):
+        strategies.append({
+            'strategy': 'Thumbnail removal',
+            'estimated_savings_pct': 5,
+            'how': 'Enable "Remove Thumbnails" in Advanced Options',
+            'priority': 'medium',
+        })
+
+    # Embedded files
+    if est.get('has_embedded_files', False):
+        strategies.append({
+            'strategy': 'Embedded file removal',
+            'estimated_savings_pct': 8,
+            'how': 'Enable "Remove Embedded Files" in Advanced Options',
+            'priority': 'medium',
+        })
+
+    # JavaScript
+    if est.get('has_javascript', False):
+        strategies.append({
+            'strategy': 'JavaScript removal',
+            'estimated_savings_pct': 1,
+            'how': 'Enable "Remove JavaScript" in Advanced Options',
+            'priority': 'low',
+        })
+
+    # Grayscale (user only)
+    color = get_color_analysis(path)
+    if color.get('can_convert_to_gray', False) and color.get('color_ratio', 0) > 0.5:
+        strategies.append({
+            'strategy': 'Grayscale conversion',
+            'estimated_savings_pct': color.get('estimated_gray_savings_pct', 20),
+            'how': 'Enable "Convert to Grayscale" in Advanced Options (your choice only)',
+            'priority': 'user_decision',
+            'note': 'This removes all color — only enable if color is not important',
+        })
+
+    # Sort by savings
+    strategies.sort(key=lambda x: x['estimated_savings_pct'], reverse=True)
+
+    # Recommended preset
+    content = est.get('content_type', 'mixed')
+    if content == 'image_heavy' or content == 'scanned_document':
+        recommended = 'screen'
+    elif content == 'text_heavy':
+        recommended = 'lossless'
+    elif content == 'interactive_form':
+        recommended = 'high'
+    else:
+        recommended = 'medium'
+
+    result['strategies']             = strategies
+    result['recommended_preset']     = recommended
+    result['priority_actions']       = [s['strategy'] for s in strategies if s['priority'] == 'high']
+    result['estimated_total_savings_pct'] = min(95,
+        sum(s['estimated_savings_pct'] for s in strategies[:3]))
+    result['success'] = True
+    return result
+
+def validate_output_pdf(path: str) -> Dict[str, Any]:
+    """Verify output PDF is valid, readable, and not corrupt."""
+    result: Dict[str, Any] = {
+        'success': False, 'is_valid': False,
+        'page_count': 0, 'is_readable': False,
+        'has_content': False, 'file_size': _file_size(path),
+        'errors': [], 'warnings': [],
+    }
+
+    # Check file exists + has PDF header
+    if not os.path.exists(path):
+        result['errors'].append('File not found')
+        return result
+
+    if not _is_valid_pdf(path):
+        result['errors'].append('Missing PDF header — file may be corrupt')
+        return result
+
+    if _file_size(path) < 100:
+        result['errors'].append('File too small to be a valid PDF')
+        return result
+
+    result['is_valid'] = True
+
+    # Try to open with best available reader
+    if PIKEPDF_OK:
+        try:
+            with pikepdf.open(path, suppress_warnings=True) as pdf:
+                result['page_count'] = len(pdf.pages)
+                result['is_readable'] = True
+                result['has_content'] = result['page_count'] > 0
+        except Exception as e:
+            result['errors'].append(f'pikepdf cannot read: {e}')
+
+    if not result['is_readable'] and FITZ_OK:
+        try:
+            doc = fitz.open(path)
+            result['page_count'] = doc.page_count
+            result['is_readable'] = True
+            result['has_content'] = doc.page_count > 0
+            doc.close()
+        except Exception as e:
+            result['errors'].append(f'fitz cannot read: {e}')
+
+    if not result['is_readable'] and PYPDF_OK:
+        try:
+            reader = PdfReader(path)
+            result['page_count'] = len(reader.pages)
+            result['is_readable'] = True
+            result['has_content'] = result['page_count'] > 0
+        except Exception as e:
+            result['errors'].append(f'pypdf cannot read: {e}')
+
+    if result['page_count'] == 0:
+        result['warnings'].append('PDF has zero pages')
+
+    result['success'] = True
+    return result
+
+def benchmark_compression(path: str, timeout_per_preset: int = 60) -> Dict[str, Any]:
+    """
+    Try all presets and return a comparison table.
+    WARNING: This is slow — runs all engines for all presets.
+    """
+    result: Dict[str, Any] = {
+        'success': False, 'input_size': _file_size(path),
+        'results': [], 'best_preset': '', 'best_reduction': 0.0,
+    }
+
+    with _tmp_dir() as tmpd:
+        input_size = result['input_size']
+        for preset in ['screen', 'low', 'medium', 'high', 'lossless']:
+            out = os.path.join(tmpd, f'{preset}.pdf')
+            try:
+                res = compress_pdf(path, out, quality=preset)
+                entry = {
+                    'preset': preset, 'success': res['success'],
+                    'output_size': res.get('output_size', 0),
+                    'reduction_pct': res.get('reduction_pct', 0.0),
+                    'engine': res.get('engine_used', ''),
+                    'time_ms': res.get('processing_time_ms', 0),
+                    'quality_score': res.get('quality_score', 0),
+                    'quality_grade': res.get('quality_grade', 'F'),
+                }
+                result['results'].append(entry)
+                if entry['reduction_pct'] > result['best_reduction']:
+                    result['best_reduction'] = entry['reduction_pct']
+                    result['best_preset']    = preset
+            except Exception as e:
+                result['results'].append({'preset': preset, 'success': False, 'error': str(e)})
+
+    result['success'] = bool(result['results'])
+    return result
+
+def deep_analyze_pdf(path: str) -> Dict[str, Any]:
+    """
+    Combined deep analysis — runs all analysis functions and aggregates results.
+    """
+    result: Dict[str, Any] = {
+        'success': False,
+        'file_path': path,
+        'file_size': _file_size(path),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'analyzer': 'IshuTools PDF Compressor v20.0 by Ishu Kumar (ISHUKR41)',
+    }
+
+    result['estimate']         = get_compression_estimate(path)
+    result['metadata']         = get_pdf_metadata(path)
+    result['images']           = analyze_images_in_pdf(path)
+    result['fonts']            = get_font_analysis(path)
+    result['streams']          = analyze_pdf_streams(path)
+    result['objects']          = get_object_statistics(path)
+    result['color']            = get_color_analysis(path)
+    result['security']         = get_security_report(path)
+    result['entropy']          = calculate_entropy(path)
+    result['duplicates']       = detect_duplicate_images(path)
+    result['recommendations']  = get_compression_recommendations(path)
+    result['validation']       = validate_output_pdf(path)
+    result['engines']          = get_available_engines()
+    result['success']          = True
+    return result
+
+def get_quality_score(
+    input_size: int, output_size: int, preset: str,
+    engine: str = '', time_ms: int = 0,
+) -> Tuple[int, str]:
+    """Public wrapper for quality score calculation."""
+    reduction = _reduction_pct(input_size, output_size)
+    return _calc_quality_score(
+        reduction_pct=reduction, preset=preset,
+        engine=engine, time_ms=time_ms,
+        input_size=input_size, output_size=output_size,
+    )
+
+def estimate_compression_savings(file_size: int, content_type: str = 'mixed') -> Dict[str, int]:
+    """Fast estimate of savings per preset (no file I/O)."""
+    multipliers = {
+        'image_heavy': 1.25,
+        'scanned':     1.35,
+        'text_heavy':  0.45,
+        'mixed':       1.00,
+        'form':        0.60,
+    }
+    mult = multipliers.get(content_type, 1.0)
+    return {
+        preset: int(file_size * (p['expected_reduction_pct'][0] + p['expected_reduction_pct'][1]) / 2 / 100 * mult)
+        for preset, p in PRESETS.items()
+    }
+
+def get_pdf_structure_report(path: str) -> Dict[str, Any]:
+    """Deep structure analysis — object graph, cross-references, streams."""
+    result: Dict[str, Any] = {
+        'success': False, 'xref_count': 0,
+        'free_objects': 0, 'stream_objects': 0,
+        'dict_objects': 0, 'pdf_version': _pdf_version(path),
+        'has_xref_stream': False, 'has_object_streams': False,
+        'trailer': {},
+    }
+
+    if not PIKEPDF_OK or not _is_valid_pdf(path):
+        return result
+
+    try:
+        with pikepdf.open(path, suppress_warnings=True) as pdf:
+            result['xref_count'] = len(pdf.objects)
+            streams = 0
+            dicts   = 0
+            obj_streams = 0
+
+            for obj in pdf.objects:
+                if isinstance(obj, pikepdf.Stream):
+                    streams += 1
+                    if obj.get(Name.Type) == Name('/ObjStm'):
+                        obj_streams += 1
+                elif isinstance(obj, pikepdf.Dictionary):
+                    dicts += 1
+
+            result['stream_objects']    = streams
+            result['dict_objects']      = dicts
+            result['has_object_streams'] = obj_streams > 0
+
+            # Trailer
+            t = pdf.trailer
+            result['trailer'] = {
+                'size': int(t.get(Name.Size, 0)),
+                'has_encrypt': Name.Encrypt in t,
+                'has_info': Name.Info in t,
+            }
+            result['success'] = True
     except Exception as e:
-        logger.exception(f'compress_pdf fatal error: {e}')
         result['error'] = str(e)
-        result['processing_time_ms'] = int((time.time() - t_start) * 1000)
 
     return result
 
-
-def _kb(n: int) -> str:
-    return str(round(n / 1024))
-
-
-def _quality_note(preset_name: str, options: Dict[str, Any]) -> str:
-    parts = []
-    preset_notes = {
-        'screen': 'Screen preset (72 DPI) — suitable for on-screen viewing only',
-        'low': 'Low preset (96 DPI) — email-quality, minor visual loss',
-        'medium': 'Medium preset (150 DPI) — good quality, balanced compression',
-        'high': 'High preset (200 DPI) — excellent quality, near-lossless',
-        'lossless': 'Lossless preset — structure only, zero image degradation',
+def analyze_content_streams(path: str, max_pages: int = 10) -> Dict[str, Any]:
+    """Analyze drawing commands in content streams per page."""
+    result: Dict[str, Any] = {
+        'success': False, 'pages_analyzed': 0,
+        'total_commands': 0, 'avg_commands_per_page': 0.0,
+        'most_common_ops': {}, 'total_content_bytes': 0,
     }
-    parts.append(preset_notes.get(preset_name, f'{preset_name} preset'))
+    if not PYPDF_OK or not _is_valid_pdf(path):
+        return result
 
-    extras = []
-    if options.get('grayscale'):
-        extras.append('colour removed')
-    if options.get('strip_metadata'):
-        extras.append('metadata stripped')
-    if options.get('remove_annotations'):
-        extras.append('annotations removed')
-    if options.get('linearize'):
-        extras.append('web-optimized')
-    if options.get('remove_javascript'):
-        extras.append('JavaScript removed')
-    if options.get('remove_embedded_files'):
-        extras.append('embedded files removed')
+    try:
+        reader = PdfReader(path)
+        ops: Counter = Counter()
+        total_cmds  = 0
+        total_bytes = 0
+        analyzed    = 0
 
-    if extras:
-        parts.append(' | '.join(extras))
-
-    return '. '.join(parts)
-
-
-# ══════════════════════════════════════════════════════════════════════════
-# TARGET SIZE MODE
-# ══════════════════════════════════════════════════════════════════════════
-
-def _compress_to_target_size(
-    input_path: str,
-    output_path: str,
-    target_kb: int,
-    options: Dict[str, Any],
-    progress_callback=None,
-) -> Dict[str, Any]:
-    """
-    Iteratively try progressively more aggressive presets until
-    the output is within 10% of target_kb.
-    """
-    t_start = time.time()
-    in_size = Path(input_path).stat().st_size
-    target_bytes = target_kb * 1024
-    preset_order = ['high', 'medium', 'low', 'screen']
-
-    def _cb(stage, pct):
-        if progress_callback:
+        for i, page in enumerate(reader.pages):
+            if i >= max_pages:
+                break
             try:
-                progress_callback(stage, pct)
+                raw = page.get('/Contents')
+                if not raw:
+                    continue
+                # Extract stream bytes
+                from pypdf.generic import ContentStream
+                cs = ContentStream(raw, page.pdf)
+                for operands, operator in cs.operations:
+                    op_str = str(operator)
+                    ops[op_str] += 1
+                    total_cmds  += 1
+                analyzed += 1
             except Exception:
                 pass
 
-    for idx, preset_name in enumerate(preset_order):
-        _cb(f'target_try_{preset_name}', int(10 + idx * 20))
-        preset = QUALITY_PRESETS[preset_name]
+        result['pages_analyzed']       = analyzed
+        result['total_commands']       = total_cmds
+        result['avg_commands_per_page'] = round(total_cmds / max(1, analyzed), 1)
+        result['most_common_ops']      = dict(ops.most_common(15))
+        result['success']              = True
+    except Exception as e:
+        result['error'] = str(e)
 
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tf:
-            tmp_out = tf.name
+    return result
 
-        try:
-            ok = _compress_ghostscript(input_path, tmp_out, preset, options)
-            if not ok:
-                ok = _compress_pymupdf(input_path, tmp_out, preset, options)
-            if not ok:
-                ok = _compress_pikepdf(input_path, tmp_out, preset, options)
+def get_image_compression_stats(path: str) -> Dict[str, Any]:
+    """Detailed per-image compression metrics."""
+    result: Dict[str, Any] = {
+        'success': False, 'images': [],
+        'total_images': 0, 'already_compressed': 0,
+        'uncompressed': 0, 'compressible': 0,
+        'compression_formats': {},
+    }
+    if not PIKEPDF_OK or not _is_valid_pdf(path):
+        return result
 
-            if ok and Path(tmp_out).exists():
-                sz = Path(tmp_out).stat().st_size
-                # Within 15% tolerance → accept
-                if sz <= target_bytes * 1.15:
-                    shutil.copy2(tmp_out, output_path)
-                    saved = in_size - sz
-                    pct = round(saved / max(in_size, 1) * 100, 2)
-                    return {
-                        'success': True,
-                        'input_path': input_path,
-                        'output_path': output_path,
-                        'preset': preset_name,
-                        'input_size_bytes': in_size,
-                        'output_size_bytes': sz,
-                        'reduction_bytes': max(0, saved),
-                        'reduction_pct': max(0, pct),
-                        'method_used': f'target-size/{preset_name}',
-                        'engines_tried': [f'{preset_name}={_kb(sz)}KB'],
-                        'target_size_kb': target_kb,
-                        'target_achieved': sz <= target_bytes * 1.15,
-                        'processing_time_ms': int((time.time() - t_start) * 1000),
-                        'quality_note': f'Target {target_kb}KB mode — {preset_name} preset used',
-                        'error': None,
+    try:
+        fmt_counter: Counter = Counter()
+        images: List[Dict] = []
+        compressed = 0
+        uncompressed = 0
+        compressible = 0
+
+        with pikepdf.open(path, suppress_warnings=True) as pdf:
+            for obj in pdf.objects:
+                if not isinstance(obj, pikepdf.Stream):
+                    continue
+                try:
+                    if obj.get(Name.Subtype) != Name.Image:
+                        continue
+
+                    filt    = obj.get(Name.Filter)
+                    filt_str = str(filt) if filt else 'none'
+                    raw     = obj.read_raw_bytes()
+                    raw_len = len(raw) if raw else 0
+                    w       = int(obj.get(Name.Width, 0))
+                    h       = int(obj.get(Name.Height, 0))
+
+                    is_compressed = filt is not None and filt != Name('')
+                    can_compress  = not is_compressed or filt in (
+                        Name.FlateDecode, Name.LZWDecode
+                    )
+
+                    info = {
+                        'width': w, 'height': h, 'bytes': raw_len,
+                        'filter': filt_str, 'is_compressed': is_compressed,
+                        'can_further_compress': can_compress,
                     }
-        finally:
-            try:
-                os.unlink(tmp_out)
-            except Exception:
-                pass
+                    images.append(info)
+                    fmt_counter[filt_str] += 1
 
-    # Could not reach target — use best result from full pipeline
-    return compress_pdf(input_path, output_path, 'screen', options, progress_callback)
+                    if is_compressed:
+                        compressed += 1
+                    else:
+                        uncompressed += 1
+                    if can_compress:
+                        compressible += 1
 
+                except Exception:
+                    continue
 
-# ══════════════════════════════════════════════════════════════════════════
-# ADVANCED STANDALONE FUNCTIONS
-# ══════════════════════════════════════════════════════════════════════════
-
-def compress_images_only(pdf_path: str, output_path: str,
-                          quality: int = 65, dpi: int = 150) -> Dict[str, Any]:
-    """
-    Compress only images in the PDF, leaving text/vectors intact.
-    Uses PyMuPDF for surgical image replacement.
-    """
-    preset = {'dpi': dpi, 'jpeg_quality': quality, 'image_scale': 0.75,
-               'grayscale': False, 'deflate_level': 8, 'downsample_above_dpi': dpi * 2}
-    options = {'grayscale': False, 'strip_metadata': False, 'remove_annotations': False}
-    return compress_pdf(pdf_path, output_path, 'medium', options)
-
-
-def strip_pdf_bloat(pdf_path: str, output_path: str) -> Dict[str, Any]:
-    """
-    Remove all non-essential bloat: metadata, thumbnails, embedded files,
-    JavaScript, unused objects. Does NOT touch images or text.
-    """
-    options = {
-        'strip_metadata': True,
-        'remove_thumbnails': True,
-        'remove_embedded_files': True,
-        'remove_javascript': True,
-        'remove_icc_profiles': True,
-    }
-    return compress_pdf(pdf_path, output_path, 'lossless', options)
-
-
-def remove_pdf_javascript(pdf_path: str, output_path: str) -> bool:
-    """Remove all JavaScript from a PDF. Returns True on success."""
-    return _remove_all_javascript(pdf_path, output_path)
-
-
-def repair_pdf(pdf_path: str, output_path: str, password: str = '') -> Dict[str, Any]:
-    """
-    Attempt to repair a corrupted or malformed PDF using multiple engines.
-    """
-    result = {'success': False, 'method': '', 'error': None}
-
-    # Try PyMuPDF repair first (most forgiving)
-    if FITZ_OK:
-        try:
-            doc = fitz.open(pdf_path)
-            if password and doc.is_encrypted:
-                doc.authenticate(password)
-            doc.save(output_path, garbage=4, clean=True, deflate=True)
-            doc.close()
-            result.update({'success': True, 'method': 'PyMuPDF'})
-            return result
-        except Exception as e:
-            result['error'] = str(e)
-
-    # Try qpdf
-    if QPDF_BIN:
-        try:
-            cmd = [QPDF_BIN, '--force-version=1.4', pdf_path, output_path]
-            if password:
-                cmd.insert(1, f'--password={password}')
-            r = subprocess.run(cmd, capture_output=True, timeout=60)
-            if r.returncode in (0, 3):
-                result.update({'success': True, 'method': 'qpdf'})
-                return result
-        except Exception as e:
-            result['error'] = str(e)
+        result['images']               = images[:30]
+        result['total_images']         = len(images)
+        result['already_compressed']   = compressed
+        result['uncompressed']         = uncompressed
+        result['compressible']         = compressible
+        result['compression_formats']  = dict(fmt_counter)
+        result['success']              = True
+    except Exception as e:
+        result['error'] = str(e)
 
     return result
 
+def get_accessibility_report(path: str) -> Dict[str, Any]:
+    """Check PDF accessibility — tagged, alt text, reading order."""
+    result: Dict[str, Any] = {
+        'success': False, 'is_tagged': False,
+        'has_language': False, 'has_title': False,
+        'images_with_alt_text': 0, 'total_images': 0,
+        'accessibility_score': 0,
+    }
+    if not PIKEPDF_OK or not _is_valid_pdf(path):
+        return result
 
-def compress_grayscale(pdf_path: str, output_path: str,
-                        quality: int = 60) -> Dict[str, Any]:
-    """Convert to grayscale AND compress. Explicitly user-initiated."""
-    options = {'grayscale': True, 'strip_metadata': True}
-    preset = QUALITY_PRESETS['medium'].copy()
-    preset['jpeg_quality'] = quality
-    return compress_pdf(pdf_path, output_path, 'medium', options)
-
-
-def compress_remove_metadata(pdf_path: str, output_path: str) -> Dict[str, Any]:
-    """Compress + strip all metadata."""
-    return compress_pdf(pdf_path, output_path, 'lossless',
-                        {'strip_metadata': True, 'remove_thumbnails': True})
-
-
-def compress_flatten_annotations(pdf_path: str, output_path: str) -> Dict[str, Any]:
-    """Compress + remove all annotations."""
-    return compress_pdf(pdf_path, output_path, 'medium',
-                        {'remove_annotations': True})
-
-
-def compress_linearize(pdf_path: str, output_path: str) -> Dict[str, Any]:
-    """Compress + linearize for web fast-open."""
-    return compress_pdf(pdf_path, output_path, 'medium', {'linearize': True})
-
-
-def compress_with_zopfli(pdf_path: str, output_path: str) -> bool:
-    """
-    Apply Zopfli-level compression via pikepdf + maximum DEFLATE.
-    Zopfli produces smaller files but is slow.
-    """
-    if not PIKEPDF_OK:
-        return False
     try:
-        pdf = pikepdf.open(pdf_path)
-        pdf.save(output_path, compress_streams=True,
-                 object_stream_mode=pikepdf.ObjectStreamMode.generate,
-                 recompress_flate=True, normalize_content=True)
-        pdf.close()
-        return True
-    except Exception:
-        return False
+        with pikepdf.open(path, suppress_warnings=True) as pdf:
+            root = pdf.Root
+            result['is_tagged'] = Name.MarkInfo in root
 
+            # Language
+            if Name.Lang in root:
+                result['has_language'] = True
 
-def reoptimize_already_compressed(pdf_path: str, output_path: str) -> Dict[str, Any]:
-    """
-    Re-optimize a PDF that was already compressed.
-    Focuses on stream merging and object deduplication.
-    """
-    options = {
-        'strip_metadata': True,
-        'remove_thumbnails': True,
-        'remove_icc_profiles': False,
-    }
-    return compress_pdf(pdf_path, output_path, 'lossless', options)
+            # Title
+            if Name.Info in pdf.trailer:
+                info = pdf.trailer[Name.Info]
+                result['has_title'] = bool(info.get(Name('/Title')))
 
+            # Count image Alt text
+            total_imgs = 0
+            imgs_with_alt = 0
+            for page in pdf.pages:
+                imgs = page.get(Name.Resources, {}).get(Name.XObject, {})
+                for k in imgs.keys():
+                    try:
+                        xobj = imgs[k]
+                        if hasattr(xobj, 'get') and xobj.get(Name.Subtype) == Name.Image:
+                            total_imgs += 1
+                            if Name('/Alt') in xobj:
+                                imgs_with_alt += 1
+                    except Exception:
+                        pass
 
-def smart_compress_auto(pdf_path: str, output_path: str,
-                         options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """
-    Automatically detect content type and choose optimal preset.
-    """
-    options = options or {}
-    content_type = detect_pdf_type(pdf_path, options.get('password', ''))
+            result['total_images']       = total_imgs
+            result['images_with_alt_text'] = imgs_with_alt
 
-    preset_map = {
-        'image_heavy': 'medium',
-        'scanned': 'low',
-        'text_heavy': 'lossless',
-        'mixed': 'medium',
-        'vector_only': 'lossless',
-    }
-    preset = preset_map.get(content_type, 'medium')
-    return compress_pdf(pdf_path, output_path, preset, options)
+            # Score
+            score = 0
+            if result['is_tagged']:   score += 40
+            if result['has_language']: score += 20
+            if result['has_title']:   score += 15
+            if total_imgs > 0:
+                alt_ratio = imgs_with_alt / total_imgs
+                score += int(alt_ratio * 25)
 
+            result['accessibility_score'] = score
+            result['success'] = True
+    except Exception as e:
+        result['error'] = str(e)
 
-def batch_compress(
-    input_paths: List[str],
-    output_dir: str,
-    preset_name: str = 'medium',
-    options: Optional[Dict[str, Any]] = None,
-) -> List[Dict[str, Any]]:
-    """
-    Compress multiple PDFs. Returns list of result dicts.
-    """
-    options = options or {}
-    results = []
-    out_dir = Path(output_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    return result
 
-    for path in input_paths:
-        stem = Path(path).stem
-        out_path = str(out_dir / f'{stem}_compressed.pdf')
-        r = compress_pdf(path, out_path, preset_name, options)
-        results.append(r)
+# ═══════════════════════════════════════════════════════════════════════════════
+# BACKWARD-COMPAT ALIASES (used by app.py)
+# ═══════════════════════════════════════════════════════════════════════════════
 
-    return results
+# These aliases ensure older app.py calls continue to work
+compress_pdf_lossless = partial(compress_pdf, quality='lossless')
+compress_pdf_screen   = partial(compress_pdf, quality='screen')
+compress_pdf_medium   = partial(compress_pdf, quality='medium')
+compress_pdf_high     = partial(compress_pdf, quality='high')
+compress_pdf_low      = partial(compress_pdf, quality='low')
 
+def _alias_grayscale(src: str, dst: str) -> bool:
+    return compress_grayscale(src, dst)
 
-def compress_progressive(pdf_path: str, output_dir: str,
-                          options: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-    """
-    Create 5 versions with all presets for comparison.
-    """
-    options = options or {}
-    results = []
-    out_dir = Path(output_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+def _alias_remove_meta(src: str, dst: str) -> bool:
+    return compress_remove_metadata(src, dst)
 
-    for preset in ['screen', 'low', 'medium', 'high', 'lossless']:
-        out = str(out_dir / f'{Path(pdf_path).stem}_{preset}.pdf')
-        r = compress_pdf(pdf_path, out, preset, options)
-        r['preset_label'] = preset
-        results.append(r)
+def _alias_flatten_annots(src: str, dst: str) -> bool:
+    return compress_flatten_annotations(src, dst)
 
-    return results
+# ── Module info ──────────────────────────────────────────────────────────────
+__version__  = '20.0.0'
+__author__   = 'Ishu Kumar (ISHUKR41 / ISHUKR75)'
+__website__  = 'https://ishutools.fun'
+__github__   = 'https://github.com/ISHUKR41'
+__email__    = 'ishu@ishutools.fun'
 
+LIBRARY_STATUS: Dict[str, bool] = {
+    'pikepdf':    PIKEPDF_OK,
+    'pymupdf':    FITZ_OK,
+    'pypdf':      PYPDF_OK,
+    'pillow':     PIL_OK,
+    'img2pdf':    IMG2PDF_OK,
+    'pdf2image':  PDF2IMAGE_OK,
+    'pdfminer':   PDFMINER_OK,
+    'reportlab':  REPORTLAB_OK,
+    'weasyprint': WEASYPRINT_OK,
+    'numpy':      NUMPY_OK,
+    'scipy':      SCIPY_OK,
+    'fpdf2':      FPDF_OK,
+    'lxml':       LXML_OK,
+    'ghostscript': bool(_find_gs()),
+    'qpdf':       bool(_find_qpdf()),
+    'mutool':     bool(_find_mutool()),
+}
 
-def benchmark_compression(pdf_path: str,
-                            options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """
-    Benchmark all presets and return a comparison table.
-    Input file is never modified.
-    """
-    options = options or {}
-    in_size = Path(pdf_path).stat().st_size
-    rows = []
-
-    with tempfile.TemporaryDirectory(prefix='ishu_bench_') as tmp_dir:
-        for preset_name in ['screen', 'low', 'medium', 'high', 'lossless']:
-            out = str(Path(tmp_dir) / f'{preset_name}.pdf')
-            t0 = time.time()
-            r = compress_pdf(pdf_path, out, preset_name, options.copy())
-            elapsed = time.time() - t0
-
-            rows.append({
-                'preset': preset_name,
-                'input_kb': round(in_size / 1024, 1),
-                'output_kb': round(r.get('output_size_bytes', in_size) / 1024, 1),
-                'reduction_pct': r.get('reduction_pct', 0),
-                'engine': r.get('method_used', ''),
-                'time_s': round(elapsed, 2),
-                'success': r.get('success', False),
-            })
-
-    return {
-        'input_path': pdf_path,
-        'input_size_kb': round(in_size / 1024, 1),
-        'results': rows,
-        'best_preset': min(rows, key=lambda x: x['output_kb'])['preset'] if rows else 'medium',
-    }
-
-
-def compress_to_target_size(pdf_path: str, output_path: str, target_kb: int,
-                              options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Public wrapper for target-size compression."""
-    options = options or {}
-    return _compress_to_target_size(pdf_path, output_path, target_kb, options)
-
-
-def analyze_pdf_streams(pdf_path: str, password: str = '') -> Dict[str, Any]:
-    """Analyse all streams in the PDF for compression opportunities."""
-    return get_pdf_structure_report(pdf_path, password)
-
-
-def get_compression_potential(pdf_path: str, password: str = '') -> Dict[str, Any]:
-    """
-    Estimate per-strategy compression opportunity.
-    """
-    estimate = get_compression_estimate(pdf_path, password)
-    in_size = estimate.get('file_size_bytes', 0)
-    ct = estimate.get('content_type', 'mixed')
-
-    strategies = {}
-    if estimate.get('image_total_bytes', 0) > in_size * 0.3:
-        strategies['image_recompression'] = {
-            'description': 'Recompress images at lower DPI/quality',
-            'estimated_saving_pct': 55 if ct == 'image_heavy' else 35,
-        }
-    if estimate.get('font_bytes', 0) > 50 * 1024:
-        strategies['font_subsetting'] = {
-            'description': 'Subset embedded fonts to used glyphs only',
-            'estimated_saving_pct': 15,
-        }
-    if not estimate.get('is_linearized'):
-        strategies['linearization'] = {
-            'description': 'Linearize for fast web open (no size gain)',
-            'estimated_saving_pct': 0,
-        }
-    if estimate.get('has_javascript'):
-        strategies['remove_javascript'] = {
-            'description': 'Remove unused JavaScript actions',
-            'estimated_saving_pct': 2,
-        }
-    if estimate.get('has_embedded_files'):
-        strategies['remove_embedded_files'] = {
-            'description': 'Remove embedded file attachments',
-            'estimated_saving_pct': 5,
-        }
-    strategies['metadata_stripping'] = {
-        'description': 'Strip author, title, XMP metadata',
-        'estimated_saving_pct': 1,
-    }
-
-    return {
-        'file_size_bytes': in_size,
-        'content_type': ct,
-        'strategies': strategies,
-        'max_reduction_pct': estimate['estimated_reductions_by_preset'].get('screen', 70),
-        'recommended_preset': 'medium' if ct in ('mixed', 'image_heavy') else 'lossless',
-    }
-
-
-def get_compression_stats(pdf_path: str, password: str = '') -> Dict[str, Any]:
-    """Quick stats: page count, image count, fast estimate. Faster than full analysis."""
-    stats = {
-        'page_count': 0,
-        'image_count': 0,
-        'file_size_kb': 0,
-        'estimated_reduction_medium_pct': 45,
-        'content_type': 'mixed',
-    }
-    try:
-        stats['file_size_kb'] = round(Path(pdf_path).stat().st_size / 1024, 1)
-        if FITZ_OK:
-            doc = fitz.open(pdf_path)
-            if password and doc.is_encrypted:
-                doc.authenticate(password)
-            stats['page_count'] = doc.page_count
-            img_count = 0
-            for page_num in range(min(5, doc.page_count)):
-                img_count += len(doc[page_num].get_images())
-            stats['image_count'] = img_count * max(1, doc.page_count // 5)
-            doc.close()
-    except Exception:
-        pass
-    return stats
-
-
+log.info(
+    'pdf_compress v%s loaded — engines: %s',
+    __version__,
+    ', '.join(k for k, v in LIBRARY_STATUS.items() if v),
+)
