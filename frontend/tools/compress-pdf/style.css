@@ -1309,6 +1309,43 @@ kbd {
   .cp-ishu-seo-grid { grid-template-columns: 1fr; }
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   POPULAR SEARCHES — ISHU KUMAR
+══════════════════════════════════════════════════════════════════ */
+.cp-popular-section {
+  padding: var(--sp-8) var(--sp-6);
+  background: var(--bg1);
+  border-top: 1px solid var(--bdr);
+}
+.cp-popular-inner {
+  max-width: var(--sec-max); margin: 0 auto;
+}
+.cp-popular-h2 {
+  font-size: var(--fs-base); font-weight: 700; color: var(--t2);
+  margin-bottom: var(--sp-4);
+  display: flex; align-items: center; gap: var(--sp-2);
+}
+.cp-popular-h2 i { color: var(--em); font-size: .9rem; }
+.cp-popular-grid {
+  display: flex; flex-wrap: wrap; gap: var(--sp-2);
+}
+.cp-popular-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px var(--sp-3);
+  font-size: var(--fs-xs); font-weight: 600; color: var(--t3);
+  background: var(--bg2); border: 1px solid var(--bdr);
+  border-radius: var(--r-full);
+  text-decoration: none;
+  transition: all .18s var(--ease);
+}
+.cp-popular-tag:hover {
+  color: var(--em); border-color: rgba(16,185,129,.35);
+  background: rgba(16,185,129,.07);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+.cp-popular-tag i { font-size: .75rem; color: var(--em); opacity: .7; }
+
 @media print {
   #bgCanvas, .cp-nav, #toastWrap, #scrollTopBtn, #cpFab, .cp-marquee-section { display: none !important; }
   body { background: #fff; color: #000; }

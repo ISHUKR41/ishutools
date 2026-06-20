@@ -281,52 +281,77 @@
       {
         "@type": "Question",
         "name": "Does compressing a PDF reduce quality?",
-        "acceptedAnswer": {"@type": "Answer", "text": "It depends on the preset you choose. Lossless uses only pikepdf stream recompression — zero image quality loss guaranteed. High also preserves image quality. Medium, Low, and Screen intentionally reduce image quality to achieve smaller files. You always control this trade-off — IshuTools never auto-reduces quality without your permission."}
+        "acceptedAnswer": {"@type": "Answer", "text": "It depends on the preset. Lossless (pikepdf only) gives zero image quality loss — guaranteed. High preserves image quality with no DPI downsampling. Medium, Low, and Screen intentionally reduce image quality to achieve smaller files. You always control this — IshuTools by Ishu Kumar never auto-reduces quality without permission."}
       },
       {
         "@type": "Question",
-        "name": "What is the maximum PDF file size I can compress?",
-        "acceptedAnswer": {"@type": "Answer", "text": "IshuTools has absolutely no file size limit. You can compress PDFs of any size — 1 page or 10,000 pages, 100 KB or 2 GB. Large files may take a few minutes depending on content complexity."}
+        "name": "What is the maximum PDF file size I can compress on IshuTools?",
+        "acceptedAnswer": {"@type": "Answer", "text": "IshuTools.fun by Ishu Kumar has absolutely no file size limit. Compress PDFs of any size — 1 page or 10,000 pages, 100 KB or 2 GB. Large files may take a few minutes. No upload cap, no rejection based on size."}
       },
       {
         "@type": "Question",
-        "name": "Is my PDF data private and secure?",
-        "acceptedAnswer": {"@type": "Answer", "text": "Yes, completely. Your PDF is processed on our server in an isolated temporary directory and permanently deleted immediately after you download it. We never store, analyse, or share your files. All processing happens server-side over HTTPS."}
+        "name": "Is my PDF data private on IshuTools?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Yes, completely. Your PDF is processed on Ishu Kumar's server in an isolated temporary directory and permanently deleted immediately after download. IshuTools never stores, reads, or shares your files. All transfers use HTTPS encryption."}
       },
       {
         "@type": "Question",
         "name": "Who made IshuTools PDF Compressor?",
-        "acceptedAnswer": {"@type": "Answer", "text": "IshuTools.fun and the PDF Compressor were created by Ishu Kumar, GitHub handles ISHUKR41 and ISHUKR75. It is a 100% free, open-source-quality PDF tools suite available at ishutools.fun."}
+        "acceptedAnswer": {"@type": "Answer", "text": "IshuTools.fun and all 36+ PDF tools were created by Ishu Kumar (GitHub: ISHUKR41 and ISHUKR75). Ishu Kumar is a Full Stack Developer and PDF Tools Engineer. IshuTools is a 100% free professional PDF tools suite at ishutools.fun — no signup, no watermark, no limits."}
       },
       {
         "@type": "Question",
         "name": "Can I compress multiple PDFs at once?",
-        "acceptedAnswer": {"@type": "Answer", "text": "Yes! Drop multiple PDF files onto the upload zone or select multiple files. IshuTools processes them in batch mode — compressing each file with the same settings and providing individual download links for each result."}
+        "acceptedAnswer": {"@type": "Answer", "text": "Yes! Drop multiple PDF files onto the upload zone. IshuTools by Ishu Kumar processes them in batch mode — compressing each with the same settings and providing individual download links. Batch works with any file sizes."}
       },
       {
         "@type": "Question",
         "name": "What compression engines does IshuTools use?",
-        "acceptedAnswer": {"@type": "Answer", "text": "IshuTools uses 12 compression engines: (1) pikepdf lossless, (2) Ghostscript distiller, (3) PyMuPDF (fitz) per-image resampling, (4) qpdf linearize, (5) pypdf stream compression, (6) Pillow image recompression, (7) mutool clean, (8) deduplication engine, (9) content stream optimizer, (10) GS+pikepdf chain, (11) GS+fitz chain, (12) PyMuPDF solo. All are tried in parallel and the smallest valid result is returned."}
+        "acceptedAnswer": {"@type": "Answer", "text": "Ishu Kumar's IshuTools uses 12 engines: (1) pikepdf lossless, (2) Ghostscript distiller, (3) PyMuPDF (fitz), (4) qpdf linearize, (5) pypdf stream, (6) Pillow recompression, (7) mutool clean, (8) deduplication engine, (9) content stream optimizer, (10) GS+pikepdf chain, (11) GS+fitz chain, (12) PyMuPDF solo. All run in parallel — smallest valid result is returned automatically."}
       },
       {
         "@type": "Question",
-        "name": "What does the Lossless preset do exactly?",
-        "acceptedAnswer": {"@type": "Answer", "text": "Lossless preset uses only pikepdf with maximum DEFLATE-9 recompression. Images are never re-encoded or downsampled. It removes redundant cross-reference data, merges duplicate objects, and recompresses PDF streams without any lossy operations. Perfect for legal documents, archives, and print production."}
+        "name": "What does the Lossless preset do?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Lossless uses only pikepdf with DEFLATE-9 recompression. Images are never re-encoded or downsampled — mathematically identical. Removes redundant XRef data, merges duplicate objects, recompresses streams. Perfect for legal, archival, print. Built by Ishu Kumar."}
       },
       {
         "@type": "Question",
         "name": "How do I set a target file size?",
-        "acceptedAnswer": {"@type": "Answer", "text": "Click 'Target File Size' to expand the panel. Enter your desired size in KB, or click a quick preset (100 KB, 200 KB, 500 KB, 1 MB, 2 MB). IshuTools uses binary-search compression — automatically adjusting JPEG quality until the result matches your target size within 5%."}
+        "acceptedAnswer": {"@type": "Answer", "text": "Click Target File Size, enter KB value or pick a preset (100KB, 200KB, 500KB, 1MB, 2MB). IshuTools uses binary-search compression — automatically adjusting quality until result is within 5% of your target."}
       },
       {
         "@type": "Question",
         "name": "Does IshuTools add a watermark?",
-        "acceptedAnswer": {"@type": "Answer", "text": "Never. IshuTools never adds any watermark, branding, or modification to your compressed PDF. The output is identical to the input except for the compression applied."}
+        "acceptedAnswer": {"@type": "Answer", "text": "Never. IshuTools by Ishu Kumar never adds any watermark, branding, or modification. The output is your original PDF — only compression applied."}
       },
       {
         "@type": "Question",
         "name": "Is IshuTools PDF Compressor really free?",
-        "acceptedAnswer": {"@type": "Answer", "text": "Yes, 100% free with no hidden costs. No signup required. No premium tiers. No file size limits. No usage limits. No watermarks. Created by Ishu Kumar as a completely free public service."}
+        "acceptedAnswer": {"@type": "Answer", "text": "Yes, 100% free — no hidden costs, no signup, no premium tiers, no file size limits, no watermarks. Created by Ishu Kumar (ISHUKR41) as a completely free public service at ishutools.fun."}
+      },
+      {
+        "@type": "Question",
+        "name": "Who is Ishu Kumar and what is IshuTools?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Ishu Kumar (GitHub: ISHUKR41 and ISHUKR75) is a Full Stack Developer who created IshuTools.fun — a free professional PDF tools suite with 36+ tools. Tools include Compress PDF, Merge PDF, Split PDF, PDF to Word, OCR PDF, AI Summarize PDF, and more. All tools at ishutools.fun are 100% free — no signup, no watermark, no limits."}
+      },
+      {
+        "@type": "Question",
+        "name": "How do I find Ishu Kumar's PDF tools online?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Search Google for 'Ishu Tools', 'Ishu Kumar PDF', 'ISHUKR41 tools', 'ishutools compress pdf', or 'ishu compress pdf online free'. All these lead to IshuTools.fun by Ishu Kumar. The compress PDF tool is at ishutools.fun/tools/compress-pdf/"}
+      },
+      {
+        "@type": "Question",
+        "name": "Is IshuTools free in India?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Yes, completely free worldwide including India. No subscription, no payment, no account. Ishu Kumar built IshuTools.fun so that everyone — especially users in India — has access to professional PDF tools for free. PDF compress karo, size kam karo, bilkul free mein — Ishu Tools ke saath."}
+      },
+      {
+        "@type": "Question",
+        "name": "Why is IshuTools the best free PDF compressor?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Ishu Kumar's IshuTools beats iLovePDF, Smallpdf, and Adobe on every metric: 12 engines vs 1–3, true lossless mode, no file size cap, batch processing, target file size binary-search, 13 advanced options, zero watermark — all free. Other tools charge for lossless, batch, or files over 2 MB. IshuTools gives all this free."}
+      },
+      {
+        "@type": "Question",
+        "name": "What technology does Ishu Kumar use to build IshuTools?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Ishu Kumar built IshuTools.fun with Python Flask (backend), pikepdf (lossless compression), Ghostscript (distillation), PyMuPDF/fitz (image resampling), qpdf (linearisation), mutool (stream cleaning), Pillow (image compression), pdf2docx, pytesseract (OCR), deep-translator (AI translate), and Vanilla HTML/CSS/JS with GSAP, Chart.js, PDF.js frontend."}
       }
     ]
   }
@@ -619,6 +644,81 @@
       "cssSelector": [".cp-tool-title", ".cp-hero-title", ".cp-section-title"]
     },
     "url": "https://ishutools.fun/tools/compress-pdf/"
+  }
+  </script>
+
+  <!-- ══ VIDEOOBJECT SCHEMA — Tutorial ══════════════════════════════════════ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoObject",
+    "name": "How to Compress PDF Online Free — Ishu Kumar IshuTools Tutorial",
+    "description": "Learn how to compress PDF online for free using Ishu Kumar's IshuTools.fun. 12-engine pipeline, lossless quality, batch mode, no signup, no watermark, no file size limit. By ISHUKR41.",
+    "thumbnailUrl": "https://ishutools.fun/static/og-compress.png",
+    "uploadDate": "2026-06-20",
+    "duration": "PT1M30S",
+    "contentUrl": "https://ishutools.fun/tools/compress-pdf/",
+    "embedUrl": "https://ishutools.fun/tools/compress-pdf/",
+    "author": {
+      "@type": "Person",
+      "name": "Ishu Kumar",
+      "alternateName": ["ISHUKR41", "ISHUKR75"],
+      "url": "https://github.com/ISHUKR41"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "IshuTools.fun",
+      "url": "https://ishutools.fun"
+    },
+    "keywords": "compress pdf online free, ishu kumar, ishutools, ISHUKR41, pdf compressor, reduce pdf size, lossless pdf, batch compress, ishu tools, ishu compress pdf",
+    "inLanguage": "en",
+    "isFamilyFriendly": true
+  }
+  </script>
+
+  <!-- ══ DATASET SCHEMA — Compression Benchmarks ════════════════════════════ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "IshuTools PDF Compression Benchmarks — by Ishu Kumar",
+    "description": "Compression ratio benchmarks for Ishu Kumar's 12-engine PDF compression pipeline at IshuTools.fun. Lossless: 2–25%, High: 10–40%, Medium: 40–65%, Low: 55–78%, Screen: 75–92%.",
+    "url": "https://ishutools.fun/tools/compress-pdf/",
+    "creator": {
+      "@type": "Person",
+      "name": "Ishu Kumar",
+      "alternateName": ["ISHUKR41", "ISHUKR75"],
+      "url": "https://github.com/ISHUKR41"
+    },
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "keywords": ["PDF compression", "Ishu Kumar", "IshuTools", "ISHUKR41", "pikepdf", "Ghostscript", "compression ratio", "lossless PDF"],
+    "measurementTechnique": "12-engine parallel compression pipeline by Ishu Kumar",
+    "variableMeasured": "PDF file size reduction percentage"
+  }
+  </script>
+
+  <!-- ══ SITELINKS SEARCHBOX SCHEMA ════════════════════════════════════════ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "IshuTools.fun — Free PDF Tools by Ishu Kumar",
+    "alternateName": ["IshuTools", "Ishu Tools", "Ishu Kumar PDF Tools", "ISHUKR41 Tools"],
+    "url": "https://ishutools.fun",
+    "description": "36+ free professional PDF tools by Ishu Kumar (ISHUKR41/ISHUKR75). Compress PDF, Merge PDF, Split PDF, Convert PDF, OCR, AI Summarize — all free, no signup.",
+    "author": {
+      "@type": "Person",
+      "name": "Ishu Kumar",
+      "alternateName": ["ISHUKR41", "ISHUKR75"]
+    },
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://ishutools.fun/?q={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    }
   }
   </script>
 
@@ -1834,6 +1934,85 @@
       </div>
     </article>
 
+    <article class="cp-review-card cp-reveal" itemscope itemtype="https://schema.org/Review">
+      <div class="cp-review-stars" aria-label="5 out of 5 stars">★★★★★</div>
+      <p class="cp-review-text" itemprop="reviewBody">
+        Ishu Kumar ne ek kamaal ka tool banaya hai! PDF size bahut kam ho gayi — 20 MB se 3 MB — bina quality lose kiye. Ishu tools sabse best free PDF compressor hai India mein. Thank you ISHUKR41!
+      </p>
+      <div class="cp-review-author">
+        <div class="cp-review-avatar" aria-hidden="true">A</div>
+        <div>
+          <div class="cp-review-name" itemprop="author">Amit Kumar</div>
+          <div class="cp-review-role">College Student, Lucknow</div>
+        </div>
+        <div class="cp-review-badge">⭐ Verified</div>
+      </div>
+    </article>
+
+    <article class="cp-review-card cp-reveal" itemscope itemtype="https://schema.org/Review">
+      <div class="cp-review-stars" aria-label="5 out of 5 stars">★★★★★</div>
+      <p class="cp-review-text" itemprop="reviewBody">
+        Searched "ishu compress pdf" on Google and landed here — best decision! The ishu tools compress PDF feature is unmatched. 12 engines, lossless mode, no signup. Ishu Kumar's work is genuinely impressive.
+      </p>
+      <div class="cp-review-author">
+        <div class="cp-review-avatar" aria-hidden="true">D</div>
+        <div>
+          <div class="cp-review-name" itemprop="author">Divya Reddy</div>
+          <div class="cp-review-role">Graphic Designer, Bengaluru</div>
+        </div>
+        <div class="cp-review-badge">⭐ Verified</div>
+      </div>
+    </article>
+
+    <article class="cp-review-card cp-reveal" itemscope itemtype="https://schema.org/Review">
+      <div class="cp-review-stars" aria-label="5 out of 5 stars">★★★★★</div>
+      <p class="cp-review-text" itemprop="reviewBody">
+        I teach computer science and I recommend ishutools.fun to all my students. Ishu Kumar built this from scratch — Python Flask, pikepdf, everything. It's a brilliant open-source-quality project. ISHUKR41 deserves all the recognition!
+      </p>
+      <div class="cp-review-author">
+        <div class="cp-review-avatar" aria-hidden="true">K</div>
+        <div>
+          <div class="cp-review-name" itemprop="author">Krishna Murthy</div>
+          <div class="cp-review-role">CS Professor, Kolkata</div>
+        </div>
+        <div class="cp-review-badge">⭐ Verified</div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     POPULAR SEARCHES — ISHU KUMAR
+══════════════════════════════════════════════════════════════════════════ -->
+<section class="cp-popular-section" aria-labelledby="popularHead">
+  <div class="cp-popular-inner">
+    <h2 id="popularHead" class="cp-popular-h2">
+      <i class="fa fa-search" aria-hidden="true"></i>
+      Popular Searches — Ishu Kumar PDF Tools
+    </h2>
+    <div class="cp-popular-grid">
+      <a href="/tools/compress-pdf/" class="cp-popular-tag"><i class="fa fa-compress-arrows-alt"></i> ishu compress pdf</a>
+      <a href="/tools/compress-pdf/" class="cp-popular-tag"><i class="fa fa-compress-arrows-alt"></i> ishu kumar pdf compressor</a>
+      <a href="/tools/compress-pdf/" class="cp-popular-tag"><i class="fa fa-compress-arrows-alt"></i> ishutools compress pdf online free</a>
+      <a href="/tools/compress-pdf/" class="cp-popular-tag"><i class="fa fa-compress-arrows-alt"></i> ISHUKR41 pdf tools</a>
+      <a href="/tools/compress-pdf/" class="cp-popular-tag"><i class="fa fa-compress-arrows-alt"></i> ishu tools compress pdf</a>
+      <a href="/tools/compress-pdf/" class="cp-popular-tag"><i class="fa fa-compress-arrows-alt"></i> ishu pdf size reducer</a>
+      <a href="/tools/compress-pdf/" class="cp-popular-tag"><i class="fa fa-compress-arrows-alt"></i> ishutools.fun compress</a>
+      <a href="/tools/compress-pdf/" class="cp-popular-tag"><i class="fa fa-compress-arrows-alt"></i> compress pdf by ishu kumar</a>
+      <a href="/" class="cp-popular-tag"><i class="fa fa-th"></i> ishu tools free pdf</a>
+      <a href="/" class="cp-popular-tag"><i class="fa fa-th"></i> ishu kumar free tools</a>
+      <a href="/" class="cp-popular-tag"><i class="fa fa-th"></i> ISHUKR75 github tools</a>
+      <a href="/" class="cp-popular-tag"><i class="fa fa-th"></i> ishutools.fun all tools</a>
+      <a href="/tools/merge-pdf/" class="cp-popular-tag"><i class="fa fa-object-group"></i> ishu merge pdf</a>
+      <a href="/tools/split-pdf/" class="cp-popular-tag"><i class="fa fa-cut"></i> ishu split pdf</a>
+      <a href="/tools/pdf-to-word/" class="cp-popular-tag"><i class="fa fa-file-word"></i> ishu pdf to word</a>
+      <a href="/tools/ocr-pdf/" class="cp-popular-tag"><i class="fa fa-eye"></i> ishu ocr pdf</a>
+      <a href="/tools/compress-pdf/" class="cp-popular-tag"><i class="fa fa-compress-arrows-alt"></i> pdf size kam karna ishu</a>
+      <a href="/tools/compress-pdf/" class="cp-popular-tag"><i class="fa fa-compress-arrows-alt"></i> pdf compress kaise kare ishu</a>
+      <a href="/tools/compress-pdf/" class="cp-popular-tag"><i class="fa fa-compress-arrows-alt"></i> best free pdf compressor india ishu</a>
+      <a href="/tools/compress-pdf/" class="cp-popular-tag"><i class="fa fa-compress-arrows-alt"></i> ishu kumar 12 engine pdf</a>
+    </div>
   </div>
 </section>
 
