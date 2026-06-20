@@ -1,0 +1,53 @@
+/* TEAM */
+
+Creator & Developer: Ishu Kumar
+GitHub: ISHUKR41 (primary) / ISHUKR75
+Website: https://ishutools.fun
+Profile: https://ishutools.fun/ishu-kumar/
+GitHub URL: https://github.com/ISHUKR41
+Alt GitHub: https://github.com/ISHUKR75
+Role: Sole developer, designer, and maintainer of IshuTools.fun
+Location: India
+Skills: Python, Flask, pikepdf, PyMuPDF, Ghostscript, JavaScript, HTML, CSS
+Project: IshuTools.fun — 36+ free professional PDF tools
+
+/* SITE */
+
+Name: IshuTools.fun — Free PDF Tools by Ishu Kumar
+URL: https://ishutools.fun
+Featured Tool: https://ishutools.fun/tools/compress-pdf/
+Description: 36+ free professional PDF tools built by Ishu Kumar (ISHUKR41).
+             Compress PDF, Merge PDF, Split PDF, PDF to Word, OCR, AI Summarize
+             — all 100% free, no signup, no watermark, no limits.
+Standards: HTML5, CSS3, Python 3, Schema.org, JSON-LD, Open Graph, ARIA
+Components: Python Flask (backend), pikepdf, Ghostscript, PyMuPDF, qpdf, mutool,
+            Pillow, pdf2docx, pytesseract, deep-translator, ReportLab
+            Vanilla HTML/CSS/JS, GSAP, Chart.js, PDF.js, Font Awesome
+Language: English (primary), Hindi (secondary)
+Doctype: HTML5
+IDE: Replit
+Last update: 2026-06-20
+
+/* THANKS */
+
+Thanks to the open-source libraries that make IshuTools possible:
+- pikepdf (lossless PDF compression)
+- PyMuPDF / fitz (image resampling)
+- Ghostscript (PDF distillation)
+- qpdf (PDF linearization)
+- pdf2docx (PDF to Word)
+- pytesseract / Tesseract (OCR)
+- deep-translator (AI translation)
+- ReportLab (PDF generation)
+- Pillow / Pillow-SIMD (image processing)
+- Flask (web framework)
+- GSAP (animations)
+- PDF.js (browser PDF rendering)
+- Font Awesome (icons)
+
+/* KEYWORDS for Ishu Kumar identity */
+
+ishu kumar, ISHUKR41, ISHUKR75, ishu tools, ishutools.fun,
+ishu compress pdf, ishu ka tool, ishu kumar developer india,
+compress pdf free, compress pdf ishu, ishu kumar pdf tools,
+best free pdf tools india, ishu kumar github, ISHUKR41 tools

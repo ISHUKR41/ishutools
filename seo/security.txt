@@ -1,0 +1,17 @@
+# IshuTools.fun — Security Policy
+# Created by Ishu Kumar (ISHUKR41) — ishutools.fun
+# https://securitytxt.org
+
+Contact: https://ishutools.fun/ishu-kumar/
+Contact: https://github.com/ISHUKR41
+Preferred-Languages: en, hi
+Canonical: https://ishutools.fun/.well-known/security.txt
+Policy: https://ishutools.fun/ishu-kumar/
+Acknowledgments: https://ishutools.fun/ishu-kumar/
+Expires: 2027-06-20T00:00:00.000Z
+
+# About IshuTools.fun
+# Free PDF tools suite by Ishu Kumar (ISHUKR41 / ISHUKR75)
+# 36+ professional PDF tools: compress, merge, split, convert, OCR, translate
+# All 100% free — no signup, no watermark, no file size limit
+# ishu kumar, ISHUKR41, ishu tools, compress pdf free, ishutools.fun

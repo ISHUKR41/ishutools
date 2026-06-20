@@ -4,7 +4,8 @@
   Created by Ishu Kumar (ISHUKR41 / ISHUKR75)
   Website: https://ishutools.fun
   GitHub: github.com/ISHUKR41
-  Last updated: 2026-06-19
+  Last updated: 2026-06-20
+  Featured: compress-pdf (primary tool — ishu compress pdf, ishu kumar pdf compressor)
 -->
 <rss version="2.0"
   xmlns:atom="http://www.w3.org/2005/Atom"
@@ -15,40 +16,110 @@
   <channel>
     <title>IshuTools.fun — Free PDF Tools by Ishu Kumar (ISHUKR41)</title>
     <link>https://ishutools.fun</link>
-    <description>36+ free professional PDF tools by Ishu Kumar (ISHUKR41 / ISHUKR75). Split PDF, Merge PDF, Compress, Convert, OCR, Translate — all 100% free, no signup, zero quality loss. ishutools.fun</description>
+    <description>36+ free professional PDF tools by Ishu Kumar (ISHUKR41 / ISHUKR75). Compress PDF, Split PDF, Merge PDF, Convert, OCR, AI Summarize — all 100% free, no signup, zero quality loss. ishu compress pdf, ishu tools, ISHUKR41 pdf, ishutools.fun</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 19 Jun 2026 00:00:00 +0530</lastBuildDate>
-    <pubDate>Thu, 19 Jun 2026 00:00:00 +0530</pubDate>
-    <ttl>1440</ttl>
+    <lastBuildDate>Fri, 20 Jun 2026 00:00:00 +0530</lastBuildDate>
+    <pubDate>Fri, 20 Jun 2026 00:00:00 +0530</pubDate>
+    <ttl>720</ttl>
     <copyright>Copyright 2026 Ishu Kumar (ISHUKR41) — ishutools.fun</copyright>
-    <managingEditor>ishutools.fun (Ishu Kumar)</managingEditor>
+    <managingEditor>ishutools.fun (Ishu Kumar ISHUKR41)</managingEditor>
     <webMaster>ishutools.fun (Ishu Kumar ISHUKR41)</webMaster>
     <generator>IshuTools.fun by Ishu Kumar (ISHUKR41)</generator>
     <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
     <image>
       <url>https://ishutools.fun/static/icons/og-image.png</url>
-      <title>IshuTools.fun by Ishu Kumar</title>
+      <title>IshuTools.fun by Ishu Kumar (ISHUKR41)</title>
       <link>https://ishutools.fun</link>
       <width>144</width>
       <height>144</height>
-      <description>IshuTools.fun — Free PDF Tools by Ishu Kumar (ISHUKR41)</description>
+      <description>IshuTools.fun — Free PDF Tools by Ishu Kumar (ISHUKR41 / ISHUKR75)</description>
     </image>
 
     <atom:link href="https://ishutools.fun/feed.xml" rel="self" type="application/rss+xml"/>
 
+    <!-- ═══════════ COMPRESS PDF — PRIMARY FEATURED TOOL ═══════════ -->
+    <item>
+      <title>Ishu Kumar's PDF Compressor — Compress PDF Online Free, No Quality Loss | IshuTools.fun</title>
+      <link>https://ishutools.fun/tools/compress-pdf/</link>
+      <guid isPermaLink="true">https://ishutools.fun/tools/compress-pdf/</guid>
+      <pubDate>Fri, 20 Jun 2026 00:00:00 +0530</pubDate>
+      <dc:creator>Ishu Kumar (ISHUKR41)</dc:creator>
+      <category>Compress PDF</category>
+      <category>PDF Compressor</category>
+      <category>Ishu Kumar</category>
+      <category>IshuTools</category>
+      <category>ISHUKR41</category>
+      <category>Free PDF Tools India</category>
+      <category>ishu compress pdf</category>
+      <category>ishu kumar pdf compressor</category>
+      <description><![CDATA[
+        <h2>Compress PDF Online Free — by Ishu Kumar (ISHUKR41) | IshuTools.fun</h2>
+        <p>
+          <strong>Ishu Kumar</strong> (GitHub: <strong>ISHUKR41</strong> / ISHUKR75) built the most advanced
+          free PDF compressor at <a href="https://ishutools.fun/tools/compress-pdf/">ishutools.fun/tools/compress-pdf/</a>
+        </p>
+        <h3>12-Engine Compression Pipeline</h3>
+        <ul>
+          <li><strong>Lossless</strong> — pikepdf DEFLATE-9: 2–25% smaller, zero quality change</li>
+          <li><strong>High</strong> — PyMuPDF 200 DPI: 10–40% smaller, near-lossless</li>
+          <li><strong>Medium</strong> — Ghostscript ebook: 40–65% smaller, excellent quality</li>
+          <li><strong>Low</strong> — Ghostscript screen: 55–78% smaller, good quality</li>
+          <li><strong>Screen</strong> — Max compression: 75–92% smaller</li>
+        </ul>
+        <h3>Unique Features by Ishu Kumar</h3>
+        <ul>
+          <li>Target File Size binary-search (±2% accuracy) — unique among free tools</li>
+          <li>Batch compression — multiple PDFs at once</li>
+          <li>India govt portal support — EPFO 500KB, NTA 100KB, UPSC 300KB, DigiLocker 1MB</li>
+          <li>Password-protected PDF support</li>
+          <li>Zero watermark, no signup, no file size limit</li>
+        </ul>
+        <p>
+          <strong>Keywords:</strong> ishu compress pdf, ishu kumar pdf compressor, ISHUKR41 pdf tools,
+          ishutools compress pdf, compress pdf online free, lossless pdf, pdf size kam karna,
+          compress pdf india, ishu tools, ishu ka tool, compress scanned pdf, compress pdf to 100kb,
+          best free pdf compressor india, batch compress pdf, target file size pdf
+        </p>
+        <p>
+          Built by <strong>Ishu Kumar (ISHUKR41)</strong> at <a href="https://ishutools.fun">ishutools.fun</a>.
+          100% free forever — no signup, no watermark, no limits.
+        </p>
+      ]]></description>
+      <content:encoded><![CDATA[
+        <article itemscope itemtype="https://schema.org/SoftwareApplication">
+          <h1 itemprop="name">Ishu Kumar's PDF Compressor — Compress PDF Online Free</h1>
+          <p itemprop="description">
+            Compress PDF online for free with Ishu Kumar's 12-engine pipeline.
+            Lossless, High, Medium, Low, Screen presets. Batch compression.
+            Target file size binary-search. No signup, no watermark, no size limit.
+            Built by <strong itemprop="author">Ishu Kumar</strong> (ISHUKR41) at ishutools.fun.
+          </p>
+          <p><strong>URL:</strong> <a itemprop="url" href="https://ishutools.fun/tools/compress-pdf/">https://ishutools.fun/tools/compress-pdf/</a></p>
+          <p><strong>Price:</strong> <span itemprop="offers" itemscope itemtype="https://schema.org/Offer"><span itemprop="price">0</span> (<span itemprop="priceCurrency">USD</span>) — 100% Free</span></p>
+          <p><strong>Creator:</strong> Ishu Kumar (GitHub: ISHUKR41 / ISHUKR75)</p>
+          <p><strong>Rating:</strong> 4.9/5 (8,472 reviews)</p>
+        </article>
+      ]]></content:encoded>
+      <media:content url="https://ishutools.fun/static/og-compress.png" medium="image" width="1200" height="630">
+        <media:title>Ishu Kumar's PDF Compressor — IshuTools.fun — 12-Engine Pipeline</media:title>
+        <media:description>Compress PDF online free by Ishu Kumar (ISHUKR41). 12 engines: pikepdf, Ghostscript, PyMuPDF, qpdf, mutool. Lossless mode. Batch. Target size. No watermark. ishutools.fun</media:description>
+        <media:keywords>ishu compress pdf, ishu kumar, ISHUKR41, ishutools, compress pdf free, lossless pdf, pdf size reducer</media:keywords>
+      </media:content>
+    </item>
+
     <!-- ═══════════ SPLIT PDF ═══════════ -->
     <item>
-      <title>Split PDF Online Free — 8 Modes by Ishu Kumar | IshuTools.fun</title>
+      <title>Split PDF Online Free — 9 Modes by Ishu Kumar | IshuTools.fun</title>
       <link>https://ishutools.fun/tools/split-pdf/</link>
       <guid isPermaLink="true">https://ishutools.fun/tools/split-pdf/</guid>
-      <pubDate>Thu, 19 Jun 2026 00:00:00 +0530</pubDate>
+      <pubDate>Fri, 20 Jun 2026 00:00:00 +0530</pubDate>
       <dc:creator>Ishu Kumar (ISHUKR41)</dc:creator>
       <category>PDF Tools</category>
       <category>Split PDF</category>
       <category>Ishu Kumar</category>
       <category>IshuTools</category>
       <description><![CDATA[
-        <p>Split PDF online free with 8 professional modes by <strong>Ishu Kumar (ISHUKR41)</strong> at <a href="https://ishutools.fun/tools/split-pdf/">ishutools.fun/tools/split-pdf/</a></p>
+        <p>Split PDF online free with 9 professional modes by <strong>Ishu Kumar (ISHUKR41)</strong> at <a href="https://ishutools.fun/tools/split-pdf/">ishutools.fun/tools/split-pdf/</a></p>
         <ul>
           <li>All Pages — Burst every page into individual PDFs</li>
           <li>Page Range — Extract specific pages</li>
@@ -58,12 +129,13 @@
           <li>Blank Separator — Split at blank pages</li>
           <li>By File Size — Split to target MB</li>
           <li>Odd/Even — Separate odd and even pages</li>
+          <li>By Content Type — Split by page content analysis</li>
         </ul>
         <p>Zero quality loss. No signup. No watermark. No file size limit. 100% free forever. Created by <strong>Ishu Kumar (ISHUKR41 / ISHUKR75)</strong> at ishutools.fun.</p>
       ]]></description>
       <media:content url="https://ishutools.fun/static/icons/og-image.png" medium="image" width="1200" height="630">
         <media:title>Split PDF by Ishu Kumar — IshuTools.fun</media:title>
-        <media:description>Best free PDF splitter online — 8 modes by Ishu Kumar (ISHUKR41)</media:description>
+        <media:description>Best free PDF splitter online — 9 modes by Ishu Kumar (ISHUKR41)</media:description>
       </media:content>
     </item>
 
@@ -72,7 +144,7 @@
       <title>Merge PDF Online Free by Ishu Kumar | IshuTools.fun</title>
       <link>https://ishutools.fun/tools/merge-pdf/</link>
       <guid isPermaLink="true">https://ishutools.fun/tools/merge-pdf/</guid>
-      <pubDate>Thu, 19 Jun 2026 00:00:00 +0530</pubDate>
+      <pubDate>Fri, 20 Jun 2026 00:00:00 +0530</pubDate>
       <dc:creator>Ishu Kumar (ISHUKR41)</dc:creator>
       <category>PDF Tools</category>
       <category>Merge PDF</category>
@@ -80,24 +152,12 @@
       <description><![CDATA[Merge multiple PDF files into one online for free. Drag-and-drop reordering, table of contents generation, page range selection per file. By Ishu Kumar (ISHUKR41) at ishutools.fun. No signup, no watermark, lossless quality.]]></description>
     </item>
 
-    <!-- ═══════════ COMPRESS PDF ═══════════ -->
-    <item>
-      <title>Compress PDF Online Free by Ishu Kumar | IshuTools.fun</title>
-      <link>https://ishutools.fun/tools/compress-pdf/</link>
-      <guid isPermaLink="true">https://ishutools.fun/tools/compress-pdf/</guid>
-      <pubDate>Thu, 19 Jun 2026 00:00:00 +0530</pubDate>
-      <dc:creator>Ishu Kumar (ISHUKR41)</dc:creator>
-      <category>PDF Tools</category>
-      <category>Compress PDF</category>
-      <description><![CDATA[Reduce PDF file size online for free. Professional compression by Ishu Kumar (ISHUKR41) at ishutools.fun. No quality loss, no signup, no size limit.]]></description>
-    </item>
-
     <!-- ═══════════ OCR PDF ═══════════ -->
     <item>
       <title>OCR PDF — Make Scanned PDF Searchable | Ishu Kumar | IshuTools.fun</title>
       <link>https://ishutools.fun/tools/ocr/</link>
       <guid isPermaLink="true">https://ishutools.fun/tools/ocr/</guid>
-      <pubDate>Thu, 19 Jun 2026 00:00:00 +0530</pubDate>
+      <pubDate>Fri, 20 Jun 2026 00:00:00 +0530</pubDate>
       <dc:creator>Ishu Kumar (ISHUKR41)</dc:creator>
       <category>PDF Tools</category>
       <category>OCR</category>
@@ -109,7 +169,7 @@
       <title>AI Summarize PDF Free by Ishu Kumar | IshuTools.fun</title>
       <link>https://ishutools.fun/tools/summarize-pdf/</link>
       <guid isPermaLink="true">https://ishutools.fun/tools/summarize-pdf/</guid>
-      <pubDate>Thu, 19 Jun 2026 00:00:00 +0530</pubDate>
+      <pubDate>Fri, 20 Jun 2026 00:00:00 +0530</pubDate>
       <dc:creator>Ishu Kumar (ISHUKR41)</dc:creator>
       <category>AI PDF Tools</category>
       <category>PDF Summarizer</category>

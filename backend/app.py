@@ -232,6 +232,19 @@ def tool_static(tool_name, filename):
     tool_folder = os.path.join(TOOLS_DIR, tool_name)
     return send_from_directory(tool_folder, filename)
 
+@app.route('/humans.txt')
+def humans_txt():
+    """humans.txt — developer credits by Ishu Kumar (ISHUKR41)."""
+    return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'humans.txt',
+                               mimetype='text/plain')
+
+@app.route('/.well-known/security.txt')
+@app.route('/security.txt')
+def security_txt():
+    """security.txt — security policy by Ishu Kumar (ISHUKR41)."""
+    return send_from_directory(os.path.join(os.path.dirname(__file__), '..', 'seo'), 'security.txt',
+                               mimetype='text/plain')
+
 @app.route('/sitemap.xml')
 def sitemap():
     """Serve the SEO sitemap."""
