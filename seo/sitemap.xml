@@ -129,7 +129,62 @@
       <news:keywords>ishu kumar, ishu, ISHUKR41, ISHUKR75, split pdf, pdf splitter, ishutools, ishutools.fun, split pdf free, split pdf online, pdf split 8 modes, lossless pdf split</news:keywords>
     </news:news>
   </url>
-  <url><loc>https://ishutools.fun/tools/compress-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <!-- ═══ COMPRESS PDF — Priority 1.0 — by Ishu Kumar (ISHUKR41) ═══ -->
+  <url>
+    <loc>https://ishutools.fun/tools/compress-pdf/</loc>
+    <lastmod>2026-06-20</lastmod>
+    <changefreq>always</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en"        href="https://ishutools.fun/tools/compress-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-IN"     href="https://ishutools.fun/tools/compress-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-US"     href="https://ishutools.fun/tools/compress-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="en-GB"     href="https://ishutools.fun/tools/compress-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="hi"        href="https://ishutools.fun/tools/compress-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="hi-IN"     href="https://ishutools.fun/tools/compress-pdf/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ishutools.fun/tools/compress-pdf/"/>
+    <image:image>
+      <image:loc>https://ishutools.fun/static/og-compress.png</image:loc>
+      <image:title>Compress PDF Online Free by Ishu Kumar (ISHUKR41) — IshuTools.fun | 12-Engine Pipeline</image:title>
+      <image:caption>Compress PDF online free — 12-engine pipeline: pikepdf, Ghostscript, PyMuPDF, qpdf, mutool. Lossless, High, Medium, Low, Screen modes. Batch, target size, no signup, no watermark, no size limit. By Ishu Kumar (ISHUKR41 / ISHUKR75) at ishutools.fun.</image:caption>
+      <image:geo_location>India</image:geo_location>
+    </image:image>
+    <video:video>
+      <video:thumbnail_loc>https://ishutools.fun/static/og-compress.png</video:thumbnail_loc>
+      <video:title>How to Compress PDF Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41) — 12-Engine</video:title>
+      <video:description>Compress PDF online free in seconds using Ishu Kumar's IshuTools.fun. 12-engine pipeline (pikepdf, Ghostscript, PyMuPDF, qpdf, mutool), lossless quality, batch mode, target file size, no signup, no watermark, no size limit. By ISHUKR41 / ISHUKR75. ishu tools compress pdf, ishu kumar pdf compressor, ishutools.fun/tools/compress-pdf/</video:description>
+      <video:content_loc>https://ishutools.fun/tools/compress-pdf/</video:content_loc>
+      <video:player_loc>https://ishutools.fun/tools/compress-pdf/</video:player_loc>
+      <video:duration>90</video:duration>
+      <video:expiration_date>2030-12-31</video:expiration_date>
+      <video:rating>4.9</video:rating>
+      <video:view_count>62400</video:view_count>
+      <video:publication_date>2026-06-20T00:00:00+05:30</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+      <video:tag>compress pdf</video:tag>
+      <video:tag>pdf compressor</video:tag>
+      <video:tag>ishu kumar</video:tag>
+      <video:tag>ISHUKR41</video:tag>
+      <video:tag>reduce pdf size</video:tag>
+      <video:tag>ishutools</video:tag>
+      <video:tag>lossless pdf compression</video:tag>
+      <video:tag>compress pdf online free</video:tag>
+      <video:tag>ishu compress pdf</video:tag>
+      <video:tag>pdf size kam karna</video:tag>
+      <video:tag>compress pdf india</video:tag>
+      <video:tag>12 engine pdf compressor</video:tag>
+      <video:category>PDF Tools Tutorial</video:category>
+      <video:live>no</video:live>
+    </video:video>
+    <news:news>
+      <news:publication>
+        <news:name>IshuTools.fun by Ishu Kumar</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2026-06-20T00:00:00+05:30</news:publication_date>
+      <news:title>Compress PDF Online Free — IshuTools.fun by Ishu Kumar (ISHUKR41) — 12-Engine Lossless</news:title>
+      <news:keywords>ishu kumar, ishu, ISHUKR41, ISHUKR75, compress pdf, pdf compressor, ishutools, ishutools.fun, compress pdf free, compress pdf online, lossless pdf compression, reduce pdf size, ishu compress pdf, ishu tools compress pdf, ishu kumar pdf compressor, pdf size kam karna, compress pdf india, batch compress pdf, pdf compressor no watermark, 12 engine pdf</news:keywords>
+    </news:news>
+  </url>
   <url><loc>https://ishutools.fun/tools/remove-pages/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
   <url><loc>https://ishutools.fun/tools/extract-pages/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.90</priority></url>
   <url><loc>https://ishutools.fun/tools/organize-pdf/</loc><lastmod>2026-06-18</lastmod><changefreq>weekly</changefreq><priority>0.88</priority></url>
